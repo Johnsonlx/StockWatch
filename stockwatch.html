@@ -361,8 +361,13 @@ footer{position:relative;z-index:1;background:var(--sur);border-top:1px solid va
 .pur-date{font-size:.7rem;color:var(--mut);font-family:'JetBrains Mono',monospace;margin-top:3px}
 .pur-del-btn{width:26px;height:26px;border:none;background:var(--nbg);color:var(--neg);border-radius:6px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0;align-self:center;transition:all .15s}
 .pur-del-btn:hover{background:var(--neg);color:#fff}
-.pur-edit-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:10px;padding-top:10px;border-top:1px solid var(--cb)}
-.pur-save-btn{margin-top:8px;width:100%}
+.pur-edit-row{display:none;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:10px;padding-top:10px;border-top:1px solid var(--cb)}
+.pur-item.editing .pur-edit-row{display:grid}
+.pur-save-btn{display:none;margin-top:8px;width:100%}
+.pur-item.editing .pur-save-btn{display:flex}
+.pur-edit-btn{width:26px;height:26px;border:none;background:var(--adim);color:var(--acc);border-radius:6px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0;align-self:center;transition:all .15s}
+.pur-edit-btn:hover{background:var(--acc);color:#fff}
+.pur-item.editing .pur-edit-btn{background:var(--acc);color:#fff}
 
 /* Target edit section */
 .pop-tgt{background:var(--adim);border:1px solid var(--acc);border-radius:12px;padding:13px 15px;margin-bottom:18px}
@@ -1479,15 +1484,27 @@ function openPop(id) {
           <div class="pur-val" style="font-size:.82rem">${dStr}</div>
           <div class="pur-date">${p.buyTime||''}</div>
         </div>
+        <button class="pur-edit-btn" id="peb_${p.id}" onclick="togglePurchaseEdit('${p.id}')" title="Kauf bearbeiten"><i class="fa-solid fa-pen"></i></button>
         <button class="pur-del-btn" onclick="deletePurchase('${id}','${p.id}')" title="Kauf entfernen"><i class="fa-solid fa-trash-can"></i></button>
       </div>
-      <!-- Inline edit row -->
+      <!-- Inline edit row (klappt auf via .editing) -->
       <div class="pur-edit-row">
-        <div><div class="pur-lbl">Neuer Preis</div><input class="fi" id="pep_${p.id}" type="number" step="0.0001" value="${p.buyPrice}" style="padding:6px 9px;font-size:.82rem"></div>
-        <div><div class="pur-lbl">Neue Stückzahl</div><input class="fi" id="pes_${p.id}" type="number" step="0.001" value="${p.shares}" style="padding:6px 9px;font-size:.82rem"></div>
-        <div><div class="pur-lbl">Datum</div><input class="fi" id="ped_${p.id}" type="date" value="${p.buyDate||''}" style="padding:6px 9px;font-size:.82rem"></div>
+        <div>
+          <div class="pur-lbl">Einkaufspreis</div>
+          <input class="fi" id="pep_${p.id}" type="number" step="0.0001" value="${p.buyPrice}" placeholder="Preis" style="padding:6px 9px;font-size:.82rem">
+        </div>
+        <div>
+          <div class="pur-lbl">Stückzahl</div>
+          <input class="fi" id="pes_${p.id}" type="number" step="0.001" value="${p.shares}" placeholder="Stücke" style="padding:6px 9px;font-size:.82rem">
+        </div>
+        <div>
+          <div class="pur-lbl">Datum</div>
+          <input class="fi" id="ped_${p.id}" type="date" value="${p.buyDate||''}" style="padding:6px 9px;font-size:.82rem">
+        </div>
       </div>
-      <button class="btn btn-acc btn-sm pur-save-btn" onclick="savePurchaseEdit('${id}','${p.id}')"><i class="fa-solid fa-pen-to-square"></i> Kauf ${i+1} speichern</button>
+      <button class="btn btn-acc btn-sm pur-save-btn" onclick="savePurchaseEdit('${id}','${p.id}')">
+        <i class="fa-solid fa-floppy-disk"></i> Kauf ${i+1} speichern
+      </button>
     </div>`;
   }).join('');
 
@@ -1532,6 +1549,15 @@ async function savePopTarget(stockId) {
   toast('Zielpreis aktualisiert ✓','ts');
 }
 
+async function togglePurchaseEdit(purchaseId) {
+  const item = document.getElementById('purItem_'+purchaseId);
+  if(!item) return;
+  const isOpen = item.classList.contains('editing');
+  // Alle anderen schließen
+  document.querySelectorAll('.pur-item.editing').forEach(el=>el.classList.remove('editing'));
+  if(!isOpen) item.classList.add('editing');
+}
+
 async function savePurchaseEdit(stockId, purchaseId) {
   const s = portfolio.find(x=>x.id===stockId); if(!s) return;
   const p = s.purchases.find(x=>x.id===purchaseId); if(!p) return;
@@ -1540,10 +1566,13 @@ async function savePurchaseEdit(stockId, purchaseId) {
   const newDate   = document.getElementById('ped_'+purchaseId)?.value;
   if(isNaN(newPrice)||newPrice<=0) return toast('Ungültiger Preis.','te');
   if(isNaN(newShares)||newShares<=0) return toast('Ungültige Stückzahl.','te');
-  p.buyPrice = newPrice; p.shares = newShares; p.buyDate = newDate||p.buyDate;
+  p.buyPrice = newPrice;
+  p.shares   = newShares;
+  if(newDate) p.buyDate = newDate;
   save();
-  if(sbClient&&sbUser) await pushSb(s);
+  try { if(typeof sbClient!=='undefined'&&sbClient&&sbUser) await pushSb(s); } catch(_){}
   renderGrid(); updateSummary();
+  // Edit-Modus schließen, Popup neu aufbauen um neue Werte anzuzeigen
   closePop(); openPop(stockId);
   toast('Kauf aktualisiert ✓','ts');
 }
