@@ -299,6 +299,17 @@ footer{position:relative;z-index:1;background:var(--sur);border-top:1px solid va
 .mkt-badge.open{background:var(--pbg);color:var(--pos);border:1px solid var(--pbr)}
 .mkt-badge.closed{background:var(--gbg);color:var(--gld);border:1px solid var(--gbr)}
 
+/* Zeitanzeigen ─────────────────────────────────────────────────────── */
+/* Header: letzte Aktualisierung */
+.rt-time{font-family:'JetBrains Mono',monospace;font-size:.75rem;font-weight:600;
+  color:var(--tx);background:var(--adim);border:1px solid var(--acc);
+  border-radius:7px;padding:3px 9px;letter-spacing:.04em;white-space:nowrap;flex-shrink:0;
+  transition:color .3s,border-color .3s}
+/* Portfolio-Zeile: Stand */
+.upd-time{font-family:'JetBrains Mono',monospace;font-size:.72rem;font-weight:600;
+  color:var(--acc);background:var(--adim);border:1px solid var(--acc);
+  border-radius:6px;padding:2px 8px;letter-spacing:.03em;white-space:nowrap}
+
 /* ═══ RESPONSIVE ══════════════════════════════════════════════════════ */
 @media(max-width:1100px){.sbar{grid-template-columns:repeat(3,1fr)}}
 @media(max-width:700px){
@@ -381,7 +392,7 @@ footer{position:relative;z-index:1;background:var(--sur);border-top:1px solid va
   <div class="hdr-gap"></div>
   <div class="hdr-r">
     <div class="pdot" id="pdot" title="Auto-Refresh"></div>
-    <span class="mono" style="font-size:.68rem;color:var(--sub)" id="rtLbl">—</span>
+    <span class="rt-time" id="rtLbl">—</span>
     <div class="mkt-badge closed" id="mktBadge"><i class="fa-solid fa-circle"></i><span id="mktLbl">Markt</span></div>
     <div class="sync-badge" id="syncBadge"><div class="sync-dot off" id="syncDot"></div><span id="syncLbl">Lokal</span></div>
     <div class="thm-grp" title="Design">
@@ -531,7 +542,7 @@ create policy "own" on public.sw_portfolio
   <div class="arow">
     <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
       <span class="sec-t"><i class="fa-solid fa-layer-group"></i> Portfolio</span>
-      <span class="mono" style="font-size:.69rem;color:var(--mut)" id="updLbl"></span>
+      <span class="upd-time" id="updLbl"></span>
     </div>
     <button class="btn btn-acc btn-sm" onclick="openModal()"><i class="fa-solid fa-plus"></i> Aktie hinzufügen</button>
   </div>
@@ -1108,8 +1119,9 @@ async function doRefresh() {
   if(badKey){toast('API Key ungültig (401).','te');showSetupScreen();}
   save(); renderGrid(); updateSummary();
   const now=new Date();
-  document.getElementById('rtLbl').textContent=now.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});
-  document.getElementById('updLbl').textContent='Stand: '+now.toLocaleTimeString('de-DE');
+  const timeStr = now.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});
+  document.getElementById('rtLbl').textContent = timeStr;
+  document.getElementById('updLbl').textContent = '⟳ Stand: ' + now.toLocaleTimeString('de-DE');
   rb.classList.remove('spin'); rb.disabled=false;
 }
 
@@ -1214,9 +1226,8 @@ function cardHTML(s, idx) {
       <div class="gi"><div class="gilbl">Aktuell</div><div class="gival gs">${posV!=null?fc(posV):'—'}</div></div>
     </div>
     <div class="cf">
-      <div class="cft" style="display:flex;flex-direction:column;gap:3px">
-        <div>${s.lastUpd?'<i class="fa-solid fa-satellite-dish"></i> '+new Date(s.lastUpd).toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'}):'<i class="fa-regular fa-clock"></i> Noch nicht geladen'}</div>
-        ${hp&&s.priceSource?`<span class="src-badge ${s.priceSource==='yahoo'?'src-yahoo':'src-finnhub'}"><i class="fa-solid fa-${s.priceSource==='yahoo'?'y':'bolt'}"></i>${s.priceSource==='yahoo'?'Yahoo Finance':'Finnhub'}${s.exchange?' · '+s.exchange:''}</span>`:''}
+      <div class="cft">
+        ${hp&&s.priceSource?`<span class="src-badge ${s.priceSource==='yahoo'?'src-yahoo':'src-finnhub'}"><i class="fa-solid fa-${s.priceSource==='yahoo'?'y':'bolt'}"></i>${s.priceSource==='yahoo'?'Yahoo Finance':'Finnhub'}${s.exchange?' · '+s.exchange:''}</span>`:'<span style="color:var(--mut);font-size:.65rem"><i class="fa-regular fa-clock"></i> Noch nicht geladen</span>'}
       </div>
       <div class="cfb" onclick="event.stopPropagation()">
         <button class="bic bedt" data-id="${s.id}" title="Bearbeiten/Nachkauf"><i class="fa-solid fa-pen-to-square"></i></button>
