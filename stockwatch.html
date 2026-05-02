@@ -299,6 +299,34 @@ footer{position:relative;z-index:1;background:var(--sur);border-top:1px solid va
 .mkt-badge.open{background:var(--pbg);color:var(--pos);border:1px solid var(--pbr)}
 .mkt-badge.closed{background:var(--gbg);color:var(--gld);border:1px solid var(--gbr)}
 
+/* Filter & Sort Bar ─────────────────────────────────────────────────── */
+.fsbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:13px 18px;background:var(--card);border:1px solid var(--cb);border-radius:14px;margin-bottom:16px}
+.fsbar-sep{width:1px;height:24px;background:var(--cb);flex-shrink:0;margin:0 4px}
+.fsbar-label{font-size:.72rem;font-weight:700;color:var(--sub);text-transform:uppercase;letter-spacing:.07em;white-space:nowrap;flex-shrink:0}
+.fs-chip{display:inline-flex;align-items:center;gap:5px;font-size:.78rem;font-weight:600;padding:6px 13px;border-radius:9px;border:1px solid var(--cb);background:transparent;color:var(--sub);cursor:pointer;white-space:nowrap;transition:all .15s;font-family:inherit;line-height:1}
+.fs-chip:hover{border-color:var(--acc);color:var(--tx);background:var(--adim)}
+.fs-chip.active{background:var(--adim);border-color:var(--acc);color:var(--acc)}
+.fs-chip.active.neg{background:rgba(239,68,68,.1);border-color:var(--neg);color:var(--neg)}
+.fs-chip.active.pos{background:rgba(34,197,94,.1);border-color:var(--pos);color:var(--pos)}
+.fs-chip.active.gld{background:rgba(234,179,8,.1);border-color:var(--gld);color:var(--gld)}
+.fs-chip.active.err{background:rgba(239,68,68,.08);border-color:var(--neg);color:var(--neg)}
+
+/* Custom Sort Wrapper – replaces native select on desktop */
+.fs-sort-wrap{position:relative;display:inline-flex;align-items:center;flex-shrink:0}
+.fs-sort-wrap::after{content:'078';font-family:'Font Awesome 6 Free';font-weight:900;font-size:.6rem;color:var(--acc);position:absolute;right:10px;pointer-events:none;top:50%;transform:translateY(-50%)}
+.fs-sort-select{appearance:none;-webkit-appearance:none;font-size:.8rem;font-weight:600;
+  background:var(--adim);border:1px solid var(--acc);color:var(--tx);
+  border-radius:9px;padding:6px 30px 6px 12px;cursor:pointer;font-family:inherit;
+  transition:all .15s;outline:none;min-width:140px;line-height:1}
+.fs-sort-select:hover{box-shadow:0 0 0 2px color-mix(in srgb,var(--acc) 25%,transparent)}
+.fs-sort-select:focus{box-shadow:0 0 0 2px color-mix(in srgb,var(--acc) 35%,transparent)}
+.fs-sort-select option{background:var(--bg);color:var(--tx);font-size:.82rem}
+
+.fs-dir-btn{width:34px;height:34px;border:1px solid var(--cb);background:transparent;color:var(--sub);border-radius:9px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:.8rem;transition:all .15s;flex-shrink:0}
+.fs-dir-btn:hover{border-color:var(--acc);color:var(--acc);background:var(--adim)}
+.fs-dir-btn.active{border-color:var(--acc);color:var(--acc);background:var(--adim)}
+.fs-count{font-size:.72rem;color:var(--sub);margin-left:auto;white-space:nowrap;font-family:'JetBrains Mono',monospace;padding:4px 10px;background:var(--sur);border:1px solid var(--cb);border-radius:7px}
+
 /* Zeitanzeigen ─────────────────────────────────────────────────────── */
 /* Header: letzte Aktualisierung */
 .rt-time{font-family:'JetBrains Mono',monospace;font-size:.75rem;font-weight:600;
@@ -361,13 +389,18 @@ footer{position:relative;z-index:1;background:var(--sur);border-top:1px solid va
 .pur-date{font-size:.7rem;color:var(--mut);font-family:'JetBrains Mono',monospace;margin-top:3px}
 .pur-del-btn{width:26px;height:26px;border:none;background:var(--nbg);color:var(--neg);border-radius:6px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0;align-self:center;transition:all .15s}
 .pur-del-btn:hover{background:var(--neg);color:#fff}
-.pur-edit-row{display:none;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:10px;padding-top:10px;border-top:1px solid var(--cb)}
+.pur-edit-row{display:none;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px;padding-top:10px;border-top:1px solid var(--cb)}
 .pur-item.editing .pur-edit-row{display:grid}
 .pur-save-btn{display:none;margin-top:8px;width:100%}
 .pur-item.editing .pur-save-btn{display:flex}
 .pur-edit-btn{width:26px;height:26px;border:none;background:var(--adim);color:var(--acc);border-radius:6px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0;align-self:center;transition:all .15s}
 .pur-edit-btn:hover{background:var(--acc);color:#fff}
 .pur-item.editing .pur-edit-btn{background:var(--acc);color:#fff}
+/* Live-Kurs-Button Glow */
+button[id^="purLiveBtn_"]{transition:all .2s;border-color:var(--acc);color:var(--acc)}
+button[id^="purLiveBtn_"]:hover{background:var(--adim);color:var(--acc);box-shadow:0 0 14px color-mix(in srgb,var(--acc) 55%,transparent);border-color:var(--acc)}
+.pur-item.editing button[id^="purLiveBtn_"]{color:var(--acc);border-color:var(--acc);box-shadow:0 0 7px color-mix(in srgb,var(--acc) 40%,transparent);animation:liveGlow 2s ease-in-out infinite}
+@keyframes liveGlow{0%,100%{box-shadow:0 0 5px color-mix(in srgb,var(--acc) 30%,transparent)}50%{box-shadow:0 0 12px color-mix(in srgb,var(--acc) 65%,transparent)}}
 
 /* Target edit section */
 .pop-tgt{background:var(--adim);border:1px solid var(--acc);border-radius:12px;padding:13px 15px;margin-bottom:18px}
@@ -551,6 +584,30 @@ create policy "own" on public.sw_portfolio
     </div>
     <button class="btn btn-acc btn-sm" onclick="openModal()"><i class="fa-solid fa-plus"></i> Aktie hinzufügen</button>
   </div>
+  <!-- Filter & Sort Bar -->
+  <div class="fsbar" id="fsBar">
+    <span class="fsbar-label"><i class="fa-solid fa-filter"></i> Filter</span>
+    <button class="fs-chip active" id="fc-all"    onclick="setFilter('all')"   ><i class="fa-solid fa-border-all"></i> Alle</button>
+    <button class="fs-chip"        id="fc-profit" onclick="setFilter('profit')"><i class="fa-solid fa-arrow-trend-up"></i> Im Plus</button>
+    <button class="fs-chip"        id="fc-loss"   onclick="setFilter('loss')"  ><i class="fa-solid fa-arrow-trend-down"></i> Im Minus</button>
+    <button class="fs-chip"        id="fc-target" onclick="setFilter('target')"><i class="fa-solid fa-bullseye"></i> Ziel erreicht</button>
+    <button class="fs-chip"        id="fc-error"  onclick="setFilter('error')" ><i class="fa-solid fa-circle-exclamation"></i> Kein Kurs</button>
+    <div class="fsbar-sep"></div>
+    <span class="fsbar-label"><i class="fa-solid fa-arrow-up-wide-short"></i> Sortierung</span>
+    <div class="fs-sort-wrap"><select class="fs-sort-select" id="fsSortSel" onchange="setSort(this.value)">
+      <option value="added">Hinzugefügt</option>
+      <option value="name">Symbol A–Z</option>
+      <option value="gain">G/V %</option>
+      <option value="gainval">G/V Betrag</option>
+      <option value="invested">Investiert</option>
+      <option value="price">Kurs</option>
+      <option value="target">Zielpreis</option>
+    </select></div>
+    <button class="fs-dir-btn active" id="fsDirBtn" onclick="toggleDir()" title="Reihenfolge umkehren">
+      <i class="fa-solid fa-arrow-down-short-wide" id="fsDirIcon"></i>
+    </button>
+    <span class="fs-count" id="fsCount"></span>
+  </div>
   <div id="grid"></div>
 </div>
 
@@ -633,6 +690,10 @@ const MARKET_START = 8, MARKET_END = 22; // local hours
 let portfolio  = JSON.parse(localStorage.getItem('sw_p')   || '[]');
 let notified   = new Set();
 let apiKey     = localStorage.getItem('sw_key')  || '';
+// Filter & Sort state
+let fsFilter   = 'all';   // 'all' | 'profit' | 'loss' | 'target' | 'error'
+let fsSort     = 'added'; // 'added' | 'name' | 'gain' | 'gainval' | 'invested' | 'price' | 'target'
+let fsDir      = 'asc';   // 'asc' | 'desc'
 let sbClient   = null, sbUser = null;
 let editId     = null, isRebuy = false;
 let loopTimer  = null, authMode = 'login';
@@ -1147,14 +1208,91 @@ function avgBuyPrice(s) {
 function investedVal(s) { return s.purchases.reduce((a,p)=>a+p.buyPrice*p.shares,0); }
 
 // ─── RENDER ──────────────────────────────────────────────────────────
+// ─── FILTER & SORT ───────────────────────────────────────────────────
+function setFilter(val) {
+  fsFilter = val;
+  document.querySelectorAll('[id^="fc-"]').forEach(el => {
+    el.classList.remove('active','pos','neg','gld','err');
+  });
+  const el = document.getElementById('fc-'+val);
+  if(el) {
+    el.classList.add('active');
+    if(val==='profit') el.classList.add('pos');
+    if(val==='loss')   el.classList.add('neg');
+    if(val==='target') el.classList.add('gld');
+    if(val==='error')  el.classList.add('err');
+  }
+  renderGrid();
+}
+function setSort(val) {
+  fsSort = val;
+  renderGrid();
+}
+function toggleDir() {
+  fsDir = fsDir==='asc' ? 'desc' : 'asc';
+  const icon = document.getElementById('fsDirIcon');
+  if(icon) {
+    icon.className = fsDir==='asc'
+      ? 'fa-solid fa-arrow-down-short-wide'
+      : 'fa-solid fa-arrow-up-wide-short';
+  }
+  renderGrid();
+}
+function updateFsCount(shown, total) {
+  const el = document.getElementById('fsCount');
+  if(!el) return;
+  el.textContent = shown===total ? `${total} Positionen` : `${shown} / ${total} angezeigt`;
+}
+
+function getFilteredSorted() {
+  const avg = s => avgBuyPrice(s);
+  const gain = s => s.price!=null&&!s.fetchError ? (s.price-avg(s))/avg(s)*100 : null;
+  const gainVal = s => { const g=gain(s); return g!=null ? g/100*investedVal(s) : null; };
+
+  let list = [...portfolio];
+
+  // Filter
+  list = list.filter(s => {
+    const g = gain(s);
+    if(fsFilter==='profit') return g!=null && g>0;
+    if(fsFilter==='loss')   return g!=null && g<0;
+    if(fsFilter==='target') return s.price!=null && !s.fetchError && s.price>=s.targetPrice;
+    if(fsFilter==='error')  return s.fetchError || s.price==null;
+    return true;
+  });
+
+  // Sort
+  const dir = fsDir==='asc' ? 1 : -1;
+  list.sort((a,b) => {
+    let va, vb;
+    switch(fsSort) {
+      case 'name':     va=a.symbol; vb=b.symbol; return dir*(va<vb?-1:va>vb?1:0);
+      case 'gain':     va=gain(a)??-Infinity; vb=gain(b)??-Infinity; break;
+      case 'gainval':  va=gainVal(a)??-Infinity; vb=gainVal(b)??-Infinity; break;
+      case 'invested': va=investedVal(a); vb=investedVal(b); break;
+      case 'price':    va=a.price??-1; vb=b.price??-1; break;
+      case 'target':   va=a.targetPrice??0; vb=b.targetPrice??0; break;
+      default:         return 0; // 'added' = original order
+    }
+    return dir*(va-vb);
+  });
+  return list;
+}
+
 function renderGrid() {
   const g=document.getElementById('grid');
   if(!portfolio.length){
     g.innerHTML=`<div class="empty"><div class="ei"><i class="fa-solid fa-chart-line"></i></div><div class="et">Portfolio ist leer</div><div class="es">Klicken Sie „Aktie hinzufügen" um Ihre erste Position einzutragen.</div></div>`;
+    updateFsCount(0,0); return;
+  }
+  const filtered = getFilteredSorted();
+  updateFsCount(filtered.length, portfolio.length);
+  if(!filtered.length){
+    g.innerHTML=`<div class="empty"><div class="ei"><i class="fa-solid fa-filter"></i></div><div class="et">Kein Treffer</div><div class="es">Kein Aktie entspricht dem gewählten Filter.</div></div>`;
     return;
   }
   // Rebuild all cards (simple, no AOS re-trigger issues)
-  g.innerHTML=portfolio.map((s,i)=>cardHTML(s,i)).join('');
+  g.innerHTML=filtered.map((s,i)=>cardHTML(s,i)).join('');
   g.querySelectorAll('.bdel').forEach(b=>b.addEventListener('click',()=>delStock(b.dataset.id)));
   g.querySelectorAll('.bedt').forEach(b=>b.addEventListener('click',()=>openEdit(b.dataset.id)));
 }
@@ -1490,16 +1628,25 @@ function openPop(id) {
       <!-- Inline edit row (klappt auf via .editing) -->
       <div class="pur-edit-row">
         <div>
+          <div class="pur-lbl">Datum</div>
+          <input class="fi" id="ped_${p.id}" type="date" value="${p.buyDate||''}" style="padding:6px 9px;font-size:.82rem" onchange="purDateChanged('${p.id}')">
+        </div>
+        <div>
+          <div class="pur-lbl">Uhrzeit</div>
+          <input class="fi" id="pet_${p.id}" type="time" value="${p.buyTime||''}" style="padding:6px 9px;font-size:.82rem">
+        </div>
+        <div style="position:relative">
           <div class="pur-lbl">Einkaufspreis</div>
-          <input class="fi" id="pep_${p.id}" type="number" step="0.0001" value="${p.buyPrice}" placeholder="Preis" style="padding:6px 9px;font-size:.82rem">
+          <div style="display:flex;gap:5px;align-items:center">
+            <input class="fi" id="pep_${p.id}" type="number" step="0.0001" value="${p.buyPrice}" placeholder="Preis" style="padding:6px 9px;font-size:.82rem;flex:1;min-width:0">
+            <button class="btn btn-ghost btn-sm" id="purLiveBtn_${p.id}" onclick="fetchPurLivePrice('${id}','${p.id}')" title="Kurs für gewähltes Datum abrufen" style="padding:6px 8px;flex-shrink:0;white-space:nowrap">
+              <i class="fa-solid fa-satellite-dish"></i>
+            </button>
+          </div>
         </div>
         <div>
           <div class="pur-lbl">Stückzahl</div>
           <input class="fi" id="pes_${p.id}" type="number" step="0.001" value="${p.shares}" placeholder="Stücke" style="padding:6px 9px;font-size:.82rem">
-        </div>
-        <div>
-          <div class="pur-lbl">Datum</div>
-          <input class="fi" id="ped_${p.id}" type="date" value="${p.buyDate||''}" style="padding:6px 9px;font-size:.82rem">
         </div>
       </div>
       <button class="btn btn-acc btn-sm pur-save-btn" onclick="savePurchaseEdit('${id}','${p.id}')">
@@ -1508,18 +1655,79 @@ function openPop(id) {
     </div>`;
   }).join('');
 
-  const addBtn = `
-    <div style="display:flex;gap:8px;margin-top:4px">
-      <button class="btn btn-ghost btn-sm" onclick="openRebuyFromPop('${id}')" style="flex:1">
-        <i class="fa-solid fa-plus"></i> Weiteren Kauf hinzufügen
-      </button>
-      <button class="btn btn-acc btn-sm" onclick="refreshFromPop('${id}')" id="popRefreshBtn" style="flex:1">
-        <i class="fa-solid fa-satellite-dish"></i> Live Kurs abfragen
-      </button>
-    </div>`;
+  const addBtn = `<button class="btn btn-ghost btn-sm" onclick="openRebuyFromPop('${id}')" style="width:100%"><i class="fa-solid fa-plus"></i> Weiteren Kauf hinzufügen</button>`;
 
   document.getElementById('popBody').innerHTML = sumHtml + tgtHtml + `<div class="pur-lbl" style="margin-bottom:8px"><i class="fa-solid fa-list"></i> Einzelne Käufe</div>` + `<div class="pur-list">${purHtml}</div>` + addBtn;
   document.getElementById('popOv').classList.add('open');
+}
+
+// Datum geändert → Tooltip am Satelliten-Button aktualisieren
+function purDateChanged(purId) {
+  const btn = document.getElementById('purLiveBtn_'+purId);
+  const date = document.getElementById('ped_'+purId)?.value;
+  if(btn && date) btn.title = 'Kurs für ' + new Date(date+'T12:00:00').toLocaleDateString('de-DE') + ' abrufen';
+}
+
+// Live/historischen Kurs für Datum in das Preisfeld eintragen
+async function fetchPurLivePrice(stockId, purId) {
+  const s = portfolio.find(x=>x.id===stockId); if(!s) return;
+  const btn = document.getElementById('purLiveBtn_'+purId);
+  const dateInput = document.getElementById('ped_'+purId);
+  const priceInput = document.getElementById('pep_'+purId);
+  if(!dateInput||!priceInput) return;
+
+  const date = dateInput.value;
+  if(!date) { toast('Bitte zuerst ein Datum wählen.','tw'); return; }
+
+  const origHtml = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+
+  const sym = s.symbol;
+  const today = new Date().toISOString().slice(0,10);
+  let result = null;
+
+  try {
+    if(date >= today) {
+      // Heutiges Datum oder Zukunft → Live-Kurs
+      let q = null;
+      try { q = await fhQ(sym); } catch(_){}
+      if(!q||q.c==null||(q.c===0&&(q.pc==null||q.pc===0))) {
+        try { q = await yahooLiveQuote(sym); } catch(_){}
+      }
+      if(q && (q.c>0 || q.pc>0)) {
+        result = { price: q.c>0 ? q.c : q.pc };
+      }
+    } else {
+      // Historisches Datum → Yahoo Hist, dann Finnhub Candle als Fallback
+      result = await fetchYahooHist(sym, date);
+      if(!result) {
+        const d = new Date(date+'T12:00:00Z');
+        const from = Math.floor(d.getTime()/1000)-259200;
+        const to   = Math.floor(d.getTime()/1000)+259200;
+        const data = await fhC(sym, from, to);
+        if(data.s==='ok' && data.c?.length) {
+          let ci=0, md=Infinity; const tgt=d.getTime()/1000;
+          data.t.forEach((ts,i)=>{ const df=Math.abs(ts-tgt); if(df<md){md=df;ci=i;} });
+          result = { price: data.c[ci] };
+        }
+      }
+    }
+  } catch(e) {
+    if(e.message==='BAD_KEY') toast('API Key ungültig.','te');
+  }
+
+  btn.disabled = false;
+  btn.innerHTML = origHtml;
+
+  if(result?.price) {
+    priceInput.value = result.price.toFixed(4);
+    priceInput.style.borderColor = 'var(--pos)';
+    setTimeout(()=>priceInput.style.borderColor='', 2000);
+    toast('Kurs eingetragen: ' + result.price.toFixed(2) + ' ' + (s.currency||''), 'ts');
+  } else {
+    toast('Kein Kurs für dieses Datum gefunden.','te');
+  }
 }
 
 async function refreshFromPop(stockId) {
@@ -1605,6 +1813,8 @@ async function savePurchaseEdit(stockId, purchaseId) {
   p.buyPrice = newPrice;
   p.shares   = newShares;
   if(newDate) p.buyDate = newDate;
+  const newTime = document.getElementById('pet_'+purchaseId)?.value;
+  if(newTime !== undefined) p.buyTime = newTime;
   save();
   try { if(typeof sbClient!=='undefined'&&sbClient&&sbUser) await pushSb(s); } catch(_){}
   renderGrid(); updateSummary();
