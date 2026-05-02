@@ -198,6 +198,13 @@ header{position:fixed;top:0;left:0;right:0;z-index:300;background:var(--hdr);bac
 .bg-p{background:var(--pbg);color:var(--pos);border:1px solid var(--pbr)}
 .bg-n{background:var(--nbg);color:var(--neg);border:1px solid var(--nbr)}
 .bg-s{background:var(--sur);color:var(--sub);border:1px solid var(--cb)}
+/* Kursquelle-Badge */
+.src-badge{display:inline-flex;align-items:center;gap:3px;font-size:.6rem;font-weight:700;font-family:'JetBrains Mono',monospace;padding:2px 6px;border-radius:4px;white-space:nowrap;letter-spacing:.03em}
+.src-yahoo{background:rgba(112,43,255,.12);color:#8b5cf6;border:1px solid rgba(112,43,255,.28)}
+.src-finnhub{background:rgba(0,180,216,.12);color:#00b4d8;border:1px solid rgba(0,180,216,.28)}
+/* Portfolio-Quellen-Leiste */
+.src-bar{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px;font-size:.72rem;color:var(--sub);font-family:'JetBrains Mono',monospace}
+.src-bar-item{display:flex;align-items:center;gap:4px}
 
 .prow{display:flex;align-items:baseline;gap:8px;margin-bottom:4px;flex-wrap:wrap}
 .pmain{font-size:1.65rem;font-weight:700;font-family:'JetBrains Mono',monospace;line-height:1;transition:color .3s}
@@ -959,7 +966,9 @@ async function yahooLiveQuote(sym) {
       const prevClose = meta.chartPreviousClose || meta.previousClose || price;
       const dayChange = price - prevClose;
       const dayPct = prevClose ? (dayChange / prevClose * 100) : 0;
-      return { c: price, pc: prevClose, d: dayChange, dp: dayPct };
+      const currency = meta.currency || '';
+      const exchange = meta.exchangeName || meta.fullExchangeName || '';
+      return { c: price, pc: prevClose, d: dayChange, dp: dayPct, currency, exchange, _src: 'yahoo' };
     } catch(_) { continue; }
   }
   return null;
@@ -1057,9 +1066,35 @@ async function doRefresh() {
     const livePrice = (q.c===0 && q.pc>0) ? q.pc : q.c;
     s.price=livePrice; s.prevClose=q.pc; s.dayChange=q.d; s.dayPct=q.dp;
     s.fetchError=false; s.lastUpd=Date.now();
+    // Quelle merken (yahoo oder finnhub)
+    s.priceSource = q._src === 'yahoo' ? 'yahoo' : 'finnhub';
+    // Währung + Börse aus Yahoo – NUR für Symbole mit Ländersuffix (.DE, .F, .L …)
+    // Reine US-Ticker (kein Punkt) bekommen KEINE Yahoo-Währung, da Yahoo manchmal
+    // fälschlicherweise EUR zurückgibt (z.B. für SAP → Frankfurter Listing)
+    const hasSuffix = s.symbol.includes('.');
+    if(q._src === 'yahoo') {
+      if(q.currency && hasSuffix) s.currency = q.currency; // immer aktuell halten
+      if(q.exchange)              s.exchange  = q.exchange;
+    }
+    // Explizite Fallbacks wenn noch keine Währung gesetzt
+    if(!s.currency) {
+      if(s.symbol.endsWith('.DE') || s.symbol.endsWith('.F'))  s.currency = 'EUR';
+      else if(s.symbol.endsWith('.SW'))                         s.currency = 'CHF';
+      else if(s.symbol.endsWith('.L'))                          s.currency = 'GBp';
+      else if(!hasSuffix)                                       s.currency = 'USD'; // US-Ticker
+    }
     if(!s.nameFetched){
       s.nameFetched=true;
-      fhP(s.symbol).then(p=>{if(p?.name){s.name=p.name;s.currency=p.currency||s.currency;save();renderGrid();}}).catch(()=>{});
+      fhP(s.symbol).then(p=>{
+        if(p?.name) s.name = p.name;
+        // Finnhub-Profil ist die zuverlässigste Quelle für Währung → immer übernehmen
+        if(p?.currency) s.currency = p.currency;
+        if(p?.currency) s.exchange = p.exchange || s.exchange;
+        save(); renderGrid();
+      }).catch(()=>{});
+    } else if(s.priceSource==='finnhub' && !s.currency) {
+      // Zweiter Versuch falls Währung beim ersten Fetch fehlte
+      fhP(s.symbol).then(p=>{ if(p?.currency){s.currency=p.currency;save();renderGrid();} }).catch(()=>{});
     }
   });
   if(badKey){toast('API Key ungültig (401).','te');showSetupScreen();}
@@ -1171,7 +1206,10 @@ function cardHTML(s, idx) {
       <div class="gi"><div class="gilbl">Aktuell</div><div class="gival gs">${posV!=null?fc(posV):'—'}</div></div>
     </div>
     <div class="cf">
-      <div class="cft">${s.lastUpd?'<i class="fa-solid fa-satellite-dish"></i> '+new Date(s.lastUpd).toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'}):'<i class="fa-regular fa-clock"></i> Noch nicht geladen'}</div>
+      <div class="cft" style="display:flex;flex-direction:column;gap:3px">
+        <div>${s.lastUpd?'<i class="fa-solid fa-satellite-dish"></i> '+new Date(s.lastUpd).toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'}):'<i class="fa-regular fa-clock"></i> Noch nicht geladen'}</div>
+        ${hp&&s.priceSource?`<span class="src-badge ${s.priceSource==='yahoo'?'src-yahoo':'src-finnhub'}"><i class="fa-solid fa-${s.priceSource==='yahoo'?'y':'bolt'}"></i>${s.priceSource==='yahoo'?'Yahoo Finance':'Finnhub'}${s.exchange?' · '+s.exchange:''}</span>`:''}
+      </div>
       <div class="cfb" onclick="event.stopPropagation()">
         <button class="bic bedt" data-id="${s.id}" title="Bearbeiten/Nachkauf"><i class="fa-solid fa-pen-to-square"></i></button>
         <button class="bic bdel" data-id="${s.id}" title="Entfernen"><i class="fa-solid fa-trash-can"></i></button>
