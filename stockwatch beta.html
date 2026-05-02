@@ -1495,7 +1495,10 @@ function openModal() {
   document.getElementById('fShares').value='1';
   document.getElementById('fDate').valueAsDate=new Date();
   const h=document.getElementById('histHint'); h.style.color=''; h.textContent='Datum + Symbol eingeben → „Kurs laden" → historischer Schlusskurs.';
-  const _ov=document.getElementById('ov'); _ov.style.display=''; _ov.classList.add('open');
+  const _ov=document.getElementById('ov');
+  _ov.style.cssText='position:fixed!important;top:0;left:0;right:0;bottom:0;z-index:9998;background:rgba(0,0,0,.72);display:flex;align-items:center;justify-content:center;padding:70px 16px 20px;opacity:1;pointer-events:auto;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)';
+  _ov.classList.add('open');
+  document.body.style.overflow='hidden';
   setTimeout(()=>document.getElementById('fSym').focus(),250);
 }
 function openEdit(id) {
@@ -1522,7 +1525,14 @@ function openEditTarget(id) {
   document.getElementById('fTime').value=latest.buyTime||'';
   document.getElementById('ov').classList.add('open');
 }
-function closeModal() { document.getElementById('ov').classList.remove('open'); editId=null; isRebuy=false; const sym=document.getElementById('fSym'); sym.readOnly=false; sym.style.opacity=''; }
+function closeModal() {
+  const _ov=document.getElementById('ov');
+  _ov.classList.remove('open');
+  _ov.style.cssText='display:none';
+  document.body.style.overflow='';
+  editId=null; isRebuy=false;
+  const sym=document.getElementById('fSym'); sym.readOnly=false; sym.style.opacity='';
+}
 
 async function submitStock() {
   const sym=document.getElementById('fSym').value.trim().toUpperCase();
@@ -1720,7 +1730,10 @@ function openPop(id) {
   const addBtn = `<button class="btn btn-ghost btn-sm" onclick="openRebuyFromPop('${id}')" style="width:100%"><i class="fa-solid fa-plus"></i> Weiteren Kauf hinzufügen</button>`;
 
   document.getElementById('popBody').innerHTML = sumHtml + tgtHtml + `<div class="pur-lbl" style="margin-bottom:8px"><i class="fa-solid fa-list"></i> Einzelne Käufe</div>` + `<div class="pur-list">${purHtml}</div>` + addBtn;
-  const _pov=document.getElementById('popOv'); _pov.style.display=''; _pov.classList.add('open');
+  const _pov=document.getElementById('popOv');
+  _pov.style.cssText='position:fixed!important;top:0;left:0;right:0;bottom:0;z-index:9999;background:rgba(0,0,0,.75);display:flex;align-items:center;justify-content:center;padding:70px 14px 20px;opacity:1;pointer-events:auto;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)';
+  _pov.classList.add('open');
+  document.body.style.overflow='hidden';
 }
 
 // Datum geändert → Tooltip am Satelliten-Button aktualisieren
@@ -1836,7 +1849,10 @@ function openRebuyFromPop(stockId) {
 }
 
 function closePop() {
-  document.getElementById('popOv').classList.remove('open');
+  const _pov=document.getElementById('popOv');
+  _pov.classList.remove('open');
+  _pov.style.cssText='display:none';
+  document.body.style.overflow='';
   popStockId=null;
 }
 
