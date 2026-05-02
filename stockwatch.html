@@ -442,7 +442,6 @@ button[id^="purLiveBtn_"]:hover{background:var(--adim);color:var(--acc);box-shad
 
     <button class="hbtn hidden" id="userBtn" onclick="showSyncScreen()"><i class="fa-solid fa-user"></i><span id="userLbl">Konto</span></button>
     <button class="hbtn hidden" id="setupBtn" onclick="showSetupScreen()"><i class="fa-solid fa-gear"></i></button>
-    <button class="rbtn" id="rBtn" onclick="doRefresh()" title="Aktualisieren"><i class="fa-solid fa-rotate" id="rIco"></i></button>
   </div>
 </header>
 
@@ -577,15 +576,15 @@ create policy "own" on public.sw_portfolio
     <div class="scard"><div class="scico"><i class="fa-solid fa-arrow-trend-up"></i></div><div class="sclbl">Gewinn / Verlust</div><div class="scval vt" id="sG">—</div></div>
     <div class="scard"><div class="scico"><i class="fa-solid fa-bullseye"></i></div><div class="sclbl">Ziele erreicht</div><div class="scval vg" id="sT">0</div></div>
   </div>
-  <div class="arow">
-    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
-      <span class="sec-t"><i class="fa-solid fa-layer-group"></i> Portfolio</span>
-      <span class="upd-time" id="updLbl"></span>
-    </div>
-    <button class="btn btn-acc btn-sm" onclick="openModal()"><i class="fa-solid fa-plus"></i> Aktie hinzufügen</button>
+  <!-- Portfolio Header: Zeile 1 = Titel+Refresh+Zeit  |  Zeile 2 = Filterleiste+AddBtn -->
+  <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px">
+    <span class="sec-t"><i class="fa-solid fa-layer-group"></i> Portfolio</span>
+    <button class="rbtn" id="rBtn" onclick="doRefresh()" title="Aktualisieren"><i class="fa-solid fa-rotate" id="rIco"></i></button>
+    <span class="upd-time" id="updLbl"></span>
   </div>
-  <!-- Filter & Sort Bar -->
-  <div class="fsbar" id="fsBar">
+  <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px">
+    <!-- Filter & Sort Bar inline -->
+    <div class="fsbar" id="fsBar" style="flex:1;margin-bottom:0">
     <span class="fsbar-label"><i class="fa-solid fa-filter"></i> Filter</span>
     <button class="fs-chip active" id="fc-all"    onclick="setFilter('all')"   ><i class="fa-solid fa-border-all"></i> Alle</button>
     <button class="fs-chip"        id="fc-profit" onclick="setFilter('profit')"><i class="fa-solid fa-arrow-trend-up"></i> Im Plus</button>
@@ -607,6 +606,8 @@ create policy "own" on public.sw_portfolio
       <i class="fa-solid fa-arrow-down-short-wide" id="fsDirIcon"></i>
     </button>
     <span class="fs-count" id="fsCount"></span>
+    </div>
+    <button class="btn btn-acc btn-sm" onclick="openModal()" style="flex-shrink:0"><i class="fa-solid fa-plus"></i> Aktie hinzufügen</button>
   </div>
   <div id="grid"></div>
 </div>
