@@ -688,6 +688,15 @@ setInterval(updateMarketBadge, 30000);
 updateMarketBadge();
 
 // ─── INIT ────────────────────────────────────────────────────────────
+// Einmalige Korrektur: US-Ticker ohne Suffix müssen USD haben
+portfolio.forEach(s => {
+  if(!s.symbol.includes('.') && s.currency && s.currency !== 'USD') {
+    s.currency = 'USD';
+    s.nameFetched = false; // Name/Exchange neu laden
+  }
+});
+save();
+
 async function init() {
   if (!apiKey) { showSetupScreen(); return; }
   const sbUrl = localStorage.getItem('sw_sb_url');
@@ -1087,14 +1096,13 @@ async function doRefresh() {
       s.nameFetched=true;
       fhP(s.symbol).then(p=>{
         if(p?.name) s.name = p.name;
-        // Finnhub-Profil ist die zuverlässigste Quelle für Währung → immer übernehmen
-        if(p?.currency) s.currency = p.currency;
-        if(p?.currency) s.exchange = p.exchange || s.exchange;
+        // Profil-Währung NUR für Symbole MIT Suffix übernehmen.
+        // US-Ticker (kein Punkt) → immer USD, da Finnhub-Profil für z.B. "SAP"
+        // fälschlicherweise XETRA/EUR meldet, der Quote-Preis aber NYSE/USD ist.
+        if(p?.currency && s.symbol.includes('.')) s.currency = p.currency;
+        if(p?.exchange  && s.symbol.includes('.')) s.exchange = p.exchange;
         save(); renderGrid();
       }).catch(()=>{});
-    } else if(s.priceSource==='finnhub' && !s.currency) {
-      // Zweiter Versuch falls Währung beim ersten Fetch fehlte
-      fhP(s.symbol).then(p=>{ if(p?.currency){s.currency=p.currency;save();renderGrid();} }).catch(()=>{});
     }
   });
   if(badKey){toast('API Key ungültig (401).','te');showSetupScreen();}
