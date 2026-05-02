@@ -257,7 +257,7 @@ header{position:fixed;top:0;left:0;right:0;z-index:300;background:var(--hdr);bac
 .es{font-size:.85rem;max-width:300px;margin:0 auto;line-height:1.65}
 
 /* ═══ MODAL ══════════════════════════════════════════════════════════ */
-.ov{position:fixed;inset:0;z-index:400;background:rgba(0,0,0,.72);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);display:flex;align-items:flex-start;justify-content:center;padding:calc(70px + env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) calc(20px + env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left));opacity:0;pointer-events:none;transition:opacity .22s;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.ov{position:fixed;inset:0;z-index:400;background:rgba(0,0,0,.72);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);display:flex;align-items:center;justify-content:center;padding:calc(70px + env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) calc(20px + env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left));opacity:0;pointer-events:none;transition:opacity .22s}
 .ov.open{opacity:1;pointer-events:all}
 .modal{background:var(--sur);border:1px solid var(--cb);border-radius:20px;padding:26px;width:100%;max-width:460px;transform:translateY(20px) scale(.97);transition:transform .25s cubic-bezier(.4,0,.2,1),background .3s,border-color .3s;box-shadow:0 28px 70px var(--shd);max-height:88vh;overflow-y:auto;-webkit-overflow-scrolling:touch}
 .ov.open .modal{transform:translateY(0) scale(1)}
@@ -309,18 +309,11 @@ footer{position:relative;z-index:1;background:var(--sur);border-top:1px solid va
 .mkt-badge.open{background:var(--pbg);color:var(--pos);border:1px solid var(--pbr)}
 .mkt-badge.closed{background:var(--gbg);color:var(--gld);border:1px solid var(--gbr)}
 
-/* Portfolio Header Row ──────────────────────────────────────────────── */
-.pf-header{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px}
-.pf-header .fsbar{flex:1 1 320px;margin-bottom:0;min-width:0}
-.pf-header .pf-addbtn{flex-shrink:0;min-height:40px}
-@media(max-width:900px){
-  .pf-header{gap:8px}
-  .pf-header .fsbar{flex:1 1 100%;order:99}
-  .pf-header .pf-addbtn{margin-left:auto}
-}
+/* Portfolio Header Row 1 ────────────────────────────────────────────── */
+.pf-header{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.pf-header .pf-addbtn{flex-shrink:0;min-height:40px;margin-left:auto}
 @media(max-width:560px){
-  .pf-header .pf-addbtn{width:100%;margin-left:0;order:50}
-  .pf-header .fsbar{order:99}
+  .pf-header .pf-addbtn{width:100%;margin-left:0}
 }
 
 /* Filter & Sort Bar ─────────────────────────────────────────────────── */
@@ -364,10 +357,7 @@ footer{position:relative;z-index:1;background:var(--sur);border-top:1px solid va
 
 /* ═══ RESPONSIVE ══════════════════════════════════════════════════════ */
 @media(max-width:1100px){.sbar{grid-template-columns:repeat(3,1fr)}}
-@media(max-width:900px){
-  /* Filter-Leiste auf eigene Zeile, addBtn neben Portfolio-Titel */
-  .fsbar{flex:1 1 100% !important;order:3;margin-top:6px}
-}
+
 @media(max-width:700px){
   header{padding:max(0px,env(safe-area-inset-top)) max(12px,env(safe-area-inset-right)) 0 max(12px,env(safe-area-inset-left));gap:6px;min-height:56px}
   #app{padding:calc(68px + env(safe-area-inset-top)) max(12px,env(safe-area-inset-right)) 0 max(12px,env(safe-area-inset-left))}
@@ -391,7 +381,7 @@ footer{position:relative;z-index:1;background:var(--sur);border-top:1px solid va
   .rt-time{font-size:.68rem;padding:3px 7px}
   .mkt-badge{font-size:.65rem;padding:3px 6px}
   /* Filter-Leiste auf Mobile */
-  .fsbar{padding:10px 12px;gap:7px;flex:1 1 100% !important;order:3;margin-top:6px}
+  .fsbar{padding:10px 12px;gap:7px}
   .fsbar-label{font-size:.65rem}
   .fs-chip{font-size:.74rem;padding:7px 11px;min-height:36px}
   .fs-sort-select{font-size:.78rem;min-width:130px;padding:8px 28px 8px 11px;min-height:38px}
@@ -442,7 +432,7 @@ footer{position:relative;z-index:1;background:var(--sur);border-top:1px solid va
 
 
 /* ═══ PURCHASE DETAIL POPUP ══════════════════════════════════════════ */
-.pop-ov{position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.75);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);display:flex;align-items:flex-start;justify-content:center;padding:calc(70px + env(safe-area-inset-top)) max(14px,env(safe-area-inset-right)) calc(20px + env(safe-area-inset-bottom)) max(14px,env(safe-area-inset-left));opacity:0;pointer-events:none;transition:opacity .22s;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.pop-ov{position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.75);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);display:flex;align-items:center;justify-content:center;padding:calc(70px + env(safe-area-inset-top)) max(14px,env(safe-area-inset-right)) calc(20px + env(safe-area-inset-bottom)) max(14px,env(safe-area-inset-left));opacity:0;pointer-events:none;transition:opacity .22s}
 .pop-ov.open{opacity:1;pointer-events:all}
 .pop-box{background:var(--sur);border:1px solid var(--cb);border-radius:20px;width:100%;max-width:520px;max-height:84vh;overflow-y:auto;-webkit-overflow-scrolling:touch;box-shadow:0 28px 70px var(--shd);transform:translateY(22px) scale(.97);transition:transform .25s cubic-bezier(.4,0,.2,1),background .3s}
 .pop-ov.open .pop-box{transform:translateY(0) scale(1)}
@@ -649,13 +639,15 @@ create policy "own" on public.sw_portfolio
     <div class="scard"><div class="scico"><i class="fa-solid fa-arrow-trend-up"></i></div><div class="sclbl">Gewinn / Verlust</div><div class="scval vt" id="sG">—</div></div>
     <div class="scard"><div class="scico"><i class="fa-solid fa-bullseye"></i></div><div class="sclbl">Ziele erreicht</div><div class="scval vg" id="sT">0</div></div>
   </div>
-  <!-- Portfolio Header: Titel + Refresh + Stand + Filter + AddBtn -->
+  <!-- Portfolio Header Zeile 1: Titel + Refresh + Stand + AddBtn -->
   <div class="pf-header">
     <span class="sec-t"><i class="fa-solid fa-layer-group"></i> Portfolio</span>
     <button class="rbtn" id="rBtn" onclick="doRefresh()" title="Aktualisieren"><i class="fa-solid fa-rotate" id="rIco"></i></button>
     <span class="upd-time" id="updLbl"></span>
-    <!-- Filter & Sort Bar inline -->
-    <div class="fsbar" id="fsBar">
+    <button class="btn btn-acc btn-sm pf-addbtn" onclick="openModal()"><i class="fa-solid fa-plus"></i> Aktie hinzufügen</button>
+  </div>
+  <!-- Portfolio Header Zeile 2: Filter & Sort Bar -->
+  <div class="fsbar" id="fsBar">
     <span class="fsbar-label"><i class="fa-solid fa-filter"></i> Filter</span>
     <button class="fs-chip active" id="fc-all"    onclick="setFilter('all')"   ><i class="fa-solid fa-border-all"></i> Alle</button>
     <button class="fs-chip"        id="fc-profit" onclick="setFilter('profit')"><i class="fa-solid fa-arrow-trend-up"></i> Im Plus</button>
@@ -677,8 +669,6 @@ create policy "own" on public.sw_portfolio
       <i class="fa-solid fa-arrow-down-short-wide" id="fsDirIcon"></i>
     </button>
     <span class="fs-count" id="fsCount"></span>
-    </div>
-    <button class="btn btn-acc btn-sm pf-addbtn" onclick="openModal()"><i class="fa-solid fa-plus"></i> Aktie hinzufügen</button>
   </div>
   <div id="grid"></div>
 </div>
