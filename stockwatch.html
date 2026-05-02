@@ -361,7 +361,7 @@ footer{position:relative;z-index:1;background:var(--sur);border-top:1px solid va
 .pur-date{font-size:.7rem;color:var(--mut);font-family:'JetBrains Mono',monospace;margin-top:3px}
 .pur-del-btn{width:26px;height:26px;border:none;background:var(--nbg);color:var(--neg);border-radius:6px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0;align-self:center;transition:all .15s}
 .pur-del-btn:hover{background:var(--neg);color:#fff}
-.pur-edit-row{display:none;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:10px;padding-top:10px;border-top:1px solid var(--cb)}
+.pur-edit-row{display:none;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px;padding-top:10px;border-top:1px solid var(--cb)}
 .pur-item.editing .pur-edit-row{display:grid}
 .pur-save-btn{display:none;margin-top:8px;width:100%}
 .pur-item.editing .pur-save-btn{display:flex}
@@ -1490,16 +1490,25 @@ function openPop(id) {
       <!-- Inline edit row (klappt auf via .editing) -->
       <div class="pur-edit-row">
         <div>
+          <div class="pur-lbl">Datum</div>
+          <input class="fi" id="ped_${p.id}" type="date" value="${p.buyDate||''}" style="padding:6px 9px;font-size:.82rem" onchange="purDateChanged('${p.id}')">
+        </div>
+        <div>
+          <div class="pur-lbl">Uhrzeit</div>
+          <input class="fi" id="pet_${p.id}" type="time" value="${p.buyTime||''}" style="padding:6px 9px;font-size:.82rem">
+        </div>
+        <div style="position:relative">
           <div class="pur-lbl">Einkaufspreis</div>
-          <input class="fi" id="pep_${p.id}" type="number" step="0.0001" value="${p.buyPrice}" placeholder="Preis" style="padding:6px 9px;font-size:.82rem">
+          <div style="display:flex;gap:5px;align-items:center">
+            <input class="fi" id="pep_${p.id}" type="number" step="0.0001" value="${p.buyPrice}" placeholder="Preis" style="padding:6px 9px;font-size:.82rem;flex:1;min-width:0">
+            <button class="btn btn-ghost btn-sm" id="purLiveBtn_${p.id}" onclick="fetchPurLivePrice('${id}','${p.id}')" title="Kurs für gewähltes Datum abrufen" style="padding:6px 8px;flex-shrink:0;white-space:nowrap">
+              <i class="fa-solid fa-satellite-dish"></i>
+            </button>
+          </div>
         </div>
         <div>
           <div class="pur-lbl">Stückzahl</div>
           <input class="fi" id="pes_${p.id}" type="number" step="0.001" value="${p.shares}" placeholder="Stücke" style="padding:6px 9px;font-size:.82rem">
-        </div>
-        <div>
-          <div class="pur-lbl">Datum</div>
-          <input class="fi" id="ped_${p.id}" type="date" value="${p.buyDate||''}" style="padding:6px 9px;font-size:.82rem">
         </div>
       </div>
       <button class="btn btn-acc btn-sm pur-save-btn" onclick="savePurchaseEdit('${id}','${p.id}')">
@@ -1508,18 +1517,79 @@ function openPop(id) {
     </div>`;
   }).join('');
 
-  const addBtn = `
-    <div style="display:flex;gap:8px;margin-top:4px">
-      <button class="btn btn-ghost btn-sm" onclick="openRebuyFromPop('${id}')" style="flex:1">
-        <i class="fa-solid fa-plus"></i> Weiteren Kauf hinzufügen
-      </button>
-      <button class="btn btn-acc btn-sm" onclick="refreshFromPop('${id}')" id="popRefreshBtn" style="flex:1">
-        <i class="fa-solid fa-satellite-dish"></i> Live Kurs abfragen
-      </button>
-    </div>`;
+  const addBtn = `<button class="btn btn-ghost btn-sm" onclick="openRebuyFromPop('${id}')" style="width:100%"><i class="fa-solid fa-plus"></i> Weiteren Kauf hinzufügen</button>`;
 
   document.getElementById('popBody').innerHTML = sumHtml + tgtHtml + `<div class="pur-lbl" style="margin-bottom:8px"><i class="fa-solid fa-list"></i> Einzelne Käufe</div>` + `<div class="pur-list">${purHtml}</div>` + addBtn;
   document.getElementById('popOv').classList.add('open');
+}
+
+// Datum geändert → Tooltip am Satelliten-Button aktualisieren
+function purDateChanged(purId) {
+  const btn = document.getElementById('purLiveBtn_'+purId);
+  const date = document.getElementById('ped_'+purId)?.value;
+  if(btn && date) btn.title = 'Kurs für ' + new Date(date+'T12:00:00').toLocaleDateString('de-DE') + ' abrufen';
+}
+
+// Live/historischen Kurs für Datum in das Preisfeld eintragen
+async function fetchPurLivePrice(stockId, purId) {
+  const s = portfolio.find(x=>x.id===stockId); if(!s) return;
+  const btn = document.getElementById('purLiveBtn_'+purId);
+  const dateInput = document.getElementById('ped_'+purId);
+  const priceInput = document.getElementById('pep_'+purId);
+  if(!dateInput||!priceInput) return;
+
+  const date = dateInput.value;
+  if(!date) { toast('Bitte zuerst ein Datum wählen.','tw'); return; }
+
+  const origHtml = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+
+  const sym = s.symbol;
+  const today = new Date().toISOString().slice(0,10);
+  let result = null;
+
+  try {
+    if(date >= today) {
+      // Heutiges Datum oder Zukunft → Live-Kurs
+      let q = null;
+      try { q = await fhQ(sym); } catch(_){}
+      if(!q||q.c==null||(q.c===0&&(q.pc==null||q.pc===0))) {
+        try { q = await yahooLiveQuote(sym); } catch(_){}
+      }
+      if(q && (q.c>0 || q.pc>0)) {
+        result = { price: q.c>0 ? q.c : q.pc };
+      }
+    } else {
+      // Historisches Datum → Yahoo Hist, dann Finnhub Candle als Fallback
+      result = await fetchYahooHist(sym, date);
+      if(!result) {
+        const d = new Date(date+'T12:00:00Z');
+        const from = Math.floor(d.getTime()/1000)-259200;
+        const to   = Math.floor(d.getTime()/1000)+259200;
+        const data = await fhC(sym, from, to);
+        if(data.s==='ok' && data.c?.length) {
+          let ci=0, md=Infinity; const tgt=d.getTime()/1000;
+          data.t.forEach((ts,i)=>{ const df=Math.abs(ts-tgt); if(df<md){md=df;ci=i;} });
+          result = { price: data.c[ci] };
+        }
+      }
+    }
+  } catch(e) {
+    if(e.message==='BAD_KEY') toast('API Key ungültig.','te');
+  }
+
+  btn.disabled = false;
+  btn.innerHTML = origHtml;
+
+  if(result?.price) {
+    priceInput.value = result.price.toFixed(4);
+    priceInput.style.borderColor = 'var(--pos)';
+    setTimeout(()=>priceInput.style.borderColor='', 2000);
+    toast('Kurs eingetragen: ' + result.price.toFixed(2) + ' ' + (s.currency||''), 'ts');
+  } else {
+    toast('Kein Kurs für dieses Datum gefunden.','te');
+  }
 }
 
 async function refreshFromPop(stockId) {
@@ -1605,6 +1675,8 @@ async function savePurchaseEdit(stockId, purchaseId) {
   p.buyPrice = newPrice;
   p.shares   = newShares;
   if(newDate) p.buyDate = newDate;
+  const newTime = document.getElementById('pet_'+purchaseId)?.value;
+  if(newTime !== undefined) p.buyTime = newTime;
   save();
   try { if(typeof sbClient!=='undefined'&&sbClient&&sbUser) await pushSb(s); } catch(_){}
   renderGrid(); updateSummary();
