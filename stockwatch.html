@@ -941,6 +941,30 @@ const fhQ = s => fh(`/quote?symbol=${encodeURIComponent(s)}`);
 const fhP = s => fh(`/stock/profile2?symbol=${encodeURIComponent(s)}`);
 const fhC = (s,f,t) => fh(`/stock/candle?symbol=${encodeURIComponent(s)}&resolution=D&from=${f}&to=${t}`);
 
+// ─── YAHOO FINANCE LIVE QUOTE (Fallback für .DE und andere nicht-US Symbole) ──
+async function yahooLiveQuote(sym) {
+  const yfUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(sym)}?interval=1m&range=1d`;
+  for (const proxy of [
+    `https://corsproxy.io/?url=${encodeURIComponent(yfUrl)}`,
+    `https://api.allorigins.win/raw?url=${encodeURIComponent(yfUrl)}`
+  ]) {
+    try {
+      const r = await fetch(proxy, {signal: AbortSignal.timeout(10000)});
+      if (!r.ok) continue;
+      const data = await r.json();
+      const meta = data?.chart?.result?.[0]?.meta;
+      if (!meta) continue;
+      const price = meta.regularMarketPrice || meta.previousClose;
+      if (!price) continue;
+      const prevClose = meta.chartPreviousClose || meta.previousClose || price;
+      const dayChange = price - prevClose;
+      const dayPct = prevClose ? (dayChange / prevClose * 100) : 0;
+      return { c: price, pc: prevClose, d: dayChange, dp: dayPct };
+    } catch(_) { continue; }
+  }
+  return null;
+}
+
 // ─── YAHOO HISTORICAL ────────────────────────────────────────────────
 async function fetchYahooHist(sym, dateStr) {
   const d=new Date(dateStr+'T12:00:00Z');
@@ -1011,14 +1035,25 @@ async function doRefresh() {
   let badKey=false;
   const syms=[...new Set(portfolio.map(s=>s.symbol))];
   const qMap={};
+  // Erst Finnhub versuchen
   await Promise.allSettled(syms.map(sym=>fhQ(sym).then(q=>{qMap[sym]=q;}).catch(e=>{
     if(e.message==='BAD_KEY') badKey=true;
     else qMap[sym]=null;
   })));
+  // Für Symbole bei denen Finnhub keine gültigen Daten liefert → Yahoo Finance Fallback
+  const needYahoo = syms.filter(sym=>{
+    const q=qMap[sym];
+    return !q || q.c==null || (q.c===0 && (q.pc==null||q.pc===0) && q.o===0);
+  });
+  if(needYahoo.length) {
+    await Promise.allSettled(needYahoo.map(sym=>
+      yahooLiveQuote(sym).then(q=>{ if(q) qMap[sym]=q; }).catch(()=>{})
+    ));
+  }
   portfolio.forEach(s=>{
     const q=qMap[s.symbol];
-    if(!q||q.c==null||(q.c===0&&(q.pc==null||q.pc===0)&&q.o===0)){s.fetchError=true;return;}
-    // Fallback: wenn c=0 (Markt geschlossen) aber pc vorhanden → letzten Schlusskurs verwenden
+    if(!q||q.c==null||(q.c===0&&(q.pc==null||q.pc===0))){s.fetchError=true;return;}
+    // Wenn c=0 aber pc vorhanden (Markt geschlossen) → letzten Schlusskurs anzeigen
     const livePrice = (q.c===0 && q.pc>0) ? q.pc : q.c;
     s.price=livePrice; s.prevClose=q.pc; s.dayChange=q.d; s.dayPct=q.dp;
     s.fetchError=false; s.lastUpd=Date.now();
@@ -1026,7 +1061,6 @@ async function doRefresh() {
       s.nameFetched=true;
       fhP(s.symbol).then(p=>{if(p?.name){s.name=p.name;s.currency=p.currency||s.currency;save();renderGrid();}}).catch(()=>{});
     }
-
   });
   if(badKey){toast('API Key ungültig (401).','te');showSetupScreen();}
   save(); renderGrid(); updateSummary();
@@ -1118,7 +1152,7 @@ function cardHTML(s, idx) {
       <div class="pmain" style="color:${pc}">${hp?f(s.price):'—'}</div>
       <div class="pcur">${cur}</div>${dayH}
     </div>
-    ${s.fetchError?`<div class="errmsg"><i class="fa-solid fa-circle-exclamation"></i> Symbol nicht gefunden. WKN ≠ Ticker! US: <b>NOW</b> · DAX: <b>SAP.DE · BMW.DE</b>. <a href="https://finance.yahoo.com/lookup/" target="_blank" style="color:var(--acc)">Ticker suchen</a></div>`:''}
+    ${s.fetchError?`<div class="errmsg"><i class="fa-solid fa-circle-exclamation"></i> Kurs nicht abrufbar. WKN ≠ Ticker! DAX-Beispiele: <b>SAP.DE · BMW.DE · SIE.DE</b> &nbsp;|&nbsp; US: <b>AAPL · NOW</b>. <a href="https://finance.yahoo.com/lookup/" target="_blank" style="color:var(--acc)">Ticker nachschlagen</a></div>`:''}
     <div class="dvd"></div>
     <div class="pd">
       <div><div class="pdlbl"><i class="fa-solid fa-tag"></i> Ø Einkauf</div><div class="pdval avg">${fc(avg)}</div></div>
