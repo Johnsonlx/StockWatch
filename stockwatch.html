@@ -300,22 +300,32 @@ footer{position:relative;z-index:1;background:var(--sur);border-top:1px solid va
 .mkt-badge.closed{background:var(--gbg);color:var(--gld);border:1px solid var(--gbr)}
 
 /* Filter & Sort Bar ─────────────────────────────────────────────────── */
-.fsbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:10px 14px;background:var(--card);border:1px solid var(--cb);border-radius:12px;margin-bottom:14px}
-.fsbar-sep{width:1px;height:20px;background:var(--cb);flex-shrink:0;margin:0 2px}
-.fsbar-label{font-size:.65rem;font-weight:700;color:var(--sub);text-transform:uppercase;letter-spacing:.06em;white-space:nowrap;flex-shrink:0}
-.fs-chip{display:inline-flex;align-items:center;gap:4px;font-size:.7rem;font-weight:600;padding:4px 10px;border-radius:7px;border:1px solid var(--cb);background:transparent;color:var(--sub);cursor:pointer;white-space:nowrap;transition:all .15s;font-family:inherit}
-.fs-chip:hover{border-color:var(--acc);color:var(--tx)}
+.fsbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:13px 18px;background:var(--card);border:1px solid var(--cb);border-radius:14px;margin-bottom:16px}
+.fsbar-sep{width:1px;height:24px;background:var(--cb);flex-shrink:0;margin:0 4px}
+.fsbar-label{font-size:.72rem;font-weight:700;color:var(--sub);text-transform:uppercase;letter-spacing:.07em;white-space:nowrap;flex-shrink:0}
+.fs-chip{display:inline-flex;align-items:center;gap:5px;font-size:.78rem;font-weight:600;padding:6px 13px;border-radius:9px;border:1px solid var(--cb);background:transparent;color:var(--sub);cursor:pointer;white-space:nowrap;transition:all .15s;font-family:inherit;line-height:1}
+.fs-chip:hover{border-color:var(--acc);color:var(--tx);background:var(--adim)}
 .fs-chip.active{background:var(--adim);border-color:var(--acc);color:var(--acc)}
 .fs-chip.active.neg{background:rgba(239,68,68,.1);border-color:var(--neg);color:var(--neg)}
 .fs-chip.active.pos{background:rgba(34,197,94,.1);border-color:var(--pos);color:var(--pos)}
 .fs-chip.active.gld{background:rgba(234,179,8,.1);border-color:var(--gld);color:var(--gld)}
 .fs-chip.active.err{background:rgba(239,68,68,.08);border-color:var(--neg);color:var(--neg)}
-.fs-sort-select{font-size:.7rem;font-weight:600;background:transparent;border:1px solid var(--cb);color:var(--sub);border-radius:7px;padding:4px 8px;cursor:pointer;font-family:inherit;transition:all .15s;outline:none}
-.fs-sort-select:hover,.fs-sort-select:focus{border-color:var(--acc);color:var(--tx)}
-.fs-dir-btn{width:28px;height:28px;border:1px solid var(--cb);background:transparent;color:var(--sub);border-radius:7px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:.75rem;transition:all .15s;flex-shrink:0}
-.fs-dir-btn:hover{border-color:var(--acc);color:var(--acc)}
+
+/* Custom Sort Wrapper – replaces native select on desktop */
+.fs-sort-wrap{position:relative;display:inline-flex;align-items:center;flex-shrink:0}
+.fs-sort-wrap::after{content:'078';font-family:'Font Awesome 6 Free';font-weight:900;font-size:.6rem;color:var(--acc);position:absolute;right:10px;pointer-events:none;top:50%;transform:translateY(-50%)}
+.fs-sort-select{appearance:none;-webkit-appearance:none;font-size:.8rem;font-weight:600;
+  background:var(--adim);border:1px solid var(--acc);color:var(--tx);
+  border-radius:9px;padding:6px 30px 6px 12px;cursor:pointer;font-family:inherit;
+  transition:all .15s;outline:none;min-width:140px;line-height:1}
+.fs-sort-select:hover{box-shadow:0 0 0 2px color-mix(in srgb,var(--acc) 25%,transparent)}
+.fs-sort-select:focus{box-shadow:0 0 0 2px color-mix(in srgb,var(--acc) 35%,transparent)}
+.fs-sort-select option{background:var(--bg);color:var(--tx);font-size:.82rem}
+
+.fs-dir-btn{width:34px;height:34px;border:1px solid var(--cb);background:transparent;color:var(--sub);border-radius:9px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:.8rem;transition:all .15s;flex-shrink:0}
+.fs-dir-btn:hover{border-color:var(--acc);color:var(--acc);background:var(--adim)}
 .fs-dir-btn.active{border-color:var(--acc);color:var(--acc);background:var(--adim)}
-.fs-count{font-size:.65rem;color:var(--sub);margin-left:auto;white-space:nowrap;font-family:'JetBrains Mono',monospace}
+.fs-count{font-size:.72rem;color:var(--sub);margin-left:auto;white-space:nowrap;font-family:'JetBrains Mono',monospace;padding:4px 10px;background:var(--sur);border:1px solid var(--cb);border-radius:7px}
 
 /* Zeitanzeigen ─────────────────────────────────────────────────────── */
 /* Header: letzte Aktualisierung */
@@ -584,7 +594,7 @@ create policy "own" on public.sw_portfolio
     <button class="fs-chip"        id="fc-error"  onclick="setFilter('error')" ><i class="fa-solid fa-circle-exclamation"></i> Kein Kurs</button>
     <div class="fsbar-sep"></div>
     <span class="fsbar-label"><i class="fa-solid fa-arrow-up-wide-short"></i> Sortierung</span>
-    <select class="fs-sort-select" id="fsSortSel" onchange="setSort(this.value)">
+    <div class="fs-sort-wrap"><select class="fs-sort-select" id="fsSortSel" onchange="setSort(this.value)">
       <option value="added">Hinzugefügt</option>
       <option value="name">Symbol A–Z</option>
       <option value="gain">G/V %</option>
@@ -592,7 +602,7 @@ create policy "own" on public.sw_portfolio
       <option value="invested">Investiert</option>
       <option value="price">Kurs</option>
       <option value="target">Zielpreis</option>
-    </select>
+    </select></div>
     <button class="fs-dir-btn active" id="fsDirBtn" onclick="toggleDir()" title="Reihenfolge umkehren">
       <i class="fa-solid fa-arrow-down-short-wide" id="fsDirIcon"></i>
     </button>
