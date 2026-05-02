@@ -1,0 +1,1596 @@
+<!DOCTYPE html>
+<html lang="de" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>StockWatch — Portfolio Tracker</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<style>
+/* ═══ THEMES ═════════════════════════════════════════════════════════ */
+[data-theme="dark"]{
+  --bg:#080b14;--sur:#0e1120;--card:#131626;--cb:#1e2240;--hov:#181c30;
+  --acc:#5c6bff;--adim:rgba(92,107,255,.18);--aglow:rgba(92,107,255,.35);
+  --pos:#00e676;--pbg:rgba(0,230,118,.10);--pbr:rgba(0,230,118,.28);
+  --neg:#ff4d6a;--nbg:rgba(255,77,106,.10);--nbr:rgba(255,77,106,.28);
+  --gld:#ffc740;--gbg:rgba(255,199,64,.12);--gbr:rgba(255,199,64,.30);
+  --tx:#dde1f5;--sub:#6970a0;--mut:#2f3458;
+  --shd:rgba(0,0,0,.55);--hdr:rgba(8,11,20,.90);--gc:rgba(92,107,255,.03);
+}
+[data-theme="ocean"]{
+  --bg:#1a2130;--sur:#222b3d;--card:#28354a;--cb:#354660;--hov:#2e3d55;
+  --acc:#00b4d8;--adim:rgba(0,180,216,.18);--aglow:rgba(0,180,216,.35);
+  --pos:#56d18a;--pbg:rgba(86,209,138,.10);--pbr:rgba(86,209,138,.28);
+  --neg:#ff6b88;--nbg:rgba(255,107,136,.10);--nbr:rgba(255,107,136,.28);
+  --gld:#f6c90e;--gbg:rgba(246,201,14,.12);--gbr:rgba(246,201,14,.30);
+  --tx:#dce8f0;--sub:#6e8fa8;--mut:#364a5e;
+  --shd:rgba(0,0,0,.5);--hdr:rgba(26,33,48,.92);--gc:rgba(0,180,216,.03);
+}
+[data-theme="lavender"]{
+  --bg:#f4eeff;--sur:#ede5ff;--card:#ffffff;--cb:#dcd6f7;--hov:#e8e0ff;
+  --acc:#424874;--adim:rgba(66,72,116,.12);--aglow:rgba(66,72,116,.25);
+  --pos:#2d7a2d;--pbg:rgba(45,122,45,.08);--pbr:rgba(45,122,45,.25);
+  --neg:#c0392b;--nbg:rgba(192,57,43,.08);--nbr:rgba(192,57,43,.22);
+  --gld:#b8860b;--gbg:rgba(184,134,11,.10);--gbr:rgba(184,134,11,.28);
+  --tx:#1a1a2e;--sub:#5a5a8a;--mut:#a6b1e1;
+  --shd:rgba(66,72,116,.15);--hdr:rgba(244,238,255,.95);--gc:rgba(66,72,116,.04);
+}
+[data-theme="mint"]{
+  --bg:#f8f6f4;--sur:#e3f4f4;--card:#ffffff;--cb:#c4dfdf;--hov:#d2e9e9;
+  --acc:#3a8b8b;--adim:rgba(58,139,139,.12);--aglow:rgba(58,139,139,.28);
+  --pos:#2a7a4f;--pbg:rgba(42,122,79,.08);--pbr:rgba(42,122,79,.25);
+  --neg:#b83232;--nbg:rgba(184,50,50,.08);--nbr:rgba(184,50,50,.22);
+  --gld:#9a7010;--gbg:rgba(154,112,16,.10);--gbr:rgba(154,112,16,.28);
+  --tx:#1a3030;--sub:#4a7070;--mut:#88aaba;
+  --shd:rgba(58,139,139,.15);--hdr:rgba(248,246,244,.95);--gc:rgba(58,139,139,.04);
+}
+
+/* ═══ RESET ══════════════════════════════════════════════════════════ */
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--tx);font-family:'Outfit',sans-serif;min-height:100vh;overflow-x:hidden;transition:background .3s,color .3s}
+body::before{content:'';position:fixed;inset:0;z-index:0;background-image:linear-gradient(var(--gc) 1px,transparent 1px),linear-gradient(90deg,var(--gc) 1px,transparent 1px);background-size:48px 48px;pointer-events:none}
+.mono{font-family:'JetBrains Mono',monospace}
+input[type=date]::-webkit-calendar-picker-indicator,
+input[type=time]::-webkit-calendar-picker-indicator{cursor:pointer;opacity:.6;filter:var(--cpick,none)}
+[data-theme="dark"] {--cpick:invert(1)}
+[data-theme="ocean"]{--cpick:invert(1)}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--cb);border-radius:3px}
+
+/* ═══ HEADER ════════════════════════════════════════════════════════ */
+header{position:fixed;top:0;left:0;right:0;z-index:300;background:var(--hdr);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:1px solid var(--cb);height:60px;display:flex;align-items:center;padding:0 20px;gap:10px;transition:background .3s,border-color .3s}
+.logo{display:flex;align-items:center;gap:9px;font-weight:800;font-size:1.1rem;letter-spacing:-.4px;cursor:pointer;user-select:none;flex-shrink:0;-webkit-tap-highlight-color:transparent}
+.logo:hover .logo-ico{transform:rotate(-10deg) scale(1.05)}
+.logo:active{opacity:.6}
+.logo-ico{width:32px;height:32px;border-radius:9px;background:linear-gradient(135deg,var(--acc),#a06bff);display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px;transition:transform .2s;flex-shrink:0}
+[data-theme="ocean"] .logo-ico{background:linear-gradient(135deg,#00b4d8,#0077a8)}
+[data-theme="lavender"] .logo-ico{background:linear-gradient(135deg,#424874,#a6b1e1)}
+[data-theme="mint"] .logo-ico{background:linear-gradient(135deg,#3a8b8b,#c4dfdf)}
+.logo span{color:var(--acc)}
+.hdr-gap{flex:1}
+.hdr-r{display:flex;align-items:center;gap:7px;flex-wrap:nowrap}
+
+/* Theme buttons */
+.thm-grp{display:flex;gap:2px;background:var(--bg);border:1px solid var(--cb);border-radius:9px;padding:3px;flex-shrink:0}
+.tbtn{width:28px;height:26px;border:none;background:transparent;color:var(--sub);border-radius:7px;cursor:pointer;font-size:11px;display:flex;align-items:center;justify-content:center;transition:all .15s}
+.tbtn:hover{color:var(--tx)}
+.tbtn.on{background:var(--acc);color:#fff}
+
+.hbtn{display:flex;align-items:center;gap:6px;background:var(--sur);border:1px solid var(--cb);color:var(--sub);border-radius:8px;padding:5px 10px;font-size:.77rem;font-family:'Outfit',sans-serif;cursor:pointer;transition:all .2s;font-weight:500;white-space:nowrap;flex-shrink:0}
+.hbtn:hover{border-color:var(--acc);color:var(--acc)}
+.hbtn.on{color:var(--pos);border-color:var(--pbr);background:var(--pbg)}
+.hbtn.warn{color:var(--gld);border-color:var(--gbr);background:var(--gbg)}
+.rbtn{width:32px;height:32px;border-radius:8px;background:var(--adim);border:1px solid var(--acc);color:var(--acc);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s;font-size:12px;flex-shrink:0}
+.rbtn:hover{background:var(--acc);color:#fff}
+.rbtn.spin i{animation:spin 1s linear infinite}
+.pdot{width:7px;height:7px;border-radius:50%;background:var(--pos);box-shadow:0 0 6px var(--pos);animation:pa 2.5s ease-in-out infinite;flex-shrink:0}
+.pdot.off{background:var(--mut);box-shadow:none;animation:none}
+@keyframes pa{0%,100%{opacity:1}50%{opacity:.3}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes cardIn{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+@keyframes toastIn{from{opacity:0;transform:translateX(30px)}to{opacity:1;transform:none}}
+
+/* ═══ OVERLAY SCREENS ════════════════════════════════════════════════ */
+.screen{position:fixed;top:60px;bottom:0;left:0;right:0;z-index:200;background:var(--bg);display:flex;align-items:flex-start;justify-content:center;padding:24px 16px;overflow-y:auto;transition:background .3s}
+.screen.hidden{display:none}
+.screen-inner{width:100%;max-width:520px;padding-bottom:40px}
+
+.sbox{background:var(--sur);border:1px solid var(--cb);border-radius:20px;padding:30px 26px;box-shadow:0 24px 60px var(--shd);animation:fadeUp .4s ease both}
+.sbox+.sbox{margin-top:14px}
+.slogo{font-size:2.2rem;margin-bottom:10px}
+.stitle{font-size:1.35rem;font-weight:800;margin-bottom:6px}
+.ssub{color:var(--sub);font-size:.85rem;line-height:1.65;margin-bottom:20px}
+
+.stabs{display:flex;gap:3px;background:var(--bg);border-radius:10px;padding:3px;margin-bottom:20px}
+.stab{flex:1;padding:8px 12px;border-radius:8px;border:none;background:transparent;color:var(--sub);font-size:.82rem;font-family:'Outfit',sans-serif;font-weight:600;cursor:pointer;transition:all .2s}
+.stab.on{background:var(--card);color:var(--tx);box-shadow:0 2px 8px var(--shd)}
+.spanel{display:none}.spanel.on{display:block}
+
+.steps{margin-bottom:16px}
+.step{display:flex;gap:12px;align-items:flex-start;padding:9px 0;border-bottom:1px solid var(--cb)}
+.step:last-child{border-bottom:none}
+.snum{min-width:24px;height:24px;border-radius:50%;background:var(--adim);color:var(--acc);display:flex;align-items:center;justify-content:center;font-size:.72rem;font-weight:800;flex-shrink:0;margin-top:1px}
+.stxt{font-size:.82rem;line-height:1.55;color:var(--sub)}
+.stxt strong{color:var(--tx)}
+.stxt a{color:var(--acc);text-decoration:none}
+.stxt a:hover{text-decoration:underline}
+
+.sql{background:var(--bg);border:1px solid var(--cb);border-radius:9px;padding:11px 13px;font-size:.7rem;font-family:'JetBrains Mono',monospace;color:var(--sub);white-space:pre;overflow-x:auto;margin:8px 0;line-height:1.6}
+
+.srow{display:flex;gap:8px;margin-top:4px}
+.si{flex:1;min-width:0;padding:10px 13px;background:var(--card);border:1px solid var(--cb);border-radius:10px;color:var(--tx);font-size:.87rem;font-family:'JetBrains Mono',monospace;outline:none;transition:border-color .2s;-webkit-appearance:none}
+.si:focus{border-color:var(--acc);box-shadow:0 0 0 3px var(--adim)}
+.si::placeholder{color:var(--mut)}
+.fg{margin-bottom:12px}
+.fl{display:block;font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--sub);margin-bottom:5px}
+.fi{width:100%;padding:9px 12px;background:var(--card);border:1px solid var(--cb);border-radius:9px;color:var(--tx);font-size:.88rem;font-family:'Outfit',sans-serif;outline:none;transition:border-color .2s;-webkit-appearance:none}
+.fi:focus{border-color:var(--acc);box-shadow:0 0 0 3px var(--adim)}
+.fi::placeholder{color:var(--mut)}
+.fh{font-size:.69rem;color:var(--mut);margin-top:4px;line-height:1.5}
+.fh a{color:var(--acc);text-decoration:none}
+.fr{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.sdiv{display:flex;align-items:center;gap:9px;margin:14px 0 11px}
+.sdiv span{font-size:.69rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--mut);white-space:nowrap}
+.sdiv::before,.sdiv::after{content:'';flex:1;height:1px;background:var(--cb)}
+
+.btn{padding:10px 18px;border-radius:10px;border:none;font-size:.86rem;font-family:'Outfit',sans-serif;font-weight:700;cursor:pointer;transition:all .2s;display:inline-flex;align-items:center;gap:7px;white-space:nowrap}
+.btn:disabled{opacity:.5;cursor:not-allowed;transform:none!important}
+.btn-acc{background:linear-gradient(135deg,var(--acc),#a06bff);color:#fff;box-shadow:0 4px 14px var(--aglow)}
+.btn-acc:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 6px 20px var(--aglow)}
+[data-theme="ocean"] .btn-acc{background:linear-gradient(135deg,#00b4d8,#0077a8)}
+[data-theme="lavender"] .btn-acc{background:linear-gradient(135deg,#424874,#a6b1e1)}
+[data-theme="mint"] .btn-acc{background:linear-gradient(135deg,#3a8b8b,#c4dfdf);color:var(--tx)}
+.btn-ghost{background:transparent;color:var(--sub);border:1px solid var(--cb)}
+.btn-ghost:hover:not(:disabled){border-color:var(--sub);color:var(--tx)}
+.btn-sm{padding:8px 13px;font-size:.78rem;border-radius:8px}
+.btn-icon{background:var(--adim);border:1px solid var(--acc);color:var(--acc);border-radius:8px;height:38px;padding:0 11px;font-size:.76rem;cursor:pointer;transition:all .2s;display:inline-flex;align-items:center;gap:5px;font-family:'Outfit',sans-serif;font-weight:600;flex-shrink:0}
+.btn-icon:hover:not(:disabled){background:var(--acc);color:#fff}
+.btn-icon:disabled{opacity:.4;cursor:not-allowed}
+.mact{display:flex;gap:8px;margin-top:18px}
+.mact .btn-acc{flex:2}.mact .btn-ghost{flex:1}
+
+/* Auth tabs */
+.atabs{display:flex;border-bottom:1px solid var(--cb);margin-bottom:20px}
+.atab{flex:1;padding:9px;border:none;background:transparent;color:var(--sub);font-size:.86rem;font-family:'Outfit',sans-serif;font-weight:600;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .2s}
+.atab.on{color:var(--acc);border-bottom-color:var(--acc)}
+
+/* ═══ MAIN ══════════════════════════════════════════════════════════ */
+#app{position:relative;z-index:1;padding:80px 16px 0}
+
+/* SUMMARY */
+.sbar{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:22px;max-width:1400px;margin-left:auto;margin-right:auto}
+.scard{background:var(--sur);border:1px solid var(--cb);border-radius:13px;padding:14px 16px;transition:background .3s,border-color .3s;position:relative;overflow:hidden;animation:fadeUp .5s ease both}
+.scard:nth-child(1){animation-delay:.05s}.scard:nth-child(2){animation-delay:.10s}
+.scard:nth-child(3){animation-delay:.15s}.scard:nth-child(4){animation-delay:.20s}.scard:nth-child(5){animation-delay:.25s}
+.scard::after{content:'';position:absolute;top:-15px;right:-15px;width:50px;height:50px;border-radius:50%;background:var(--adim)}
+.scico{font-size:.85rem;color:var(--acc);margin-bottom:7px;opacity:.8}
+.sclbl{font-size:.67rem;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--sub);margin-bottom:3px}
+.scval{font-family:'JetBrains Mono',monospace;font-size:1.15rem;font-weight:600;transition:color .3s}
+.vp{color:var(--pos)}.vn{color:var(--neg)}.va{color:var(--acc)}.vg{color:var(--gld)}.vt{color:var(--tx)}
+
+/* ACTION ROW */
+.arow{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;gap:10px;flex-wrap:wrap;max-width:1400px;margin-left:auto;margin-right:auto}
+.sec-t{font-size:.85rem;font-weight:700;color:var(--sub);text-transform:uppercase;letter-spacing:.06em}
+
+/* GRID */
+#grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px;max-width:1400px;margin:0 auto}
+
+/* STOCK CARD */
+.sc{background:var(--card);border:1px solid var(--cb);border-radius:16px;padding:18px;transition:transform .22s,border-color .22s,box-shadow .22s,background .3s;position:relative;overflow:hidden;animation:cardIn .4s ease both;cursor:pointer}
+.sc::before{content:'';position:absolute;inset:0;border-radius:16px;background:linear-gradient(135deg,var(--adim) 0%,transparent 55%);pointer-events:none}
+.sc:hover{transform:translateY(-3px);border-color:var(--acc);box-shadow:0 12px 36px var(--shd)}
+.sc.hit{border-color:var(--gbr);background:var(--gbg)}
+.sc.err{border-color:var(--nbr)}
+
+.ch{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px;gap:8px}
+.ch-l{}
+.ch-sym{font-size:1.28rem;font-weight:800;font-family:'JetBrains Mono',monospace;letter-spacing:-.4px}
+.ch-name{font-size:.73rem;color:var(--sub);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:170px}
+.ch-date{font-size:.67rem;color:var(--mut);font-family:'JetBrains Mono',monospace;margin-top:3px}
+.ch-buys{font-size:.67rem;color:var(--acc);font-family:'JetBrains Mono',monospace;margin-top:2px}
+.badges{display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end;flex-shrink:0}
+.bg{font-size:.65rem;font-weight:700;font-family:'JetBrains Mono',monospace;padding:2px 7px;border-radius:5px;white-space:nowrap}
+.bg-g{background:var(--gbg);color:var(--gld);border:1px solid var(--gbr)}
+.bg-p{background:var(--pbg);color:var(--pos);border:1px solid var(--pbr)}
+.bg-n{background:var(--nbg);color:var(--neg);border:1px solid var(--nbr)}
+.bg-s{background:var(--sur);color:var(--sub);border:1px solid var(--cb)}
+/* Kursquelle-Badge */
+.src-badge{display:inline-flex;align-items:center;gap:3px;font-size:.6rem;font-weight:700;font-family:'JetBrains Mono',monospace;padding:2px 6px;border-radius:4px;white-space:nowrap;letter-spacing:.03em}
+.src-yahoo{background:rgba(112,43,255,.12);color:#8b5cf6;border:1px solid rgba(112,43,255,.28)}
+.src-finnhub{background:rgba(0,180,216,.12);color:#00b4d8;border:1px solid rgba(0,180,216,.28)}
+/* Portfolio-Quellen-Leiste */
+.src-bar{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px;font-size:.72rem;color:var(--sub);font-family:'JetBrains Mono',monospace}
+.src-bar-item{display:flex;align-items:center;gap:4px}
+
+.prow{display:flex;align-items:baseline;gap:8px;margin-bottom:4px;flex-wrap:wrap}
+.pmain{font-size:1.65rem;font-weight:700;font-family:'JetBrains Mono',monospace;line-height:1;transition:color .3s}
+.pcur{font-size:.75rem;color:var(--sub);font-family:'JetBrains Mono',monospace}
+.pday{font-size:.74rem;font-family:'JetBrains Mono',monospace;padding:2px 6px;border-radius:5px;font-weight:600}
+.pday.p{background:var(--pbg);color:var(--pos)}.pday.n{background:var(--nbg);color:var(--neg)}
+.errmsg{font-size:.7rem;color:var(--neg);margin-top:4px;line-height:1.45}
+
+.dvd{height:1px;background:var(--cb);margin:12px 0}
+
+.pd{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+.pdlbl{font-size:.65rem;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--mut);margin-bottom:2px}
+.pdval{font-family:'JetBrains Mono',monospace;font-size:.9rem;font-weight:500}
+.pdval.avg{color:var(--acc)}
+
+.progw{margin-bottom:12px}
+.proghd{display:flex;justify-content:space-between;margin-bottom:5px}
+.proglbl{font-size:.68rem;color:var(--sub);font-weight:500}
+.progpct{font-size:.68rem;font-family:'JetBrains Mono',monospace;color:var(--sub)}
+.progtr{height:4px;border-radius:99px;background:var(--cb);overflow:hidden}
+.progfill{height:100%;border-radius:99px;background:linear-gradient(90deg,var(--acc),var(--pos));transition:width .7s cubic-bezier(.4,0,.2,1)}
+.progfill.over{background:linear-gradient(90deg,var(--pos),var(--gld))}
+
+.grow{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.gi{text-align:center}
+.gilbl{font-size:.62rem;text-transform:uppercase;letter-spacing:.07em;color:var(--mut);font-weight:600;margin-bottom:2px}
+.gival{font-family:'JetBrains Mono',monospace;font-size:.9rem;font-weight:700}
+.gp{color:var(--pos)}.gn{color:var(--neg)}.gg{color:var(--gld)}.gs{color:var(--sub)}
+
+.cf{display:flex;align-items:center;justify-content:space-between;margin-top:12px;padding-top:10px;border-top:1px solid var(--cb)}
+.cft{font-size:.67rem;font-family:'JetBrains Mono',monospace;color:var(--mut)}
+.cfb{display:flex;gap:5px}
+.bic{width:26px;height:26px;border-radius:6px;border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .15s;font-size:11px}
+.bdel{background:var(--nbg);color:var(--neg)}.bdel:hover{background:var(--neg);color:#fff}
+.bedt{background:var(--adim);color:var(--acc)}.bedt:hover{background:var(--acc);color:#fff}
+
+/* Empty */
+.empty{grid-column:1/-1;text-align:center;padding:70px 20px;color:var(--sub)}
+.ei{font-size:2.5rem;color:var(--acc);opacity:.3;margin-bottom:12px}
+.et{font-size:1.05rem;font-weight:700;margin-bottom:7px;color:var(--tx)}
+.es{font-size:.85rem;max-width:300px;margin:0 auto;line-height:1.65}
+
+/* ═══ MODAL ══════════════════════════════════════════════════════════ */
+.ov{position:fixed;inset:0;z-index:400;background:rgba(0,0,0,.72);backdrop-filter:blur(10px);display:flex;align-items:center;justify-content:center;padding:70px 16px 20px;opacity:0;pointer-events:none;transition:opacity .22s}
+.ov.open{opacity:1;pointer-events:all}
+.modal{background:var(--sur);border:1px solid var(--cb);border-radius:20px;padding:26px;width:100%;max-width:460px;transform:translateY(20px) scale(.97);transition:transform .25s cubic-bezier(.4,0,.2,1),background .3s,border-color .3s;box-shadow:0 28px 70px var(--shd);max-height:88vh;overflow-y:auto}
+.ov.open .modal{transform:translateY(0) scale(1)}
+.mt{font-size:1.08rem;font-weight:800;margin-bottom:4px}
+.ms{font-size:.8rem;color:var(--sub);margin-bottom:18px;line-height:1.5}
+.pfrow{display:flex;gap:7px;align-items:flex-end}
+.pfrow .fi{flex:1}
+
+/* Re-buy banner */
+.rebuy-banner{background:var(--pbg);border:1px solid var(--pbr);border-radius:10px;padding:10px 13px;margin-bottom:14px;font-size:.8rem;line-height:1.5}
+.rebuy-banner strong{color:var(--pos)}
+
+/* ═══ FOOTER ═════════════════════════════════════════════════════════ */
+footer{position:relative;z-index:1;background:var(--sur);border-top:1px solid var(--cb);padding:22px 20px;margin-top:40px;transition:background .3s,border-color .3s}
+.footer-inner{max-width:1400px;margin:0 auto;display:grid;grid-template-columns:1fr auto 1fr;gap:20px;align-items:center}
+.footer-left{display:flex;flex-direction:column;gap:5px}
+.footer-logo{display:flex;align-items:center;gap:8px;font-weight:800;font-size:.95rem;letter-spacing:-.3px}
+.footer-logo .logo-ico{width:26px;height:26px;border-radius:7px;font-size:12px}
+.footer-logo span{color:var(--acc)}
+.footer-sub{font-size:.72rem;color:var(--mut);line-height:1.5}
+.footer-center{display:flex;flex-direction:column;gap:10px;align-items:center}
+.footer-market{display:flex;align-items:center;gap:7px;font-size:.75rem;font-family:'JetBrains Mono',monospace;color:var(--sub)}
+.footer-actions{display:flex;gap:7px;flex-wrap:wrap;justify-content:center}
+.footer-right{display:flex;flex-direction:column;gap:6px;align-items:flex-end}
+.footer-links{display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end}
+.footer-links a{font-size:.75rem;color:var(--sub);text-decoration:none;transition:color .2s}
+.footer-links a:hover{color:var(--acc)}
+.footer-copy{font-size:.68rem;color:var(--mut)}
+
+/* ═══ TOASTS ═════════════════════════════════════════════════════════ */
+.tc{position:fixed;bottom:24px;right:16px;z-index:600;display:flex;flex-direction:column;gap:8px;max-width:340px;width:calc(100% - 32px)}
+.toast{padding:10px 15px;border-radius:11px;font-size:.82rem;font-weight:500;display:flex;align-items:center;gap:8px;animation:toastIn .3s cubic-bezier(.4,0,.2,1) both;box-shadow:0 8px 24px var(--shd);transition:opacity .3s}
+.ts{background:var(--pbg);border:1px solid var(--pbr);color:var(--pos)}
+.te{background:var(--nbg);border:1px solid var(--nbr);color:var(--neg)}
+.ti{background:var(--adim);border:1px solid rgba(92,107,255,.3);color:var(--acc)}
+.tw{background:var(--gbg);border:1px solid var(--gbr);color:var(--gld)}
+[data-theme="lavender"] .ts{background:#f0fff4}
+[data-theme="lavender"] .te{background:#fff5f5}
+[data-theme="mint"] .ts{background:#f0fff8}
+
+/* ═══ SYNC BADGE ══════════════════════════════════════════════════════ */
+.sync-badge{display:flex;align-items:center;gap:5px;font-size:.7rem;font-family:'JetBrains Mono',monospace;color:var(--sub);padding:3px 8px;border-radius:6px;background:var(--adim);white-space:nowrap;flex-shrink:0}
+.sync-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;background:var(--pos)}
+.sync-dot.off{background:var(--mut)}
+
+/* Market badge */
+.mkt-badge{display:flex;align-items:center;gap:5px;font-size:.7rem;font-family:'JetBrains Mono',monospace;padding:3px 8px;border-radius:6px;white-space:nowrap;flex-shrink:0}
+.mkt-badge.open{background:var(--pbg);color:var(--pos);border:1px solid var(--pbr)}
+.mkt-badge.closed{background:var(--gbg);color:var(--gld);border:1px solid var(--gbr)}
+
+/* ═══ RESPONSIVE ══════════════════════════════════════════════════════ */
+@media(max-width:1100px){.sbar{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:700px){
+  header{padding:0 12px;gap:6px;height:56px}
+  #app{padding:72px 12px 0}
+  .sbar{grid-template-columns:repeat(2,1fr)}
+  #grid{grid-template-columns:1fr}
+  .thm-grp{display:none}
+  .sync-badge span{display:none}
+  .fr{grid-template-columns:1fr}
+  .grow{grid-template-columns:repeat(2,1fr)}
+  .pfrow{flex-direction:column;align-items:stretch}
+  .footer-inner{grid-template-columns:1fr;gap:16px}
+  .footer-right{align-items:flex-start}
+  .footer-links{justify-content:flex-start}
+  .mact{flex-direction:column}
+  .logo span{display:none}
+  .hbtn span{display:none}
+  .hbtn{padding:5px 8px}
+}
+@media(max-width:400px){
+  .sbar{grid-template-columns:1fr 1fr}
+  .grow{grid-template-columns:1fr 1fr}
+  .ch-name{max-width:130px}
+}
+
+/* ═══ PURCHASE DETAIL POPUP ══════════════════════════════════════════ */
+.pop-ov{position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.75);backdrop-filter:blur(12px);display:flex;align-items:center;justify-content:center;padding:70px 14px 20px;opacity:0;pointer-events:none;transition:opacity .22s}
+.pop-ov.open{opacity:1;pointer-events:all}
+.pop-box{background:var(--sur);border:1px solid var(--cb);border-radius:20px;width:100%;max-width:520px;max-height:84vh;overflow-y:auto;box-shadow:0 28px 70px var(--shd);transform:translateY(22px) scale(.97);transition:transform .25s cubic-bezier(.4,0,.2,1),background .3s}
+.pop-ov.open .pop-box{transform:translateY(0) scale(1)}
+.pop-hd{padding:20px 22px 0;display:flex;align-items:flex-start;justify-content:space-between;gap:12px;position:sticky;top:0;background:var(--sur);border-bottom:1px solid var(--cb);padding-bottom:14px;z-index:2}
+.pop-title{font-size:1.1rem;font-weight:800}
+.pop-sub{font-size:.78rem;color:var(--sub);margin-top:3px}
+.pop-close{width:30px;height:30px;border:none;background:var(--nbg);color:var(--neg);border-radius:7px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0;transition:all .15s}
+.pop-close:hover{background:var(--neg);color:#fff}
+.pop-body{padding:18px 22px 22px}
+
+/* Purchase rows */
+.pur-list{display:flex;flex-direction:column;gap:10px;margin-bottom:18px}
+.pur-item{background:var(--card);border:1px solid var(--cb);border-radius:12px;padding:13px 15px;position:relative;transition:border-color .2s}
+.pur-item:hover{border-color:var(--acc)}
+.pur-row{display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:10px;align-items:end}
+.pur-field{}
+.pur-lbl{font-size:.65rem;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--mut);margin-bottom:4px}
+.pur-val{font-family:'JetBrains Mono',monospace;font-size:.9rem;font-weight:600;color:var(--tx)}
+.pur-gain{font-size:.73rem;font-family:'JetBrains Mono',monospace;margin-top:4px}
+.pur-gain.p{color:var(--pos)}.pur-gain.n{color:var(--neg)}
+.pur-date{font-size:.7rem;color:var(--mut);font-family:'JetBrains Mono',monospace;margin-top:3px}
+.pur-del-btn{width:26px;height:26px;border:none;background:var(--nbg);color:var(--neg);border-radius:6px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0;align-self:center;transition:all .15s}
+.pur-del-btn:hover{background:var(--neg);color:#fff}
+.pur-edit-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:10px;padding-top:10px;border-top:1px solid var(--cb)}
+.pur-save-btn{margin-top:8px;width:100%}
+
+/* Target edit section */
+.pop-tgt{background:var(--adim);border:1px solid var(--acc);border-radius:12px;padding:13px 15px;margin-bottom:18px}
+.pop-tgt-row{display:flex;gap:10px;align-items:flex-end}
+.pop-tgt-row .fi{flex:1}
+
+/* Summary strip */
+.pop-summary{background:var(--card);border:1px solid var(--cb);border-radius:12px;padding:12px 15px;display:grid;grid-template-columns:repeat(4,1fr);gap:8px;text-align:center;margin-bottom:16px}
+.ps-lbl{font-size:.62rem;text-transform:uppercase;letter-spacing:.07em;color:var(--mut);font-weight:600;margin-bottom:2px}
+.ps-val{font-family:'JetBrains Mono',monospace;font-size:.9rem;font-weight:700}
+
+@media(max-width:560px){
+  .pur-row{grid-template-columns:1fr 1fr auto}
+  .pur-edit-row{grid-template-columns:1fr 1fr}
+  .pop-summary{grid-template-columns:1fr 1fr}
+}
+</style>
+</head>
+<body>
+
+<!-- ══════════════ HEADER (always visible) ══════════════════════════ -->
+<header>
+  <div class="logo" onclick="logoClick()" title="Klicken = Refresh">
+    <div class="logo-ico"><i class="fa-solid fa-chart-line"></i></div>
+    Stock<span>Watch</span>
+  </div>
+  <div class="hdr-gap"></div>
+  <div class="hdr-r">
+    <div class="pdot" id="pdot" title="Auto-Refresh"></div>
+    <span class="mono" style="font-size:.68rem;color:var(--sub)" id="rtLbl">—</span>
+    <div class="mkt-badge closed" id="mktBadge"><i class="fa-solid fa-circle"></i><span id="mktLbl">Markt</span></div>
+    <div class="sync-badge" id="syncBadge"><div class="sync-dot off" id="syncDot"></div><span id="syncLbl">Lokal</span></div>
+    <div class="thm-grp" title="Design">
+      <button class="tbtn on" id="tDark"  onclick="setTheme('dark')"     title="Midnight"><i class="fa-solid fa-moon"></i></button>
+      <button class="tbtn"    id="tOcean" onclick="setTheme('ocean')"    title="Ocean"><i class="fa-solid fa-circle-half-stroke"></i></button>
+      <button class="tbtn"    id="tLav"   onclick="setTheme('lavender')" title="Lavender"><i class="fa-solid fa-star"></i></button>
+      <button class="tbtn"    id="tMint"  onclick="setTheme('mint')"     title="Mint"><i class="fa-solid fa-leaf"></i></button>
+    </div>
+
+    <button class="hbtn hidden" id="userBtn" onclick="showSyncScreen()"><i class="fa-solid fa-user"></i><span id="userLbl">Konto</span></button>
+    <button class="hbtn hidden" id="setupBtn" onclick="showSetupScreen()"><i class="fa-solid fa-gear"></i></button>
+    <button class="rbtn" id="rBtn" onclick="doRefresh()" title="Aktualisieren"><i class="fa-solid fa-rotate" id="rIco"></i></button>
+  </div>
+</header>
+
+<!-- ══════════════ SETUP SCREEN ══════════════════════════════════════ -->
+<div class="screen" id="setupScreen">
+  <div class="screen-inner">
+    <div class="sbox">
+      <div class="slogo">📈</div>
+      <div class="stitle">StockWatch einrichten</div>
+      <div class="ssub">Zwei Schritte — Kursabruf und optionale Cloud-Sync.</div>
+      <div class="stabs">
+        <button class="stab on" onclick="stab(0)"><i class="fa-solid fa-key"></i> Finnhub API</button>
+        <button class="stab"    onclick="stab(1)"><i class="fa-solid fa-cloud"></i> Sync / Konto</button>
+      </div>
+      <!-- Tab 0 -->
+      <div class="spanel on" id="sp0">
+        <div class="steps">
+          <div class="step"><div class="snum">1</div><div class="stxt">Registrieren auf <a href="https://finnhub.io/register" target="_blank">finnhub.io/register</a> — kostenlos, kein Abo.</div></div>
+          <div class="step"><div class="snum">2</div><div class="stxt"><strong>API Key</strong> vom Dashboard kopieren (60 Abfragen/Min. im Free-Plan).</div></div>
+          <div class="step"><div class="snum">3</div><div class="stxt">Key einfügen und bestätigen. Wird nur lokal gespeichert.</div></div>
+        </div>
+        <div class="srow">
+          <input class="si" id="siKey" type="text" placeholder="Ihr Finnhub API Key…">
+          <button class="btn btn-acc btn-sm" id="btnKey" onclick="saveKey()"><i class="fa-solid fa-check"></i> OK</button>
+        </div>
+        <p style="font-size:.72rem;color:var(--mut);margin-top:9px"><i class="fa-solid fa-circle-info"></i> DAX: <span class="mono" style="color:var(--acc)">SAP.DE · BMW.DE · SIE.DE · BAS.DE · ALV.DE · DTE.DE</span></p>
+      </div>
+      <!-- Tab 1 -->
+      <div class="spanel" id="sp1">
+        <p style="font-size:.83rem;color:var(--sub);margin-bottom:14px;line-height:1.6">Ohne Sync funktioniert StockWatch nur auf <strong>diesem Gerät</strong>. Mit Supabase-Konto können Sie sich auf beliebig vielen Geräten anmelden und Ihr Portfolio ist überall synchron.</p>
+        <div class="steps">
+          <div class="step"><div class="snum">1</div><div class="stxt">Kostenloses Projekt erstellen auf <a href="https://supabase.com" target="_blank">supabase.com</a></div></div>
+          <div class="step"><div class="snum">2</div><div class="stxt">In <strong>Authentication → Settings</strong>: „Confirm email" <strong>deaktivieren</strong> (sonst Email-Bestätigung nötig)</div></div>
+          <div class="step"><div class="snum">3</div><div class="stxt">In <strong>Database → Replication</strong>: Tabelle <code>sw_portfolio</code> aktivieren (für Echtzeit-Sync)</div></div>
+        <div class="step"><div class="snum">4</div><div class="stxt">Im <strong>SQL Editor</strong> folgendes ausführen:</div></div>
+        </div>
+        <div class="sql">create table public.sw_portfolio (
+  id text primary key,
+  user_id uuid not null references auth.users on delete cascade,
+  symbol text not null, target_price float8 not null,
+  name text default '', currency text default '',
+  purchases jsonb not null default '[]'::jsonb,
+  created_at timestamptz default now()
+);
+alter table public.sw_portfolio enable row level security;
+create policy "own" on public.sw_portfolio
+  for all using (auth.uid() = user_id)
+  with check (auth.uid() = user_id);</div>
+        <button class="btn btn-ghost btn-sm" onclick="copySql()" style="margin-bottom:14px"><i class="fa-regular fa-copy"></i> SQL kopieren</button>
+        <div class="steps">
+          <div class="step"><div class="snum">4</div><div class="stxt">In <strong>Settings → API</strong>: Project URL + anon/public Key kopieren und einfügen:</div></div>
+        </div>
+        <div class="fg"><input class="si" id="siUrl" type="text" placeholder="https://xxxx.supabase.co"></div>
+        <div class="srow">
+          <input class="si" id="siSb"  type="text" placeholder="anon / public key…">
+          <button class="btn btn-acc btn-sm" id="btnSb" onclick="saveSb()"><i class="fa-solid fa-cloud-arrow-up"></i> Verbinden</button>
+        </div>
+        <button class="btn btn-ghost btn-sm" onclick="skipSb()" style="margin-top:10px"><i class="fa-solid fa-arrow-right"></i> Überspringen — nur lokal</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ AUTH SCREEN ════════════════════════════════════════ -->
+<div class="screen hidden" id="authScreen">
+  <div class="screen-inner">
+    <div class="sbox">
+      <div class="slogo">🔐</div>
+      <div class="stitle">Anmelden</div>
+      <div class="ssub">Mit Konto sind Ihre Aktien auf allen Geräten synchron.</div>
+      <div class="atabs">
+        <button class="atab on" onclick="aTab('login')">Anmelden</button>
+        <button class="atab"    onclick="aTab('register')">Registrieren</button>
+      </div>
+      <div class="fg"><label class="fl"><i class="fa-solid fa-envelope"></i> E-Mail</label><input class="fi" id="aEmail" type="email" inputmode="email" placeholder="ihre@email.de"></div>
+      <div class="fg"><label class="fl"><i class="fa-solid fa-lock"></i> Passwort</label>
+        <div style="position:relative">
+          <input class="fi" id="aPass" type="password" placeholder="Passwort…" style="padding-right:40px">
+          <button onclick="togglePw()" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--sub);cursor:pointer;font-size:13px"><i class="fa-solid fa-eye" id="pwEye"></i></button>
+        </div>
+      </div>
+      <div class="mact">
+        <button class="btn btn-ghost" onclick="skipSb()"><i class="fa-solid fa-xmark"></i> Lokal weiter</button>
+        <button class="btn btn-acc" id="btnAuth" onclick="doAuth()"><i class="fa-solid fa-right-to-bracket"></i> <span id="authLbl">Anmelden</span></button>
+      </div>
+    </div>
+    <div class="sbox" style="margin-top:14px">
+      <p style="font-size:.8rem;color:var(--sub);line-height:1.6"><i class="fa-solid fa-circle-info" style="color:var(--acc)"></i> <strong>Noch kein Konto?</strong> Wechseln Sie zu „Registrieren" — nach der Registrierung können Sie sich auf allen Geräten anmelden.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ SYNC/ACCOUNT SCREEN ══════════════════════════════ -->
+<div class="screen hidden" id="syncScreen">
+  <div class="screen-inner">
+    <div class="sbox">
+      <div class="stitle"><i class="fa-solid fa-cloud"></i> Konto &amp; Sync</div>
+      <div id="syncInfo" style="margin-bottom:14px"></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-ghost btn-sm" onclick="doLogout()"><i class="fa-solid fa-right-from-bracket"></i> Abmelden</button>
+        <button class="btn btn-ghost btn-sm" onclick="showSetupScreen()"><i class="fa-solid fa-gear"></i> API / Einstellungen</button>
+        <button class="btn btn-ghost btn-sm" onclick="closeSyncScreen()"><i class="fa-solid fa-xmark"></i> Schließen</button>
+      </div>
+    </div>
+    <div class="sbox" style="margin-top:14px">
+      <div class="stitle" style="font-size:.95rem;margin-bottom:14px"><i class="fa-solid fa-file-export"></i> Export / Import</div>
+      <p style="font-size:.82rem;color:var(--sub);margin-bottom:14px;line-height:1.6">Portfolio als JSON-Datei sichern oder auf einem anderen Gerät importieren.</p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-acc btn-sm" onclick="exportJSON()"><i class="fa-solid fa-download"></i> Exportieren</button>
+        <button class="btn btn-ghost btn-sm" onclick="document.getElementById('importFile').click()"><i class="fa-solid fa-upload"></i> Importieren</button>
+      </div>
+      <input type="file" id="importFile" accept=".json" style="display:none" onchange="importJSON(event)">
+    </div>
+    <div class="sbox" style="margin-top:14px">
+      <div class="stitle" style="font-size:.95rem;margin-bottom:8px"><i class="fa-solid fa-palette"></i> Design</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px">
+        <button class="btn btn-ghost btn-sm" onclick="setTheme('dark')"><i class="fa-solid fa-moon"></i> Midnight</button>
+        <button class="btn btn-ghost btn-sm" onclick="setTheme('ocean')"><i class="fa-solid fa-circle-half-stroke"></i> Ocean</button>
+        <button class="btn btn-ghost btn-sm" onclick="setTheme('lavender')"><i class="fa-solid fa-star"></i> Lavender</button>
+        <button class="btn btn-ghost btn-sm" onclick="setTheme('mint')"><i class="fa-solid fa-leaf"></i> Mint</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ MAIN APP ════════════════════════════════════════════ -->
+<div id="app" class="hidden">
+  <div class="sbar">
+    <div class="scard"><div class="scico"><i class="fa-solid fa-briefcase"></i></div><div class="sclbl">Positionen</div><div class="scval va" id="sN">0</div></div>
+    <div class="scard"><div class="scico"><i class="fa-solid fa-wallet"></i></div><div class="sclbl">Investiert</div><div class="scval vt" id="sI">—</div></div>
+    <div class="scard"><div class="scico"><i class="fa-solid fa-chart-pie"></i></div><div class="sclbl">Aktuell</div><div class="scval vt" id="sC">—</div></div>
+    <div class="scard"><div class="scico"><i class="fa-solid fa-arrow-trend-up"></i></div><div class="sclbl">Gewinn / Verlust</div><div class="scval vt" id="sG">—</div></div>
+    <div class="scard"><div class="scico"><i class="fa-solid fa-bullseye"></i></div><div class="sclbl">Ziele erreicht</div><div class="scval vg" id="sT">0</div></div>
+  </div>
+  <div class="arow">
+    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+      <span class="sec-t"><i class="fa-solid fa-layer-group"></i> Portfolio</span>
+      <span class="mono" style="font-size:.69rem;color:var(--mut)" id="updLbl"></span>
+    </div>
+    <button class="btn btn-acc btn-sm" onclick="openModal()"><i class="fa-solid fa-plus"></i> Aktie hinzufügen</button>
+  </div>
+  <div id="grid"></div>
+</div>
+
+<!-- ══════════════ FOOTER ═════════════════════════════════════════════ -->
+<footer id="mainFooter" class="hidden">
+  <div class="footer-inner">
+    <div class="footer-left">
+      <div class="footer-logo"><div class="logo-ico"><i class="fa-solid fa-chart-line"></i></div>Stock<span>Watch</span></div>
+      <div class="footer-sub">Live-Kurse via Finnhub · Lokale Speicherung<br>Cloud-Sync via Supabase (optional)</div>
+    </div>
+    <div class="footer-center">
+      <div class="footer-market"><i class="fa-solid fa-circle" id="fMktDot" style="color:var(--mut)"></i><span id="fMktTxt">—</span></div>
+      <div class="src-bar" id="srcBar" style="display:none"></div>
+      <div class="footer-actions">
+        <button class="btn btn-ghost btn-sm" onclick="exportJSON()"><i class="fa-solid fa-download"></i> Export</button>
+        <button class="btn btn-ghost btn-sm" onclick="document.getElementById('importFile').click()"><i class="fa-solid fa-upload"></i> Import</button>
+        <button class="btn btn-ghost btn-sm" onclick="doRefresh()"><i class="fa-solid fa-rotate"></i> Refresh</button>
+      </div>
+    </div>
+    <div class="footer-right">
+      <div class="footer-links">
+        <a href="https://finance.yahoo.com/lookup/" target="_blank"><i class="fa-solid fa-magnifying-glass"></i> Symbol-Suche</a>
+        <a href="https://finnhub.io/dashboard" target="_blank"><i class="fa-solid fa-key"></i> Finnhub</a>
+        <a href="https://supabase.com" target="_blank"><i class="fa-solid fa-cloud"></i> Supabase</a>
+      </div>
+      <div class="footer-copy">StockWatch v3.0 · <span id="fYear"></span></div>
+    </div>
+  </div>
+</footer>
+
+<!-- ══════════════ STOCK MODAL ════════════════════════════════════════ -->
+<div class="ov" id="ov">
+  <div class="modal">
+    <div class="mt" id="mTitle"><i class="fa-solid fa-circle-plus" style="color:var(--acc)"></i> Aktie hinzufügen</div>
+    <div class="ms" id="mSub">Symbol, Kaufdatum und Preis eintragen.</div>
+    <div id="rebuyBanner" class="rebuy-banner hidden"></div>
+
+    <div class="fg">
+      <label class="fl"><i class="fa-solid fa-magnifying-glass-chart"></i> Ticker Symbol *</label>
+      <input class="fi" id="fSym" type="text" placeholder="NOW · AAPL · SAP.DE · BMW.DE" oninput="this.value=this.value.toUpperCase();checkDuplicate()">
+      <div class="fh">⚠ <strong>WKN ≠ Ticker!</strong> z.B. WKN 4S0 = Ticker <em>NOW</em> (NYSE). DAX: <em>SAP.DE · BMW.DE · SIE.DE</em>. <a href="https://finance.yahoo.com/lookup/" target="_blank">Symbol nachschlagen →</a></div>
+    </div>
+
+    <div class="sdiv"><span><i class="fa-solid fa-calendar-day"></i> Kaufinformation</span></div>
+    <div class="fr">
+      <div class="fg"><label class="fl">Kaufdatum *</label><input class="fi" id="fDate" type="date"></div>
+      <div class="fg"><label class="fl">Uhrzeit (opt.)</label><input class="fi" id="fTime" type="time"></div>
+    </div>
+
+    <div class="fg">
+      <label class="fl"><i class="fa-solid fa-tag"></i> Einkaufspreis *</label>
+      <div class="pfrow">
+        <input class="fi" id="fBuy" type="number" step="0.0001" min="0.0001" placeholder="0.00">
+        <button class="btn-icon" id="histBtn" onclick="loadHist()"><i class="fa-solid fa-clock-rotate-left"></i> Kurs laden</button>
+      </div>
+      <div class="fh" id="histHint">Datum + Symbol eingeben → „Kurs laden" → historischer Schlusskurs.</div>
+    </div>
+
+    <div class="sdiv"><span><i class="fa-solid fa-bullseye"></i> Verkaufsziel</span></div>
+    <div class="fr">
+      <div class="fg"><label class="fl">Zielpreis *</label><input class="fi" id="fTgt" type="number" step="0.0001" min="0.0001" placeholder="0.00"></div>
+      <div class="fg"><label class="fl">Anzahl Aktien</label><input class="fi" id="fShares" type="number" step="0.001" min="0.001" placeholder="1" value="1"></div>
+    </div>
+
+    <div class="mact">
+      <button class="btn btn-ghost" onclick="closeModal()"><i class="fa-solid fa-xmark"></i> Abbrechen</button>
+      <button class="btn btn-acc" id="subBtn" onclick="submitStock()"><i class="fa-solid fa-floppy-disk"></i> Speichern</button>
+    </div>
+  </div>
+</div>
+
+<div class="tc" id="tc"></div>
+
+<script>
+// ─── CONSTANTS ───────────────────────────────────────────────────────
+const FH = 'https://finnhub.io/api/v1';
+const INTV = 60000;
+const MARKET_START = 8, MARKET_END = 22; // local hours
+
+// ─── STATE ──────────────────────────────────────────────────────────
+let portfolio  = JSON.parse(localStorage.getItem('sw_p')   || '[]');
+let notified   = new Set();
+let apiKey     = localStorage.getItem('sw_key')  || '';
+let sbClient   = null, sbUser = null;
+let editId     = null, isRebuy = false;
+let loopTimer  = null, authMode = 'login';
+let firstRender = true; // prevent AOS double-anim on refresh
+
+// ─── THEME ──────────────────────────────────────────────────────────
+function setTheme(t) {
+  document.documentElement.setAttribute('data-theme', t);
+  localStorage.setItem('sw_theme', t);
+  ['Dark','Ocean','Lav','Mint'].forEach((n,i)=>{
+    const id='t'+n, th=['dark','ocean','lavender','mint'][i];
+    document.getElementById(id)?.classList.toggle('on',th===t);
+  });
+}
+setTheme(localStorage.getItem('sw_theme')||'dark');
+document.getElementById('fYear').textContent = new Date().getFullYear();
+
+// ─── MARKET HOURS ────────────────────────────────────────────────────
+function getEasterDate(year) {
+  const a=year%19, b=Math.floor(year/100), c=year%100, d=Math.floor(b/4), e=b%4;
+  const f=Math.floor((b+8)/25), g=Math.floor((b-f+1)/3), h=(19*a+b-d-g+15)%30;
+  const i=Math.floor(c/4), k=c%4, l=(32+2*e+2*i-h-k)%7;
+  const m=Math.floor((a+11*h+22*l)/451);
+  const month=Math.floor((h+l-7*m+114)/31), day=((h+l-7*m+114)%31)+1;
+  return new Date(year, month-1, day);
+}
+function getGermanHolidays(year) {
+  const p = (dt) => `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,"0")}-${String(dt.getDate()).padStart(2,"0")}`;
+  const wd = (dt, n) => { const r=new Date(dt); r.setDate(r.getDate()+n); return r; };
+  const easter = getEasterDate(year);
+  return new Set([
+    `${year}-01-01`, // Neujahr
+    `${year}-05-01`, // Tag der Arbeit
+    `${year}-10-03`, // Tag der deutschen Einheit
+    `${year}-12-24`, // Heiligabend
+    `${year}-12-25`, // 1. Weihnachtstag
+    `${year}-12-26`, // 2. Weihnachtstag
+    `${year}-12-31`, // Silvester
+    p(wd(easter,-2)),  // Karfreitag
+    p(wd(easter, 1)),  // Ostermontag
+    p(wd(easter,39)),  // Christi Himmelfahrt
+    p(wd(easter,50)),  // Pfingstmontag
+  ]);
+}
+function isMarketHours() {
+  const now = new Date();
+  const day = now.getDay(); // 0=So, 6=Sa
+  if (day === 0 || day === 6) return false;
+  const year = now.getFullYear();
+  const todayStr = `${year}-${String(now.getMonth()+1).padStart(2,"0")}-${String(now.getDate()).padStart(2,"0")}`;
+  if (getGermanHolidays(year).has(todayStr)) return false;
+  const h = now.getHours();
+  return h >= MARKET_START && h < MARKET_END;
+}
+function updateMarketBadge() {
+  const open = isMarketHours();
+  const badge = document.getElementById('mktBadge');
+  const lbl = document.getElementById('mktLbl');
+  const dot = document.getElementById('pdot');
+  const fDot = document.getElementById('fMktDot');
+  const fTxt = document.getElementById('fMktTxt');
+  badge.className = 'mkt-badge ' + (open?'open':'closed');
+  lbl.textContent = open ? 'Markt offen' : 'Markt zu';
+  fDot.style.color = open ? 'var(--pos)' : 'var(--gld)';
+  fTxt.textContent = open ? 'Markt offen — Auto-Refresh aktiv' : 'Markt geschlossen — kein Auto-Refresh';
+  dot.className = 'pdot ' + (open?'':'off');
+}
+setInterval(updateMarketBadge, 30000);
+updateMarketBadge();
+
+// ─── INIT ────────────────────────────────────────────────────────────
+async function init() {
+  if (!apiKey) { showSetupScreen(); return; }
+  const sbUrl = localStorage.getItem('sw_sb_url');
+  const sbKey = localStorage.getItem('sw_sb_key');
+  if (sbUrl && sbKey) {
+    try {
+      sbClient = window.supabase.createClient(sbUrl, sbKey);
+      const { data:{ session } } = await sbClient.auth.getSession();
+      if (session?.user) {
+        sbUser = session.user;
+        updateUserUI();
+        await loadFromSb();
+        setupRealtimeSync();
+        showApp();
+      } else {
+        showAuthScreen();
+      }
+    } catch(e) { sbClient = null; showApp(); }
+  } else {
+    showApp();
+  }
+}
+
+// ─── SCREEN CONTROL ──────────────────────────────────────────────────
+function hideAllScreens() {
+  ['setupScreen','authScreen','syncScreen'].forEach(id=>{
+    document.getElementById(id).classList.add('hidden');
+  });
+}
+function showSetupScreen() {
+  hideAllScreens();
+  document.getElementById('setupScreen').classList.remove('hidden');
+  document.getElementById('app').classList.add('hidden');
+  document.getElementById('mainFooter').classList.add('hidden');
+  if (apiKey) document.getElementById('siKey').value = apiKey;
+  const su=localStorage.getItem('sw_sb_url'), sk=localStorage.getItem('sw_sb_key');
+  if(su) document.getElementById('siUrl').value=su;
+  if(sk) document.getElementById('siSb').value=sk;
+}
+function showAuthScreen() {
+  hideAllScreens();
+  document.getElementById('authScreen').classList.remove('hidden');
+  document.getElementById('app').classList.add('hidden');
+  document.getElementById('mainFooter').classList.add('hidden');
+}
+function showSyncScreen() {
+  hideAllScreens();
+  document.getElementById('syncScreen').classList.remove('hidden');
+  document.getElementById('app').classList.add('hidden');
+  document.getElementById('mainFooter').classList.add('hidden');
+  updateSyncInfo();
+}
+function closeSyncScreen() { showApp(); }
+function showApp() {
+  hideAllScreens();
+  document.getElementById('app').classList.remove('hidden');
+  document.getElementById('mainFooter').classList.remove('hidden');
+  document.getElementById('setupBtn').classList.remove('hidden');
+  document.getElementById('fDate').valueAsDate = new Date();
+  updateSyncBadge();
+  renderGrid();
+  updateSummary();
+  if (portfolio.length) doRefresh();
+  startLoop();
+}
+
+// ─── SETUP TABS ──────────────────────────────────────────────────────
+function stab(i) {
+  document.querySelectorAll('.stab').forEach((t,j)=>t.classList.toggle('on',j===i));
+  document.querySelectorAll('.spanel').forEach((p,j)=>p.classList.toggle('on',j===i));
+}
+function aTab(mode) {
+  authMode = mode;
+  document.querySelectorAll('.atab').forEach((t,i)=>t.classList.toggle('on',(i===0&&mode==='login')||(i===1&&mode==='register')));
+  document.getElementById('authLbl').textContent = mode==='login'?'Anmelden':'Registrieren';
+  document.getElementById('btnAuth').querySelector('i').className = mode==='login'?'fa-solid fa-right-to-bracket':'fa-solid fa-user-plus';
+}
+function togglePw() {
+  const inp = document.getElementById('aPass');
+  const shown = inp.type==='text';
+  inp.type = shown?'password':'text';
+  document.getElementById('pwEye').className = shown?'fa-solid fa-eye':'fa-solid fa-eye-slash';
+}
+function copySql() {
+  const txt = document.querySelector('.sql').textContent;
+  navigator.clipboard.writeText(txt).then(()=>toast('SQL kopiert!','ts')).catch(()=>{});
+}
+
+// ─── SAVE API KEY ────────────────────────────────────────────────────
+async function saveKey() {
+  const k = document.getElementById('siKey').value.trim();
+  if (!k||k.length<8) return toast('Bitte gültigen API Key eingeben.','te');
+  const btn = document.getElementById('btnKey');
+  btn.disabled=true; btn.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i>';
+  try {
+    const r = await fetch(`${FH}/quote?symbol=AAPL&token=${k}`,{signal:AbortSignal.timeout(9000)});
+    if (r.status===401) throw new Error('BAD_KEY');
+    const d = await r.json();
+    if (!d||d.c==null) throw new Error('NO_DATA');
+    apiKey=k; localStorage.setItem('sw_key',k);
+    toast('API Key bestätigt ✓','ts');
+    stab(1); // go to sync tab
+  } catch(e) {
+    toast(e.message==='BAD_KEY'?'API Key ungültig.':'Verbindungsfehler — Internet prüfen.','te');
+  }
+  btn.disabled=false; btn.innerHTML='<i class="fa-solid fa-check"></i> OK';
+}
+
+// ─── SUPABASE SETUP ──────────────────────────────────────────────────
+async function saveSb() {
+  const url=document.getElementById('siUrl').value.trim();
+  const key=document.getElementById('siSb').value.trim();
+  if (!url||!key) return toast('URL und Key eingeben.','te');
+  const btn=document.getElementById('btnSb');
+  btn.disabled=true; btn.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i>';
+  try {
+    sbClient = window.supabase.createClient(url, key);
+    await sbClient.auth.getSession(); // test connection
+    localStorage.setItem('sw_sb_url',url); localStorage.setItem('sw_sb_key',key);
+    toast('Supabase verbunden! Bitte anmelden.','ts');
+    showAuthScreen();
+  } catch(e) {
+    toast('Verbindung fehlgeschlagen: '+(e.message||'Unbekannt'),'te');
+    sbClient=null;
+  }
+  btn.disabled=false; btn.innerHTML='<i class="fa-solid fa-cloud-arrow-up"></i> Verbinden';
+}
+function skipSb() { sbClient=null; sbUser=null; localStorage.removeItem('sw_sb_url'); localStorage.removeItem('sw_sb_key'); showApp(); }
+
+// ─── AUTH ────────────────────────────────────────────────────────────
+async function doAuth() {
+  const email=document.getElementById('aEmail').value.trim();
+  const pass=document.getElementById('aPass').value;
+  if (!email||!pass) return toast('E-Mail und Passwort eingeben.','te');
+  if (!sbClient) return toast('Supabase nicht eingerichtet.','te');
+  const btn=document.getElementById('btnAuth'); btn.disabled=true;
+  try {
+    let res;
+    if (authMode==='login') {
+      res = await sbClient.auth.signInWithPassword({email,password:pass});
+    } else {
+      res = await sbClient.auth.signUp({email,password:pass});
+    }
+    if (res.error) throw res.error;
+    if (authMode==='register' && !res.data?.session) {
+      toast('Konto erstellt! Bitte jetzt anmelden.','ti',5000);
+      aTab('login'); btn.disabled=false; return;
+    }
+    sbUser = res.data.user || res.data.session?.user;
+    if (!sbUser) throw new Error('Kein User erhalten');
+    updateUserUI();
+    await loadFromSb();
+    setupRealtimeSync();
+    showApp();
+    toast('Willkommen'+(authMode==='register'?' — Konto erstellt':'')+' 👋','ts');
+  } catch(e) {
+    toast('Fehler: '+(e.message||'Unbekannt'),'te');
+  }
+  btn.disabled=false;
+}
+async function doLogout() {
+  if (!confirm('Abmelden?')) return;
+  if(sbClient) await sbClient.auth.signOut().catch(()=>{});
+  sbUser=null; portfolio=[];
+  document.getElementById('userBtn').classList.add('hidden');
+  save(); toast('Abgemeldet.','ti');
+  showAuthScreen();
+}
+function updateUserUI() {
+  if (!sbUser) return;
+  document.getElementById('userBtn').classList.remove('hidden');
+  document.getElementById('userLbl').textContent = sbUser.email.split('@')[0];
+}
+function updateSyncBadge() {
+  const on = !!(sbClient&&sbUser);
+  document.getElementById('syncDot').className = 'sync-dot'+(on?'':' off');
+  document.getElementById('syncLbl').textContent = on ? 'Sync ✓' : 'Lokal';
+}
+function updateSyncInfo() {
+  const el = document.getElementById('syncInfo');
+  if (sbUser) {
+    el.innerHTML=`<p style="font-size:.83rem;color:var(--sub)"><i class="fa-solid fa-user" style="color:var(--acc)"></i> Angemeldet als <strong style="color:var(--tx)">${sbUser.email}</strong></p><p style="font-size:.77rem;color:var(--mut);margin-top:4px">Alle Änderungen werden automatisch mit Supabase synchronisiert.</p>`;
+  } else {
+    el.innerHTML=`<p style="font-size:.83rem;color:var(--sub)"><i class="fa-solid fa-triangle-exclamation" style="color:var(--gld)"></i> Kein Konto verbunden — Daten nur lokal.</p>`;
+  }
+}
+
+// ─── SUPABASE CRUD ───────────────────────────────────────────────────
+async function loadFromSb() {
+  if (!sbClient||!sbUser) return;
+  try {
+    const {data,error}=await sbClient.from('sw_portfolio').select('*').eq('user_id',sbUser.id);
+    if(error) throw error;
+    // Always replace local with cloud (cloud is truth)
+    portfolio=(data||[]).map(r=>({
+      id:r.id, symbol:r.symbol, targetPrice:parseFloat(r.target_price)||0,
+      name:r.name||r.symbol, currency:r.currency||'',
+      purchases:Array.isArray(r.purchases)?r.purchases:[],
+      price:null, fetchError:false, lastUpd:null, nameFetched:!!(r.name&&r.name!==r.symbol)
+    }));
+    save();
+    toast('Portfolio geladen: '+portfolio.length+' Positionen','ts',2500);
+  } catch(e) { toast('Sync-Ladefehler: '+e.message,'te'); }
+}
+
+// Set up Supabase realtime so changes from OTHER devices appear immediately
+function setupRealtimeSync() {
+  if(!sbClient||!sbUser) return;
+  sbClient.channel('sw_changes')
+    .on('postgres_changes',{event:'*',schema:'public',table:'sw_portfolio',filter:'user_id=eq.'+sbUser.id},
+      async (payload)=>{
+        console.log('Realtime event:',payload.eventType);
+        await loadFromSb();
+        renderGrid(); updateSummary();
+        toast('Portfolio aktualisiert (anderes Gerät)','ti',2500);
+      })
+    .subscribe();
+}
+async function pushSb(s) {
+  if(!sbClient||!sbUser) return;
+  try {
+    const row = {
+      id: s.id,
+      user_id: sbUser.id,
+      symbol: s.symbol,
+      target_price: s.targetPrice,
+      name: s.name||s.symbol,
+      currency: s.currency||'',
+      purchases: s.purchases||[]
+    };
+    const {error}=await sbClient.from('sw_portfolio').upsert(row,{onConflict:'id'});
+    if(error) throw error;
+  } catch(e) { toast('Sync-Fehler: '+e.message,'te'); }
+}
+async function delSb(id) {
+  if(!sbClient||!sbUser) return;
+  try {
+    const{error}=await sbClient.from('sw_portfolio').delete().eq('id',id).eq('user_id',sbUser.id);
+    if(error) throw error;
+  } catch(e){ toast('Lösch-Sync-Fehler','te'); }
+}
+
+// ─── LOCAL STORAGE ───────────────────────────────────────────────────
+function save() {
+  localStorage.setItem('sw_p', JSON.stringify(portfolio));
+}
+
+// ─── FINNHUB API ─────────────────────────────────────────────────────
+async function fh(path) {
+  const sep=path.includes('?')?'&':'?';
+  const r=await fetch(`${FH}${path}${sep}token=${apiKey}`,{signal:AbortSignal.timeout(10000)});
+  if(r.status===401) throw new Error('BAD_KEY');
+  if(r.status===403) throw new Error('PLAN_LIMIT');
+  if(!r.ok) throw new Error('HTTP_'+r.status);
+  return r.json();
+}
+const fhQ = s => fh(`/quote?symbol=${encodeURIComponent(s)}`);
+const fhP = s => fh(`/stock/profile2?symbol=${encodeURIComponent(s)}`);
+const fhC = (s,f,t) => fh(`/stock/candle?symbol=${encodeURIComponent(s)}&resolution=D&from=${f}&to=${t}`);
+
+// ─── YAHOO FINANCE LIVE QUOTE (Fallback für .DE und andere nicht-US Symbole) ──
+async function yahooLiveQuote(sym) {
+  const yfUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(sym)}?interval=1m&range=1d`;
+  for (const proxy of [
+    `https://corsproxy.io/?url=${encodeURIComponent(yfUrl)}`,
+    `https://api.allorigins.win/raw?url=${encodeURIComponent(yfUrl)}`
+  ]) {
+    try {
+      const r = await fetch(proxy, {signal: AbortSignal.timeout(10000)});
+      if (!r.ok) continue;
+      const data = await r.json();
+      const meta = data?.chart?.result?.[0]?.meta;
+      if (!meta) continue;
+      const price = meta.regularMarketPrice || meta.previousClose;
+      if (!price) continue;
+      const prevClose = meta.chartPreviousClose || meta.previousClose || price;
+      const dayChange = price - prevClose;
+      const dayPct = prevClose ? (dayChange / prevClose * 100) : 0;
+      const currency = meta.currency || '';
+      const exchange = meta.exchangeName || meta.fullExchangeName || '';
+      return { c: price, pc: prevClose, d: dayChange, dp: dayPct, currency, exchange, _src: 'yahoo' };
+    } catch(_) { continue; }
+  }
+  return null;
+}
+
+// ─── YAHOO HISTORICAL ────────────────────────────────────────────────
+async function fetchYahooHist(sym, dateStr) {
+  const d=new Date(dateStr+'T12:00:00Z');
+  const from=Math.floor(d.getTime()/1000)-259200;
+  const to=Math.floor(d.getTime()/1000)+259200;
+  const yfUrl=`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(sym)}?interval=1d&period1=${from}&period2=${to}`;
+  for (const px of [
+    `https://corsproxy.io/?url=${encodeURIComponent(yfUrl)}`,
+    `https://api.allorigins.win/raw?url=${encodeURIComponent(yfUrl)}`
+  ]) {
+    try {
+      const r=await fetch(px,{signal:AbortSignal.timeout(9000)});
+      if(!r.ok) continue;
+      const data=await r.json();
+      const res=data?.chart?.result?.[0];
+      if(!res) continue;
+      const closes=res.indicators?.quote?.[0]?.close, times=res.timestamp;
+      if(!closes||!times) continue;
+      let ci=0,md=Infinity;
+      const tgt=d.getTime()/1000;
+      times.forEach((ts,i)=>{ if(closes[i]==null)return; const df=Math.abs(ts-tgt); if(df<md){md=df;ci=i;} });
+      if(closes[ci]!=null) return {price:closes[ci], date:new Date(times[ci]*1000)};
+    } catch(_){ continue; }
+  }
+  return null;
+}
+
+async function loadHist() {
+  const sym=document.getElementById('fSym').value.trim().toUpperCase();
+  const date=document.getElementById('fDate').value;
+  if(!sym)  return toast('Bitte Symbol eingeben.','te');
+  if(!date) return toast('Bitte Kaufdatum wählen.','te');
+  const btn=document.getElementById('histBtn');
+  const hint=document.getElementById('histHint');
+  btn.disabled=true; btn.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i>';
+  hint.style.color=''; hint.textContent='Suche historischen Kurs…';
+  let result = await fetchYahooHist(sym,date);
+  if(!result) {
+    try {
+      const d=new Date(date+'T12:00:00Z');
+      const from=Math.floor(d.getTime()/1000)-259200, to=Math.floor(d.getTime()/1000)+259200;
+      const data=await fhC(sym,from,to);
+      if(data.s==='ok'&&data.c?.length) {
+        let ci=0,md=Infinity; const tgt=d.getTime()/1000;
+        data.t.forEach((ts,i)=>{ const df=Math.abs(ts-tgt); if(df<md){md=df;ci=i;} });
+        result={price:data.c[ci],date:new Date(data.t[ci]*1000)};
+      }
+    } catch(e) { if(e.message==='BAD_KEY'){showSetupScreen();toast('API Key ungültig.','te');} }
+  }
+  if(result) {
+    document.getElementById('fBuy').value=result.price.toFixed(4);
+    hint.style.color='var(--pos)';
+    hint.textContent=`✓ Schlusskurs ${result.date.toLocaleDateString('de-DE')}: ${result.price.toFixed(2)} — eingetragen.`;
+    toast(`Kurs geladen: ${result.price.toFixed(2)}`,'ts');
+  } else {
+    hint.style.color='var(--neg)';
+    hint.textContent='⚠ Kein Kurs gefunden (Wochenende/Feiertag?). Preis manuell eintragen.';
+    toast('Kein historischer Kurs gefunden.','te');
+  }
+  btn.disabled=false; btn.innerHTML='<i class="fa-solid fa-clock-rotate-left"></i> Kurs laden';
+}
+
+// ─── REFRESH ─────────────────────────────────────────────────────────
+async function doRefresh() {
+  if (!portfolio.length) return;
+  const rb=document.getElementById('rBtn');
+  rb.classList.add('spin'); rb.disabled=true;
+  let badKey=false;
+  const syms=[...new Set(portfolio.map(s=>s.symbol))];
+  const qMap={};
+  // Erst Finnhub versuchen
+  await Promise.allSettled(syms.map(sym=>fhQ(sym).then(q=>{qMap[sym]=q;}).catch(e=>{
+    if(e.message==='BAD_KEY') badKey=true;
+    else qMap[sym]=null;
+  })));
+  // Für Symbole bei denen Finnhub keine gültigen Daten liefert → Yahoo Finance Fallback
+  const needYahoo = syms.filter(sym=>{
+    const q=qMap[sym];
+    return !q || q.c==null || (q.c===0 && (q.pc==null||q.pc===0) && q.o===0);
+  });
+  if(needYahoo.length) {
+    await Promise.allSettled(needYahoo.map(sym=>
+      yahooLiveQuote(sym).then(q=>{ if(q) qMap[sym]=q; }).catch(()=>{})
+    ));
+  }
+  portfolio.forEach(s=>{
+    const q=qMap[s.symbol];
+    if(!q||q.c==null||(q.c===0&&(q.pc==null||q.pc===0))){s.fetchError=true;return;}
+    // Wenn c=0 aber pc vorhanden (Markt geschlossen) → letzten Schlusskurs anzeigen
+    const livePrice = (q.c===0 && q.pc>0) ? q.pc : q.c;
+    s.price=livePrice; s.prevClose=q.pc; s.dayChange=q.d; s.dayPct=q.dp;
+    s.fetchError=false; s.lastUpd=Date.now();
+    // Quelle merken (yahoo oder finnhub)
+    s.priceSource = q._src === 'yahoo' ? 'yahoo' : 'finnhub';
+    // Währung + Börse aus Yahoo übernehmen wenn vorhanden
+    if(q._src === 'yahoo') {
+      if(q.currency && !s.currency) s.currency = q.currency;
+      if(q.exchange)  s.exchange = q.exchange;
+    }
+    // Fallback-Währung für .DE Symbole wenn noch keine gesetzt
+    if(!s.currency && s.symbol.endsWith('.DE')) s.currency = 'EUR';
+    if(!s.currency && s.symbol.endsWith('.F'))  s.currency = 'EUR';
+    if(!s.currency && s.symbol.endsWith('.SW')) s.currency = 'CHF';
+    if(!s.nameFetched){
+      s.nameFetched=true;
+      fhP(s.symbol).then(p=>{if(p?.name){s.name=p.name;s.currency=p.currency||s.currency;save();renderGrid();}}).catch(()=>{});
+    }
+  });
+  if(badKey){toast('API Key ungültig (401).','te');showSetupScreen();}
+  save(); renderGrid(); updateSummary(); updateSourceBar();
+  const now=new Date();
+  document.getElementById('rtLbl').textContent=now.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});
+  document.getElementById('updLbl').textContent='Stand: '+now.toLocaleTimeString('de-DE');
+  rb.classList.remove('spin'); rb.disabled=false;
+}
+
+function logoClick() { doRefresh(); }
+
+function startLoop() {
+  if(loopTimer) clearInterval(loopTimer);
+  loopTimer = setInterval(()=>{ if(isMarketHours()) doRefresh(); }, INTV);
+}
+
+// ─── COMPUTED HELPERS ────────────────────────────────────────────────
+function totalShares(s) { return s.purchases.reduce((a,p)=>a+p.shares,0); }
+function avgBuyPrice(s) {
+  const tot=totalShares(s);
+  if(!tot) return 0;
+  return s.purchases.reduce((a,p)=>a+p.buyPrice*p.shares,0)/tot;
+}
+function investedVal(s) { return s.purchases.reduce((a,p)=>a+p.buyPrice*p.shares,0); }
+
+// ─── RENDER ──────────────────────────────────────────────────────────
+function renderGrid() {
+  const g=document.getElementById('grid');
+  if(!portfolio.length){
+    g.innerHTML=`<div class="empty"><div class="ei"><i class="fa-solid fa-chart-line"></i></div><div class="et">Portfolio ist leer</div><div class="es">Klicken Sie „Aktie hinzufügen" um Ihre erste Position einzutragen.</div></div>`;
+    return;
+  }
+  // Rebuild all cards (simple, no AOS re-trigger issues)
+  g.innerHTML=portfolio.map((s,i)=>cardHTML(s,i)).join('');
+  g.querySelectorAll('.bdel').forEach(b=>b.addEventListener('click',()=>delStock(b.dataset.id)));
+  g.querySelectorAll('.bedt').forEach(b=>b.addEventListener('click',()=>openEdit(b.dataset.id)));
+}
+
+function cardHTML(s, idx) {
+  const hp=s.price!=null&&!s.fetchError;
+  const avg=avgBuyPrice(s);
+  const tot=totalShares(s);
+  const inv=investedVal(s);
+  const gain=hp?(s.price-avg)/avg*100:null;
+  const toTgt=hp?(s.targetPrice-s.price)/s.price*100:null;
+  const prog=hp&&s.targetPrice>avg?Math.min(110,Math.max(0,(s.price-avg)/(s.targetPrice-avg)*100)):0;
+  const hit=hp&&s.price>=s.targetPrice;
+  const posV=hp?s.price*tot:null;
+  const gainV=posV!=null?posV-inv:null;
+  const gc=gain==null?'':(gain>=0?'p':'n');
+  const gs=gain!=null&&gain>=0?'+':'';
+  const cur=s.currency||'';
+  const f=(n,d=2)=>n!=null?n.toLocaleString('de-DE',{minimumFractionDigits:d,maximumFractionDigits:d}):'—';
+  const fc=n=>n!=null?f(n)+(cur?' '+cur:''):'—';
+  const pc=gain==null?'var(--tx)':hit?'var(--gld)':gain>=0?'var(--pos)':'var(--neg)';
+
+  // animation delay — only on first render, not after refresh
+  const del = firstRender ? Math.min(idx*60,400) : 0;
+  const animStyle = `animation-delay:${del}ms`;
+
+  const badge=hit?`<span class="bg bg-g"><i class="fa-solid fa-bullseye"></i> Ziel erreicht!</span>`
+    :gain!=null?`<span class="bg bg-${gc}"><i class="fa-solid fa-arrow-trend-${gain>=0?'up':'down'}"></i> ${gs}${f(gain)}%</span>`
+    :s.fetchError?`<span class="bg bg-n"><i class="fa-solid fa-triangle-exclamation"></i> Fehler</span>`
+    :`<span class="bg bg-s"><i class="fa-solid fa-spinner fa-spin"></i> Lädt</span>`;
+
+  const dayH=s.dayPct!=null&&hp?`<span class="pday ${s.dayPct>=0?'p':'n'}">${s.dayPct>=0?'▲':'▼'} ${Math.abs(s.dayPct).toFixed(2)}%</span>`:'';
+
+  // Show newest purchase date
+  const latestPurchase=[...s.purchases].sort((a,b)=>b.buyDate?.localeCompare(a.buyDate||'')||0)[0];
+  let dateStr='';
+  if(latestPurchase?.buyDate){
+    const dd=new Date(latestPurchase.buyDate+'T12:00:00');
+    dateStr=`<div class="ch-date"><i class="fa-solid fa-calendar-check"></i> ${dd.toLocaleDateString('de-DE')}${latestPurchase.buyTime?' &nbsp;<i class="fa-regular fa-clock"></i> '+latestPurchase.buyTime:''}</div>`;
+  }
+  const buyCountStr = s.purchases.length>1
+    ? `<div class="ch-buys"><i class="fa-solid fa-layer-group"></i> ${s.purchases.length} Käufe · Ø ${f(avg)} ${cur}</div>`
+    : '';
+
+  return `<div class="sc ${hit?'hit':''} ${s.fetchError?'err':''}" style="${animStyle}" data-id="${s.id}" onclick="openPop('${s.id}')" title="Klicken für Kaufdetails">
+    <div class="ch">
+      <div class="ch-l">
+        <div class="ch-sym">${s.symbol}</div>
+        <div class="ch-name" title="${s.name||''}">${s.name||s.symbol}</div>
+        ${dateStr}${buyCountStr}
+      </div>
+      <div class="badges">${badge}</div>
+    </div>
+    <div class="prow">
+      <div class="pmain" style="color:${pc}">${hp?f(s.price):'—'}</div>
+      <div class="pcur">${cur}</div>${dayH}
+    </div>
+    ${s.fetchError?`<div class="errmsg"><i class="fa-solid fa-circle-exclamation"></i> Kurs nicht abrufbar. WKN ≠ Ticker! DAX-Beispiele: <b>SAP.DE · BMW.DE · SIE.DE</b> &nbsp;|&nbsp; US: <b>AAPL · NOW</b>. <a href="https://finance.yahoo.com/lookup/" target="_blank" style="color:var(--acc)">Ticker nachschlagen</a></div>`:''}
+    <div class="dvd"></div>
+    <div class="pd">
+      <div><div class="pdlbl"><i class="fa-solid fa-tag"></i> Ø Einkauf</div><div class="pdval avg">${fc(avg)}</div></div>
+      <div><div class="pdlbl"><i class="fa-solid fa-bullseye"></i> Zielpreis</div><div class="pdval">${fc(s.targetPrice)}</div></div>
+      <div><div class="pdlbl"><i class="fa-solid fa-coins"></i> Investiert</div><div class="pdval">${fc(inv)}</div></div>
+      <div><div class="pdlbl"><i class="fa-solid fa-hashtag"></i> Stücke gesamt</div><div class="pdval">${f(tot,0)}</div></div>
+    </div>
+    <div class="progw">
+      <div class="proghd"><span class="proglbl">Fortschritt zum Ziel</span><span class="progpct">${hp?f(Math.min(prog,110))+'%':'—'}</span></div>
+      <div class="progtr"><div class="progfill ${prog>=100?'over':''}" style="width:${hp?Math.min(prog,100)+'%':'0%'}"></div></div>
+    </div>
+    <div class="grow">
+      <div class="gi"><div class="gilbl">Gewinn %</div><div class="gival ${hit?'gg':'g'+gc}">${gain!=null?gs+f(gain)+'%':'—'}</div></div>
+      <div class="gi"><div class="gilbl">Gewinn €</div><div class="gival ${hit?'gg':'g'+gc}">${gainV!=null?(gainV>=0?'+':'')+fc(gainV):'—'}</div></div>
+      <div class="gi"><div class="gilbl">Zum Ziel</div><div class="gival ${hit?'gg':''}">${hit?'<i class="fa-solid fa-check"></i>':toTgt!=null?f(toTgt)+'%':'—'}</div></div>
+      <div class="gi"><div class="gilbl">Aktuell</div><div class="gival gs">${posV!=null?fc(posV):'—'}</div></div>
+    </div>
+    <div class="cf">
+      <div class="cft" style="display:flex;flex-direction:column;gap:3px">
+        <div>${s.lastUpd?'<i class="fa-solid fa-satellite-dish"></i> '+new Date(s.lastUpd).toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'}):'<i class="fa-regular fa-clock"></i> Noch nicht geladen'}</div>
+        ${hp&&s.priceSource?`<span class="src-badge ${s.priceSource==='yahoo'?'src-yahoo':'src-finnhub'}"><i class="fa-solid fa-${s.priceSource==='yahoo'?'y':'bolt'}"></i>${s.priceSource==='yahoo'?'Yahoo Finance':'Finnhub'}${s.exchange?' · '+s.exchange:''}</span>`:''}
+      </div>
+      <div class="cfb" onclick="event.stopPropagation()">
+        <button class="bic bedt" data-id="${s.id}" title="Bearbeiten/Nachkauf"><i class="fa-solid fa-pen-to-square"></i></button>
+        <button class="bic bdel" data-id="${s.id}" title="Entfernen"><i class="fa-solid fa-trash-can"></i></button>
+      </div>
+    </div>
+  </div>`;
+}
+
+// ─── SUMMARY ─────────────────────────────────────────────────────────
+function updateSummary() {
+  const n=portfolio.length;
+  const inv=portfolio.reduce((a,s)=>a+investedVal(s),0);
+  const hasPrices=portfolio.filter(s=>s.price);
+  const cur=hasPrices.reduce((a,s)=>a+s.price*totalShares(s),0);
+  const invF=hasPrices.reduce((a,s)=>a+investedVal(s),0);
+  const gain=cur-invF;
+  const tgts=portfolio.filter(s=>s.price&&s.price>=s.targetPrice).length;
+  const f2=n=>n.toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2});
+  document.getElementById('sN').textContent=n;
+  document.getElementById('sI').textContent=f2(inv)+' €';
+  document.getElementById('sC').textContent=cur>0?f2(cur)+' €':'—';
+  document.getElementById('sT').textContent=tgts;
+  const ge=document.getElementById('sG');
+  if(cur>0){ge.textContent=(gain>=0?'+':'')+f2(gain)+' €';ge.className='scval '+(gain>=0?'vp':'vn');}
+  else{ge.textContent='—';ge.className='scval vt';}
+}
+
+// ─── SOURCE BAR ──────────────────────────────────────────────────────
+function updateSourceBar() {
+  const bar = document.getElementById('srcBar');
+  if(!bar) return;
+  const withPrice = portfolio.filter(s=>s.price&&!s.fetchError);
+  if(!withPrice.length){bar.style.display='none';return;}
+  const yahoo    = withPrice.filter(s=>s.priceSource==='yahoo').length;
+  const finnhub  = withPrice.filter(s=>s.priceSource==='finnhub').length;
+  const unknown  = withPrice.length - yahoo - finnhub;
+  let html = '';
+  if(finnhub) html += `<span class="src-bar-item"><span class="src-badge src-finnhub"><i class="fa-solid fa-bolt"></i> Finnhub</span> ${finnhub} Aktie${finnhub>1?'n':''}</span>`;
+  if(yahoo)   html += `<span class="src-bar-item"><span class="src-badge src-yahoo"><i class="fa-solid fa-y"></i> Yahoo Finance</span> ${yahoo} Aktie${yahoo>1?'n':''}</span>`;
+  if(unknown) html += `<span class="src-bar-item" style="color:var(--mut)">${unknown} ausstehend</span>`;
+  bar.innerHTML = html;
+  bar.style.display = html ? 'flex' : 'none';
+}
+
+// ─── DUPLICATE CHECK ─────────────────────────────────────────────────
+function checkDuplicate() {
+  const sym=document.getElementById('fSym').value.trim().toUpperCase();
+  const existing=portfolio.find(s=>s.symbol===sym);
+  const banner=document.getElementById('rebuyBanner');
+  const subBtn=document.getElementById('subBtn');
+  if(existing&&!editId) {
+    isRebuy=true;
+    const avg=avgBuyPrice(existing), tot=totalShares(existing);
+    const cur=existing.currency||'€';
+    banner.classList.remove('hidden');
+    banner.innerHTML=`<i class="fa-solid fa-layer-group" style="color:var(--pos)"></i> <strong>${sym} bereits im Portfolio</strong> — ${existing.purchases.length} Kauf/Käufe, Ø ${avg.toFixed(2)} ${cur}, ${tot} Stücke.<br>Sie fügen jetzt einen <strong>Nachkauf</strong> hinzu. Der bisherige Zielpreis (${existing.targetPrice.toFixed(2)} ${cur}) wird vorausgefüllt — Sie können ihn für diesen Nachkauf ändern.`;
+    document.getElementById('fTgt').value=existing.targetPrice;
+    subBtn.innerHTML='<i class="fa-solid fa-plus"></i> Nachkauf speichern';
+  } else {
+    isRebuy=false;
+    banner.classList.add('hidden');
+    subBtn.innerHTML='<i class="fa-solid fa-floppy-disk"></i> Speichern';
+    if(!editId) document.getElementById('fTgt').value='';
+  }
+}
+
+// ─── MODAL ───────────────────────────────────────────────────────────
+function openModal() {
+  editId=null; isRebuy=false;
+  const sym=document.getElementById('fSym'); sym.readOnly=false; sym.style.opacity='';
+  document.getElementById('mTitle').innerHTML='<i class="fa-solid fa-circle-plus" style="color:var(--acc)"></i> Aktie hinzufügen';
+  document.getElementById('mSub').textContent='Symbol, Kaufdatum und Preis eintragen.';
+  document.getElementById('subBtn').innerHTML='<i class="fa-solid fa-floppy-disk"></i> Speichern';
+  document.getElementById('rebuyBanner').classList.add('hidden');
+  ['fSym','fBuy','fTgt','fTime'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('fShares').value='1';
+  document.getElementById('fDate').valueAsDate=new Date();
+  const h=document.getElementById('histHint'); h.style.color=''; h.textContent='Datum + Symbol eingeben → „Kurs laden" → historischer Schlusskurs.';
+  document.getElementById('ov').classList.add('open');
+  setTimeout(()=>document.getElementById('fSym').focus(),250);
+}
+function openEdit(id) {
+  // Pencil-Button öffnet jetzt direkt Nachkauf-Dialog
+  openRebuyFromPop(id);
+}
+function openEditTarget(id) {
+  const s=portfolio.find(x=>x.id===id); if(!s) return;
+  editId=id; isRebuy=false;
+  document.getElementById('mTitle').innerHTML=`<i class="fa-solid fa-pen-to-square" style="color:var(--acc)"></i> ${s.symbol} bearbeiten`;
+  document.getElementById('mSub').textContent='Zielpreis anpassen. Für Nachkauf „Aktie hinzufügen" verwenden.';
+  document.getElementById('subBtn').innerHTML='<i class="fa-solid fa-floppy-disk"></i> Änderung speichern';
+  const banner=document.getElementById('rebuyBanner');
+  const cur=s.currency||'';
+  const avg=avgBuyPrice(s), tot=totalShares(s);
+  banner.classList.remove('hidden');
+  banner.innerHTML=`<i class="fa-solid fa-circle-info" style="color:var(--acc)"></i> <strong>${s.purchases.length} Kauf/Käufe</strong> · Ø ${avg.toFixed(2)} ${cur} · ${tot} Stücke gesamt.<br><small style="color:var(--sub)">Hier nur den <strong>Zielpreis</strong> ändern. Für neuen Kauf → Abbrechen → „Aktie hinzufügen".</small>`;
+  document.getElementById('fSym').value=s.symbol;
+  const latest=[...s.purchases].sort((a,b)=>b.buyDate?.localeCompare(a.buyDate)||0)[0]||{};
+  document.getElementById('fBuy').value=avg.toFixed(4);
+  document.getElementById('fTgt').value=s.targetPrice;
+  document.getElementById('fShares').value=tot;
+  document.getElementById('fDate').value=latest.buyDate||'';
+  document.getElementById('fTime').value=latest.buyTime||'';
+  document.getElementById('ov').classList.add('open');
+}
+function closeModal() { document.getElementById('ov').classList.remove('open'); editId=null; isRebuy=false; const sym=document.getElementById('fSym'); sym.readOnly=false; sym.style.opacity=''; }
+
+async function submitStock() {
+  const sym=document.getElementById('fSym').value.trim().toUpperCase();
+  const buy=parseFloat(document.getElementById('fBuy').value);
+  const tgt=parseFloat(document.getElementById('fTgt').value);
+  const shares=parseFloat(document.getElementById('fShares').value)||1;
+  const date=document.getElementById('fDate').value;
+  const time=document.getElementById('fTime').value;
+  if(!sym)              return toast('Symbol pflicht.','te');
+  if(isNaN(buy)||buy<=0) return toast('Einkaufspreis ungültig.','te');
+  if(isNaN(tgt)||tgt<=0) return toast('Zielpreis ungültig.','te');
+  // Bei Nachkauf: Zielpreis muss nur > 0 sein (neuer Einkauf kann über altem Ziel liegen)
+  if(!isRebuy && tgt<=buy) return toast('Zielpreis muss > Einkaufspreis sein.','te');
+  if(isRebuy && tgt<=buy)  toast('Hinweis: Zielpreis liegt unter/gleich neuem Einkaufspreis.','tw');
+  const btn=document.getElementById('subBtn'); btn.disabled=true;
+  let stock;
+
+  if (editId) {
+    // Edit: update targetPrice and save properly
+    stock=portfolio.find(x=>x.id===editId);
+    if(stock){
+      stock.targetPrice=tgt;
+      stock.symbol=sym; // allow symbol correction
+    }
+  } else if (isRebuy) {
+    // Re-buy: add purchase to existing position, update target
+    stock=portfolio.find(s=>s.symbol===sym);
+    if(stock){
+      stock.purchases.push({id:Date.now().toString(),buyPrice:buy,shares,buyDate:date,buyTime:time});
+      stock.targetPrice=tgt; // use new target (user can change it)
+      notified.delete(stock.id);
+    }
+  } else {
+    // New position
+    stock={
+      id:Date.now().toString(), symbol:sym, targetPrice:tgt,
+      name:sym, currency:'', nameFetched:false,
+      purchases:[{id:Date.now().toString()+'p',buyPrice:buy,shares,buyDate:date,buyTime:time}],
+      price:null, fetchError:false, lastUpd:null
+    };
+    portfolio.push(stock);
+  }
+
+  if(!stock) { btn.disabled=false; return; }
+  save();
+  if(sbClient&&sbUser) await pushSb(stock);
+  closeModal(); btn.disabled=false;
+  firstRender=true;
+  toast(editId?`${sym} gespeichert ✓`:`${sym} gespeichert — Kurs wird geladen…`,'ts');
+  await doRefresh();
+  firstRender=false;
+}
+
+function delStock(id){
+  const s=portfolio.find(x=>x.id===id);
+  if(!s||!confirm(`„${s.symbol}" und alle ${s.purchases.length} Kauf/Käufe entfernen?`))return;
+  portfolio=portfolio.filter(x=>x.id!==id); notified.delete(id);
+  if(sbClient&&sbUser) delSb(id);
+  save(); renderGrid(); updateSummary();
+  toast(`${s.symbol} entfernt.`,'ti');
+}
+
+// notifications removed
+
+// ─── EXPORT / IMPORT ─────────────────────────────────────────────────
+function exportJSON(){
+  const data={version:3,exported:new Date().toISOString(),portfolio};
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download=`stockwatch_${new Date().toISOString().slice(0,10)}.json`;
+  a.click(); URL.revokeObjectURL(a.href);
+  toast('Portfolio exportiert ✓','ts');
+}
+function importJSON(e){
+  const file=e.target.files[0]; if(!file) return;
+  const reader=new FileReader();
+  reader.onload=async ev=>{
+    try {
+      const data=JSON.parse(ev.target.result);
+      const imported=data.portfolio||data;
+      if(!Array.isArray(imported)) throw new Error('Ungültiges Format');
+      // Migrate old format (no purchases array)
+      const migrated=imported.map(s=>{
+        if(!s.purchases){
+          s.purchases=[{id:s.id+'_0',buyPrice:s.buyPrice||0,shares:s.shares||1,buyDate:s.buyDate||'',buyTime:s.buyTime||''}];
+        }
+        if(!s.targetPrice&&s.target_price) s.targetPrice=s.target_price;
+        return s;
+      });
+      portfolio=migrated; save();
+      if(sbClient&&sbUser){ for(const s of portfolio) await pushSb(s); }
+      renderGrid(); updateSummary();
+      toast(`${portfolio.length} Positionen importiert ✓`,'ts');
+    } catch(err){ toast('Import-Fehler: '+err.message,'te'); }
+  };
+  reader.readAsText(file);
+  e.target.value='';
+}
+
+
+// ─── PURCHASE DETAIL POPUP ───────────────────────────────────────────
+let popStockId = null;
+
+function openPop(id) {
+  const s = portfolio.find(x=>x.id===id); if(!s) return;
+  popStockId = id;
+  const cur = s.currency||'';
+  const avg = avgBuyPrice(s), tot = totalShares(s), inv = investedVal(s);
+  const hp = s.price!=null&&!s.fetchError;
+  const gain = hp ? (s.price-avg)/avg*100 : null;
+  const gainV = hp ? s.price*tot - inv : null;
+  const f = (n,d=2) => n!=null ? n.toLocaleString('de-DE',{minimumFractionDigits:d,maximumFractionDigits:d}) : '—';
+  const fc = n => n!=null ? f(n)+(cur?' '+cur:'') : '—';
+  const gs = gain!=null&&gain>=0?'+':'';
+
+  document.getElementById('popTitle').textContent = s.symbol + (s.name&&s.name!==s.symbol ? ' — ' + s.name : '');
+  document.getElementById('popSub').textContent = s.purchases.length + ' Kauf/Käufe · Zielpreis: ' + fc(s.targetPrice);
+
+  // Summary strip
+  const sumHtml = `<div class="pop-summary">
+    <div><div class="ps-lbl">Ø Einkauf</div><div class="ps-val" style="color:var(--acc)">${fc(avg)}</div></div>
+    <div><div class="ps-lbl">Stücke</div><div class="ps-val">${f(tot,0)}</div></div>
+    <div><div class="ps-lbl">Investiert</div><div class="ps-val">${fc(inv)}</div></div>
+    <div><div class="ps-lbl">Gewinn</div><div class="ps-val ${gain==null?'':gain>=0?'gp':'gn'}">${gain!=null?gs+f(gain)+'%':'—'}</div></div>
+  </div>`;
+
+  // Target edit
+  const tgtHtml = `<div class="pop-tgt">
+    <div class="pur-lbl" style="margin-bottom:8px"><i class="fa-solid fa-bullseye"></i> Zielpreis anpassen</div>
+    <div class="pop-tgt-row">
+      <input class="fi" id="popTgtInput" type="number" step="0.01" value="${s.targetPrice}" placeholder="Zielpreis">
+      <button class="btn btn-acc btn-sm" onclick="savePopTarget('${id}')"><i class="fa-solid fa-floppy-disk"></i> Speichern</button>
+    </div>
+  </div>`;
+
+  // Purchase rows
+  const sortedP = [...s.purchases].sort((a,b)=>b.buyDate?.localeCompare(a.buyDate||'')||0);
+  const purHtml = sortedP.map((p,i)=>{
+    const purGain = hp ? (s.price - p.buyPrice)/p.buyPrice*100 : null;
+    const purGainV = hp ? (s.price - p.buyPrice)*p.shares : null;
+    const gc = purGain==null?'':(purGain>=0?'p':'n');
+    const gs2 = purGain!=null&&purGain>=0?'+':'';
+    const dStr = p.buyDate ? new Date(p.buyDate+'T12:00:00').toLocaleDateString('de-DE') : '—';
+    return `<div class="pur-item" id="purItem_${p.id}">
+      <div class="pur-row">
+        <div class="pur-field">
+          <div class="pur-lbl"><i class="fa-solid fa-tag"></i> Einkaufspreis</div>
+          <div class="pur-val">${fc(p.buyPrice)}</div>
+          ${purGain!=null?`<div class="pur-gain ${gc}">${gs2}${f(purGain)}%</div>`:''}
+        </div>
+        <div class="pur-field">
+          <div class="pur-lbl"><i class="fa-solid fa-hashtag"></i> Stücke</div>
+          <div class="pur-val">${f(p.shares,0)}</div>
+          ${purGainV!=null?`<div class="pur-gain ${gc}">${purGainV>=0?'+':''}${fc(purGainV)}</div>`:''}
+        </div>
+        <div class="pur-field">
+          <div class="pur-lbl"><i class="fa-solid fa-calendar"></i> Datum</div>
+          <div class="pur-val" style="font-size:.82rem">${dStr}</div>
+          <div class="pur-date">${p.buyTime||''}</div>
+        </div>
+        <button class="pur-del-btn" onclick="deletePurchase('${id}','${p.id}')" title="Kauf entfernen"><i class="fa-solid fa-trash-can"></i></button>
+      </div>
+      <!-- Inline edit row -->
+      <div class="pur-edit-row">
+        <div><div class="pur-lbl">Neuer Preis</div><input class="fi" id="pep_${p.id}" type="number" step="0.0001" value="${p.buyPrice}" style="padding:6px 9px;font-size:.82rem"></div>
+        <div><div class="pur-lbl">Neue Stückzahl</div><input class="fi" id="pes_${p.id}" type="number" step="0.001" value="${p.shares}" style="padding:6px 9px;font-size:.82rem"></div>
+        <div><div class="pur-lbl">Datum</div><input class="fi" id="ped_${p.id}" type="date" value="${p.buyDate||''}" style="padding:6px 9px;font-size:.82rem"></div>
+      </div>
+      <button class="btn btn-acc btn-sm pur-save-btn" onclick="savePurchaseEdit('${id}','${p.id}')"><i class="fa-solid fa-pen-to-square"></i> Kauf ${i+1} speichern</button>
+    </div>`;
+  }).join('');
+
+  const addBtn = `<button class="btn btn-ghost btn-sm" onclick="openRebuyFromPop('${id}')" style="width:100%"><i class="fa-solid fa-plus"></i> Weiteren Kauf hinzufügen</button>`;
+
+  document.getElementById('popBody').innerHTML = sumHtml + tgtHtml + `<div class="pur-lbl" style="margin-bottom:8px"><i class="fa-solid fa-list"></i> Einzelne Käufe</div>` + `<div class="pur-list">${purHtml}</div>` + addBtn;
+  document.getElementById('popOv').classList.add('open');
+}
+
+function openRebuyFromPop(stockId) {
+  closePop();
+  openModal();
+  setTimeout(()=>{
+    const s=portfolio.find(x=>x.id===stockId);
+    if(!s) return;
+    document.getElementById('mTitle').innerHTML='<i class="fa-solid fa-plus-circle" style="color:var(--pos)"></i> Nachkauf — '+s.symbol;
+    document.getElementById('mSub').textContent='Neuen Kauf für '+s.symbol+' hinzufügen.';
+    document.getElementById('fSym').value=s.symbol;
+    document.getElementById('fSym').readOnly=true;
+    document.getElementById('fSym').style.opacity='0.6';
+    checkDuplicate();
+  },100);
+}
+
+function closePop() {
+  document.getElementById('popOv').classList.remove('open');
+  popStockId=null;
+}
+
+async function savePopTarget(stockId) {
+  const s = portfolio.find(x=>x.id===stockId); if(!s) return;
+  const val = parseFloat(document.getElementById('popTgtInput').value);
+  if(isNaN(val)||val<=0) return toast('Ungültiger Zielpreis.','te');
+  const avg = avgBuyPrice(s);
+  if(val<=avg) return toast('Zielpreis muss > Durchschnittseinkaufspreis sein.','te');
+  s.targetPrice=val;
+  save();
+  if(sbClient&&sbUser) await pushSb(s);
+  renderGrid(); updateSummary();
+  // refresh popup
+  closePop(); openPop(stockId);
+  toast('Zielpreis aktualisiert ✓','ts');
+}
+
+async function savePurchaseEdit(stockId, purchaseId) {
+  const s = portfolio.find(x=>x.id===stockId); if(!s) return;
+  const p = s.purchases.find(x=>x.id===purchaseId); if(!p) return;
+  const newPrice  = parseFloat(document.getElementById('pep_'+purchaseId)?.value);
+  const newShares = parseFloat(document.getElementById('pes_'+purchaseId)?.value);
+  const newDate   = document.getElementById('ped_'+purchaseId)?.value;
+  if(isNaN(newPrice)||newPrice<=0) return toast('Ungültiger Preis.','te');
+  if(isNaN(newShares)||newShares<=0) return toast('Ungültige Stückzahl.','te');
+  p.buyPrice = newPrice; p.shares = newShares; p.buyDate = newDate||p.buyDate;
+  save();
+  if(sbClient&&sbUser) await pushSb(s);
+  renderGrid(); updateSummary();
+  closePop(); openPop(stockId);
+  toast('Kauf aktualisiert ✓','ts');
+}
+
+async function deletePurchase(stockId, purchaseId) {
+  const s = portfolio.find(x=>x.id===stockId); if(!s) return;
+  if(s.purchases.length<=1) {
+    if(!confirm(`„${s.symbol}" hat nur einen Kauf — Position komplett entfernen?`)) return;
+    portfolio=portfolio.filter(x=>x.id!==stockId);
+    if(sbClient&&sbUser) await delSb(stockId);
+    save(); renderGrid(); updateSummary();
+    closePop(); toast(`${s.symbol} entfernt.`,'ti');
+    return;
+  }
+  if(!confirm('Diesen Kauf entfernen?')) return;
+  s.purchases = s.purchases.filter(x=>x.id!==purchaseId);
+  save();
+  if(sbClient&&sbUser) await pushSb(s);
+  renderGrid(); updateSummary();
+  closePop(); openPop(stockId);
+  toast('Kauf entfernt ✓','ti');
+}
+
+// ─── TOAST ───────────────────────────────────────────────────────────
+function toast(msg,cls='ti',dur=3500){
+  const c=document.getElementById('tc');
+  const el=document.createElement('div');
+  el.className='toast '+cls; el.textContent=msg;
+  c.appendChild(el);
+  setTimeout(()=>{el.style.opacity='0';setTimeout(()=>el.remove(),320);},dur);
+}
+
+// ─── KEYBOARD ────────────────────────────────────────────────────────
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'){
+    if(document.getElementById('popOv').classList.contains('open')) closePop();
+    else closeModal();
+  }
+  if(e.key==='Enter'&&document.getElementById('ov').classList.contains('open')){
+    if(document.activeElement.id!=='histBtn') submitStock();
+  }
+});
+document.getElementById('ov').addEventListener('click',e=>{
+  if(e.target===document.getElementById('ov')) closeModal();
+});
+
+// ─── START ───────────────────────────────────────────────────────────
+firstRender=true;
+init().then(()=>{ firstRender=false; });
+</script>
+<!-- ══════════════ PURCHASE DETAIL POPUP ═════════════════════════════ -->
+<div class="pop-ov" id="popOv" onclick="if(event.target===this)closePop()">
+  <div class="pop-box" id="popBox">
+    <div class="pop-hd">
+      <div>
+        <div class="pop-title" id="popTitle">Käufe</div>
+        <div class="pop-sub" id="popSub"></div>
+      </div>
+      <button class="pop-close" onclick="closePop()"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="pop-body" id="popBody"></div>
+  </div>
+</div>
+
+</body>
+</html>
