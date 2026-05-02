@@ -1508,10 +1508,46 @@ function openPop(id) {
     </div>`;
   }).join('');
 
-  const addBtn = `<button class="btn btn-ghost btn-sm" onclick="openRebuyFromPop('${id}')" style="width:100%"><i class="fa-solid fa-plus"></i> Weiteren Kauf hinzufügen</button>`;
+  const addBtn = `
+    <div style="display:flex;gap:8px;margin-top:4px">
+      <button class="btn btn-ghost btn-sm" onclick="openRebuyFromPop('${id}')" style="flex:1">
+        <i class="fa-solid fa-plus"></i> Weiteren Kauf hinzufügen
+      </button>
+      <button class="btn btn-acc btn-sm" onclick="refreshFromPop('${id}')" id="popRefreshBtn" style="flex:1">
+        <i class="fa-solid fa-satellite-dish"></i> Live Kurs abfragen
+      </button>
+    </div>`;
 
   document.getElementById('popBody').innerHTML = sumHtml + tgtHtml + `<div class="pur-lbl" style="margin-bottom:8px"><i class="fa-solid fa-list"></i> Einzelne Käufe</div>` + `<div class="pur-list">${purHtml}</div>` + addBtn;
   document.getElementById('popOv').classList.add('open');
+}
+
+async function refreshFromPop(stockId) {
+  const btn = document.getElementById('popRefreshBtn');
+  if(btn){ btn.disabled=true; btn.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i> Lädt…'; }
+  const s = portfolio.find(x=>x.id===stockId); if(!s) return;
+  let q = null;
+  // Finnhub zuerst
+  try { q = await fhQ(s.symbol); } catch(_){}
+  // Yahoo als Fallback
+  if(!q || q.c==null || (q.c===0 && (q.pc==null||q.pc===0))) {
+    try { q = await yahooLiveQuote(s.symbol); } catch(_){}
+  }
+  if(q && q.c!=null && !(q.c===0 && (q.pc==null||q.pc===0))) {
+    const livePrice = (q.c===0 && q.pc>0) ? q.pc : q.c;
+    s.price=livePrice; s.prevClose=q.pc; s.dayChange=q.d; s.dayPct=q.dp;
+    s.fetchError=false; s.lastUpd=Date.now();
+    s.priceSource = q._src==='yahoo' ? 'yahoo' : 'finnhub';
+    if(q._src==='yahoo' && q.currency && s.symbol.includes('.')) s.currency=q.currency;
+    if(q._src==='yahoo' && q.exchange) s.exchange=q.exchange;
+    if(!s.currency && !s.symbol.includes('.')) s.currency='USD';
+    save(); renderGrid(); updateSummary();
+    closePop(); openPop(stockId);
+    toast('Kurs aktualisiert ✓','ts');
+  } else {
+    toast('Kurs konnte nicht abgerufen werden.','te');
+    if(btn){ btn.disabled=false; btn.innerHTML='<i class="fa-solid fa-satellite-dish"></i> Live Kurs abfragen'; }
+  }
 }
 
 function openRebuyFromPop(stockId) {
