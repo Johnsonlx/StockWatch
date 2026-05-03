@@ -26,13 +26,13 @@ html{-webkit-text-size-adjust:100%}
 
 /* ═══ THEMES ═════════════════════════════════════════════════════════ */
 [data-theme="dark"]{
-  --bg:#080b14;--sur:#0e1120;--card:#131626;--cb:#1e2240;--hov:#181c30;
-  --acc:#5c6bff;--adim:rgba(92,107,255,.18);--aglow:rgba(92,107,255,.35);
+  --bg:#0A2647;--sur:#0f2d52;--card:#144272;--cb:#205295;--hov:#1a3a65;
+  --acc:#2C74B3;--adim:rgba(44,116,179,.20);--aglow:rgba(44,116,179,.40);
   --pos:#00e676;--pbg:rgba(0,230,118,.10);--pbr:rgba(0,230,118,.28);
   --neg:#ff4d6a;--nbg:rgba(255,77,106,.10);--nbr:rgba(255,77,106,.28);
   --gld:#ffc740;--gbg:rgba(255,199,64,.12);--gbr:rgba(255,199,64,.30);
-  --tx:#dde1f5;--sub:#6970a0;--mut:#2f3458;
-  --shd:rgba(0,0,0,.55);--hdr:rgba(8,11,20,.90);--gc:rgba(92,107,255,.03);
+  --tx:#d8e8f8;--sub:#6a95be;--mut:#2a4a6e;
+  --shd:rgba(0,0,0,.55);--hdr:rgba(10,38,71,.92);--gc:rgba(44,116,179,.04);
 }
 [data-theme="ocean"]{
   --bg:#1a2130;--sur:#222b3d;--card:#28354a;--cb:#354660;--hov:#2e3d55;
@@ -44,22 +44,31 @@ html{-webkit-text-size-adjust:100%}
   --shd:rgba(0,0,0,.5);--hdr:rgba(26,33,48,.92);--gc:rgba(0,180,216,.03);
 }
 [data-theme="lavender"]{
-  --bg:#f4eeff;--sur:#ede5ff;--card:#ffffff;--cb:#dcd6f7;--hov:#e8e0ff;
-  --acc:#424874;--adim:rgba(66,72,116,.12);--aglow:rgba(66,72,116,.25);
+  --bg:#EEF1FF;--sur:#D2DAFF;--card:#ffffff;--cb:#AAC4FF;--hov:#c3cfff;
+  --acc:#6366f1;--adim:rgba(99,102,241,.12);--aglow:rgba(99,102,241,.25);
   --pos:#2d7a2d;--pbg:rgba(45,122,45,.08);--pbr:rgba(45,122,45,.25);
   --neg:#c0392b;--nbg:rgba(192,57,43,.08);--nbr:rgba(192,57,43,.22);
   --gld:#b8860b;--gbg:rgba(184,134,11,.10);--gbr:rgba(184,134,11,.28);
-  --tx:#1a1a2e;--sub:#5a5a8a;--mut:#a6b1e1;
-  --shd:rgba(66,72,116,.15);--hdr:rgba(244,238,255,.95);--gc:rgba(66,72,116,.04);
+  --tx:#1e1e3a;--sub:#6a6aa0;--mut:#B1B2FF;
+  --shd:rgba(99,102,241,.12);--hdr:rgba(238,241,255,.95);--gc:rgba(99,102,241,.04);
 }
 [data-theme="mint"]{
-  --bg:#f8f6f4;--sur:#e3f4f4;--card:#ffffff;--cb:#c4dfdf;--hov:#d2e9e9;
-  --acc:#3a8b8b;--adim:rgba(58,139,139,.12);--aglow:rgba(58,139,139,.28);
+  --bg:#EEE9DA;--sur:#BDCDD6;--card:#ffffff;--cb:#93BFCF;--hov:#adc5cf;
+  --acc:#6096B4;--adim:rgba(96,150,180,.14);--aglow:rgba(96,150,180,.30);
   --pos:#2a7a4f;--pbg:rgba(42,122,79,.08);--pbr:rgba(42,122,79,.25);
   --neg:#b83232;--nbg:rgba(184,50,50,.08);--nbr:rgba(184,50,50,.22);
   --gld:#9a7010;--gbg:rgba(154,112,16,.10);--gbr:rgba(154,112,16,.28);
-  --tx:#1a3030;--sub:#4a7070;--mut:#88aaba;
-  --shd:rgba(58,139,139,.15);--hdr:rgba(248,246,244,.95);--gc:rgba(58,139,139,.04);
+  --tx:#1a2e30;--sub:#4a7080;--mut:#93BFCF;
+  --shd:rgba(96,150,180,.15);--hdr:rgba(238,233,218,.95);--gc:rgba(96,150,180,.04);
+}
+[data-theme="earth"]{
+  --bg:#F8EDE3;--sur:#BDD2B6;--card:#ffffff;--cb:#A2B29F;--hov:#b0c3a9;
+  --acc:#798777;--adim:rgba(121,135,119,.14);--aglow:rgba(121,135,119,.30);
+  --pos:#3d7a3d;--pbg:rgba(61,122,61,.08);--pbr:rgba(61,122,61,.25);
+  --neg:#a83232;--nbg:rgba(168,50,50,.08);--nbr:rgba(168,50,50,.22);
+  --gld:#8a6a10;--gbg:rgba(138,106,16,.10);--gbr:rgba(138,106,16,.28);
+  --tx:#2a2520;--sub:#5a6055;--mut:#A2B29F;
+  --shd:rgba(121,135,119,.15);--hdr:rgba(248,237,227,.95);--gc:rgba(121,135,119,.04);
 }
 
 /* ═══ RESET ══════════════════════════════════════════════════════════ */
@@ -83,8 +92,9 @@ header{position:fixed;top:0;left:0;right:0;z-index:300;background:var(--hdr);bac
 .logo:active{opacity:.6}
 .logo-ico{width:32px;height:32px;border-radius:9px;background:linear-gradient(135deg,var(--acc),#a06bff);display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px;transition:transform .2s;flex-shrink:0}
 [data-theme="ocean"] .logo-ico{background:linear-gradient(135deg,#00b4d8,#0077a8)}
-[data-theme="lavender"] .logo-ico{background:linear-gradient(135deg,#424874,#a6b1e1)}
-[data-theme="mint"] .logo-ico{background:linear-gradient(135deg,#3a8b8b,#c4dfdf)}
+[data-theme="lavender"] .logo-ico{background:linear-gradient(135deg,#6366f1,#AAC4FF)}
+[data-theme="mint"] .logo-ico{background:linear-gradient(135deg,#6096B4,#93BFCF)}
+[data-theme="earth"] .logo-ico{background:linear-gradient(135deg,#798777,#BDD2B6)}
 .logo span{color:var(--acc)}
 .hdr-gap{flex:1}
 .hdr-r{display:flex;align-items:center;gap:7px;flex-wrap:nowrap}
@@ -102,7 +112,7 @@ header{position:fixed;top:0;left:0;right:0;z-index:300;background:var(--hdr);bac
 .rbtn{width:36px;height:36px;border-radius:8px;background:var(--adim);border:1px solid var(--acc);color:var(--acc);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s;font-size:12px;flex-shrink:0}
 .rbtn:hover{background:var(--acc);color:#fff}
 .rbtn.spin i{animation:spin 1s linear infinite}
-.pdot{width:7px;height:7px;border-radius:50%;background:var(--pos);box-shadow:0 0 6px var(--pos);animation:pa 2.5s ease-in-out infinite;flex-shrink:0}
+.pdot{width:10px;height:10px;border-radius:50%;background:var(--pos);box-shadow:0 0 6px var(--pos);animation:pa 2.5s ease-in-out infinite;flex-shrink:0;cursor:pointer;transition:background .2s,box-shadow .2s}
 .pdot.off{background:var(--mut);box-shadow:none;animation:none}
 @keyframes pa{0%,100%{opacity:1}50%{opacity:.3}}
 @keyframes spin{to{transform:rotate(360deg)}}
@@ -159,8 +169,9 @@ header{position:fixed;top:0;left:0;right:0;z-index:300;background:var(--hdr);bac
 .btn-acc{background:linear-gradient(135deg,var(--acc),#a06bff);color:#fff;box-shadow:0 4px 14px var(--aglow)}
 .btn-acc:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 6px 20px var(--aglow)}
 [data-theme="ocean"] .btn-acc{background:linear-gradient(135deg,#00b4d8,#0077a8)}
-[data-theme="lavender"] .btn-acc{background:linear-gradient(135deg,#424874,#a6b1e1)}
-[data-theme="mint"] .btn-acc{background:linear-gradient(135deg,#3a8b8b,#c4dfdf);color:var(--tx)}
+[data-theme="lavender"] .btn-acc{background:linear-gradient(135deg,#6366f1,#AAC4FF)}
+[data-theme="mint"] .btn-acc{background:linear-gradient(135deg,#6096B4,#93BFCF);color:var(--tx)}
+[data-theme="earth"] .btn-acc{background:linear-gradient(135deg,#798777,#BDD2B6);color:var(--tx)}
 .btn-ghost{background:transparent;color:var(--sub);border:1px solid var(--cb)}
 .btn-ghost:hover:not(:disabled){border-color:var(--sub);color:var(--tx)}
 .btn-sm{padding:8px 13px;font-size:.78rem;border-radius:8px}
@@ -311,6 +322,8 @@ footer{position:relative;z-index:1;background:var(--sur);border-top:1px solid va
 [data-theme="lavender"] .ts{background:#f0fff4}
 [data-theme="lavender"] .te{background:#fff5f5}
 [data-theme="mint"] .ts{background:#f0fff8}
+[data-theme="earth"] .ts{background:#f0fff4}
+[data-theme="earth"] .te{background:#fff5f5}
 
 /* ═══ SYNC BADGE ══════════════════════════════════════════════════════ */
 .sync-badge{display:flex;align-items:center;gap:5px;font-size:.7rem;font-family:'JetBrains Mono',monospace;color:var(--sub);padding:3px 8px;border-radius:6px;background:var(--adim);white-space:nowrap;flex-shrink:0}
@@ -501,15 +514,16 @@ button[id^="purLiveBtn_"]:hover{background:var(--adim);color:var(--acc);box-shad
   </div>
   <div class="hdr-gap"></div>
   <div class="hdr-r">
-    <div class="pdot" id="pdot" title="Auto-Refresh"></div>
+    <div class="pdot" id="pdot" title="Auto-Refresh an/aus — Klicken zum Umschalten" onclick="toggleAutoRefresh()" style="cursor:pointer"></div>
     <span class="rt-time" id="rtLbl">—</span>
     <div class="mkt-badge closed" id="mktBadge"><i class="fa-solid fa-circle"></i><span id="mktLbl">Markt</span></div>
     <div class="sync-badge" id="syncBadge"><div class="sync-dot off" id="syncDot"></div><span id="syncLbl">Lokal</span></div>
     <div class="thm-grp" title="Design">
       <button class="tbtn on" id="tDark"  onclick="setTheme('dark')"     title="Midnight"><i class="fa-solid fa-moon"></i></button>
-      <button class="tbtn"    id="tOcean" onclick="setTheme('ocean')"    title="Ocean"><i class="fa-solid fa-circle-half-stroke"></i></button>
+      <button class="tbtn"    id="tOcean" onclick="setTheme('ocean')"    title="Ocean"><i class="fa-solid fa-water"></i></button>
       <button class="tbtn"    id="tLav"   onclick="setTheme('lavender')" title="Lavender"><i class="fa-solid fa-star"></i></button>
-      <button class="tbtn"    id="tMint"  onclick="setTheme('mint')"     title="Mint"><i class="fa-solid fa-leaf"></i></button>
+      <button class="tbtn"    id="tMint"  onclick="setTheme('mint')"     title="Mint"><i class="fa-solid fa-droplet"></i></button>
+      <button class="tbtn"    id="tEarth" onclick="setTheme('earth')"    title="Earth"><i class="fa-solid fa-seedling"></i></button>
     </div>
 
     <button class="hbtn hidden" id="userBtn" onclick="showSyncScreen()"><i class="fa-solid fa-user"></i><span id="userLbl">Konto</span></button>
@@ -771,13 +785,14 @@ let sbClient   = null, sbUser = null;
 let editId     = null, isRebuy = false;
 let loopTimer  = null, authMode = 'login';
 let firstRender = true; // prevent AOS double-anim on refresh
+let autoRefreshPaused = false; // user can pause auto-refresh
 
 // ─── THEME ──────────────────────────────────────────────────────────
 function setTheme(t) {
   document.documentElement.setAttribute('data-theme', t);
   localStorage.setItem('sw_theme', t);
-  ['Dark','Ocean','Lav','Mint'].forEach((n,i)=>{
-    const id='t'+n, th=['dark','ocean','lavender','mint'][i];
+  ['Dark','Ocean','Lav','Mint','Earth'].forEach((n,i)=>{
+    const id='t'+n, th=['dark','ocean','lavender','mint','earth'][i];
     document.getElementById(id)?.classList.toggle('on',th===t);
   });
 }
@@ -831,8 +846,15 @@ function updateMarketBadge() {
   badge.className = 'mkt-badge ' + (open?'open':'closed');
   lbl.textContent = open ? 'Markt offen' : 'Markt zu';
   fDot.style.color = open ? 'var(--pos)' : 'var(--gld)';
-  fTxt.textContent = open ? 'Markt offen — Auto-Refresh aktiv' : 'Markt geschlossen — kein Auto-Refresh';
-  dot.className = 'pdot ' + (open?'':'off');
+  if(autoRefreshPaused) {
+    dot.className = 'pdot off';
+    dot.title = 'Auto-Refresh PAUSIERT — Klicken zum Fortsetzen';
+    fTxt.textContent = open ? 'Markt offen — Auto-Refresh pausiert' : 'Markt geschlossen — Auto-Refresh pausiert';
+  } else {
+    dot.className = 'pdot ' + (open?'':'off');
+    dot.title = 'Auto-Refresh aktiv — Klicken zum Pausieren';
+    fTxt.textContent = open ? 'Markt offen — Auto-Refresh aktiv' : 'Markt geschlossen — kein Auto-Refresh';
+  }
 }
 setInterval(updateMarketBadge, 30000);
 updateMarketBadge();
@@ -1268,7 +1290,20 @@ function logoClick() { doRefresh(); }
 
 function startLoop() {
   if(loopTimer) clearInterval(loopTimer);
-  loopTimer = setInterval(()=>{ if(isMarketHours()) doRefresh(); }, INTV);
+  if(autoRefreshPaused) return;
+  loopTimer = setInterval(()=>{ if(!autoRefreshPaused && isMarketHours()) doRefresh(); }, INTV);
+}
+
+function toggleAutoRefresh() {
+  autoRefreshPaused = !autoRefreshPaused;
+  if(autoRefreshPaused) {
+    if(loopTimer) { clearInterval(loopTimer); loopTimer = null; }
+    toast('Auto-Refresh pausiert','tw');
+  } else {
+    startLoop();
+    toast('Auto-Refresh aktiviert','ts');
+  }
+  updateMarketBadge();
 }
 
 // ─── COMPUTED HELPERS ────────────────────────────────────────────────
