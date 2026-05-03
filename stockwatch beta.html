@@ -742,6 +742,20 @@ create policy "own" on public.sw_portfolio
 
 <div class="tc" id="tc"></div>
 
+<!-- ══════════════ PURCHASE DETAIL POPUP ═════════════════════════════ -->
+<div class="pop-ov" id="popOv" style="display:none" onclick="if(event.target===this)closePop()">
+  <div class="pop-box" id="popBox">
+    <div class="pop-hd">
+      <div>
+        <div class="pop-title" id="popTitle">Käufe</div>
+        <div class="pop-sub" id="popSub"></div>
+      </div>
+      <button class="pop-close" onclick="closePop()"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="pop-body" id="popBody"></div>
+  </div>
+</div>
+
 <script>
 // ─── CONSTANTS ───────────────────────────────────────────────────────
 const FH = 'https://finnhub.io/api/v1';
@@ -1947,19 +1961,6 @@ document.getElementById('ov').addEventListener('click',e=>{
 firstRender=true;
 init().then(()=>{ firstRender=false; });
 </script>
-<!-- ══════════════ PURCHASE DETAIL POPUP ═════════════════════════════ -->
-<div class="pop-ov" id="popOv" style="display:none" onclick="if(event.target===this)closePop()">
-  <div class="pop-box" id="popBox">
-    <div class="pop-hd">
-      <div>
-        <div class="pop-title" id="popTitle">Käufe</div>
-        <div class="pop-sub" id="popSub"></div>
-      </div>
-      <button class="pop-close" onclick="closePop()"><i class="fa-solid fa-xmark"></i></button>
-    </div>
-    <div class="pop-body" id="popBody"></div>
-  </div>
-</div>
 
 </body>
 </html>
