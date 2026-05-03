@@ -14,12 +14,12 @@
 .pop-ov.open{opacity:1;pointer-events:all}
 .pop-box{background:var(--sur);border:1px solid var(--cb);border-radius:20px;width:100%;max-width:540px;max-height:84vh;overflow-y:auto;box-shadow:0 28px 70px var(--shd);transform:translateY(22px) scale(.97);transition:transform .25s cubic-bezier(.4,0,.2,1),background .3s}
 .pop-ov.open .pop-box{transform:translateY(0) scale(1)}
-.pop-hd{padding:22px 24px 0;display:flex;align-items:flex-start;justify-content:space-between;gap:12px;position:sticky;top:0;background:var(--sur);border-bottom:1px solid var(--cb);padding-bottom:16px;z-index:2}
+.pop-hd{padding:22px 22px 0;display:flex;align-items:flex-start;justify-content:space-between;gap:12px;position:sticky;top:0;background:var(--sur);border-bottom:1px solid var(--cb);padding-bottom:16px;z-index:2}
 .pop-title{font-size:1.15rem;font-weight:800}
 .pop-sub{font-size:.8rem;color:var(--sub);margin-top:4px}
-.pop-close{width:32px;height:32px;border:none;background:var(--nbg);color:var(--neg);border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0;transition:all .15s}
+.pop-close{width:30px;height:30px;border:none;background:var(--nbg);color:var(--neg);border-radius:7px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0;transition:all .15s}
 .pop-close:hover{background:var(--neg);color:#fff}
-.pop-body{padding:20px 24px 24px}
+.pop-body{padding:18px 22px 22px}
 *{-webkit-tap-highlight-color:transparent}
 button,select,input{-webkit-tap-highlight-color:transparent;touch-action:manipulation}
 html{-webkit-text-size-adjust:100%}
@@ -401,11 +401,10 @@ footer{position:relative;z-index:1;background:var(--sur);border-top:1px solid va
   .fsbar-sep{display:none}
   .fs-count{margin-left:0;font-size:.7rem}
   /* Pop-up Käufe Liste mobile */
-  .pur-row{grid-template-columns:1fr 1fr;gap:10px}
-  .pur-row > .pur-field:nth-child(3){grid-column:1/-1}
-  .pur-row > .pur-edit-btn,.pur-row > .pur-del-btn{width:36px;height:36px;font-size:13px}
+  .pur-row{grid-template-columns:1fr 1fr 1fr;gap:8px}
+  .pur-edit-btn,.pur-del-btn{width:38px;height:38px;font-size:14px}
   .pur-edit-row{grid-template-columns:1fr 1fr}
-  .pop-summary{grid-template-columns:1fr 1fr;gap:8px}
+  .pop-summary{grid-template-columns:1fr 1fr}
   /* Karten-Buttons größer */
   .bic{width:36px;height:36px;font-size:13px}
   /* Footer-Tools stapeln */
@@ -443,24 +442,24 @@ footer{position:relative;z-index:1;background:var(--sur);border-top:1px solid va
 /* Purchase rows */
 .pur-list{display:flex;flex-direction:column;gap:12px;margin-bottom:18px}
 .pur-item{background:var(--card);border:1px solid var(--cb);border-radius:14px;padding:16px 18px;position:relative;transition:border-color .2s,box-shadow .2s}
-.pur-item:hover{border-color:var(--acc);box-shadow:0 4px 18px var(--shd)}
-.pur-row{display:grid;grid-template-columns:1fr 1fr 1fr auto auto;gap:12px;align-items:center}
+.pur-item:hover{border-color:var(--acc);box-shadow:0 4px 16px var(--shd)}
+.pur-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;align-items:start}
 .pur-field{min-width:0}
 .pur-lbl{font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--sub);margin-bottom:5px;display:flex;align-items:center;gap:4px}
 .pur-lbl i{font-size:.6rem;opacity:.65}
 .pur-val{font-family:'JetBrains Mono',monospace;font-size:1rem;font-weight:700;color:var(--tx);line-height:1.3}
-.pur-gain{font-size:.76rem;font-family:'JetBrains Mono',monospace;margin-top:5px;font-weight:600;display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:6px;line-height:1}
+.pur-gain{font-size:.76rem;font-family:'JetBrains Mono',monospace;margin-top:5px;font-weight:600;display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:5px;line-height:1}
 .pur-gain.p{color:var(--pos);background:var(--pbg)}
 .pur-gain.n{color:var(--neg);background:var(--nbg)}
 .pur-date{font-size:.72rem;color:var(--sub);font-family:'JetBrains Mono',monospace;margin-top:4px}
-.pur-del-btn{width:34px;height:34px;border:none;background:var(--nbg);color:var(--neg);border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0;align-self:center;transition:all .15s}
+.pur-del-btn{width:36px;height:36px;border:none;background:var(--nbg);color:var(--neg);border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;transition:all .15s;margin-top:4px}
 .pur-del-btn:hover{background:var(--neg);color:#fff}
 .pur-edit-row{display:none;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px;padding-top:14px;border-top:1px solid var(--cb)}
 .pur-item.editing .pur-edit-row{display:grid}
 .pur-edit-row .pur-lbl{margin-bottom:6px}
 .pur-save-btn{display:none;margin-top:10px;width:100%}
 .pur-item.editing .pur-save-btn{display:flex}
-.pur-edit-btn{width:34px;height:34px;border:none;background:var(--adim);color:var(--acc);border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0;align-self:center;transition:all .15s}
+.pur-edit-btn{width:36px;height:36px;border:none;background:var(--adim);color:var(--acc);border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;transition:all .15s;margin-top:4px}
 .pur-edit-btn:hover{background:var(--acc);color:#fff}
 .pur-item.editing .pur-edit-btn{background:var(--acc);color:#fff}
 /* Live-Kurs-Button Glow */
@@ -470,7 +469,7 @@ button[id^="purLiveBtn_"]:hover{background:var(--adim);color:var(--acc);box-shad
 @keyframes liveGlow{0%,100%{box-shadow:0 0 5px color-mix(in srgb,var(--acc) 30%,transparent)}50%{box-shadow:0 0 12px color-mix(in srgb,var(--acc) 65%,transparent)}}
 
 /* Target edit section */
-.pop-tgt{background:var(--adim);border:1px solid var(--acc);border-radius:14px;padding:16px 18px;margin-bottom:18px}
+.pop-tgt{background:var(--adim);border:1px solid var(--acc);border-radius:14px;padding:15px 18px;margin-bottom:18px}
 .pop-tgt-row{display:flex;gap:10px;align-items:flex-end}
 .pop-tgt-row .fi{flex:1}
 
