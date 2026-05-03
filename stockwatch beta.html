@@ -247,11 +247,12 @@ header{position:fixed;top:0;left:0;right:0;z-index:300;background:var(--hdr);bac
 .progfill{height:100%;border-radius:99px;background:linear-gradient(90deg,var(--acc),var(--pos));transition:width .7s cubic-bezier(.4,0,.2,1)}
 .progfill.over{background:linear-gradient(90deg,var(--pos),var(--gld))}
 
-.grow{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
-.gi{text-align:center}
-.gilbl{font-size:.62rem;text-transform:uppercase;letter-spacing:.07em;color:var(--mut);font-weight:600;margin-bottom:2px}
-.gival{font-family:'JetBrains Mono',monospace;font-size:.9rem;font-weight:700}
-.gp{color:var(--pos)}.gn{color:var(--neg)}.gg{color:var(--gld)}.gs{color:var(--sub)}
+.grow{display:grid;grid-template-columns:1fr 1fr;gap:12px 16px;margin-bottom:12px}
+.gi{min-width:0}
+.gilbl{font-size:.66rem;text-transform:uppercase;letter-spacing:.07em;color:var(--sub);font-weight:700;margin-bottom:4px;display:flex;align-items:center;gap:4px}
+.gilbl i{font-size:.58rem;opacity:.6}
+.gival{font-family:'JetBrains Mono',monospace;font-size:.95rem;font-weight:700}
+.gp{color:var(--pos)}.gn{color:var(--neg)}.gg{color:var(--gld)}.gs{color:var(--sub)}.va{color:var(--acc)}
 
 .cf{display:flex;align-items:center;justify-content:space-between;margin-top:12px;padding-top:10px;border-top:1px solid var(--cb)}
 .cft{font-size:.67rem;font-family:'JetBrains Mono',monospace;color:var(--mut)}
@@ -378,7 +379,6 @@ footer{position:relative;z-index:1;background:var(--sur);border-top:1px solid va
   .thm-grp{display:none}
   .sync-badge span{display:none}
   .fr{grid-template-columns:1fr}
-  .grow{grid-template-columns:repeat(2,1fr)}
   .pfrow{flex-direction:column;align-items:stretch}
   .footer-inner{grid-template-columns:1fr;gap:16px}
   .footer-right{align-items:flex-start}
@@ -422,7 +422,6 @@ footer{position:relative;z-index:1;background:var(--sur);border-top:1px solid va
   .fs-chip{font-size:.7rem;padding:6px 9px;min-height:34px}
   /* Card optimieren */
   .ch-name{max-width:90px}
-  .grow{grid-template-columns:1fr}
   /* Header sehr kompakt – Sync-Badge ausblenden, Markt-Badge nur Punkt */
   .sync-badge{display:none}
   .mkt-badge span{display:none}
@@ -1426,21 +1425,11 @@ function cardHTML(s, idx) {
     </div>
     ${s.fetchError?`<div class="errmsg"><i class="fa-solid fa-circle-exclamation"></i> Kurs nicht abrufbar. WKN ≠ Ticker! DAX-Beispiele: <b>SAP.DE · BMW.DE · SIE.DE</b> &nbsp;|&nbsp; US: <b>AAPL · NOW</b>. <a href="https://finance.yahoo.com/lookup/" target="_blank" style="color:var(--acc)">Ticker nachschlagen</a></div>`:''}
     <div class="dvd"></div>
-    <div class="pd">
-      <div><div class="pdlbl"><i class="fa-solid fa-tag"></i> Ø Einkauf</div><div class="pdval avg">${fc(avg)}</div></div>
-      <div><div class="pdlbl"><i class="fa-solid fa-bullseye"></i> Zielpreis</div><div class="pdval">${fc(s.targetPrice)}</div></div>
-      <div><div class="pdlbl"><i class="fa-solid fa-coins"></i> Investiert</div><div class="pdval">${fc(inv)}</div></div>
-      <div><div class="pdlbl"><i class="fa-solid fa-hashtag"></i> Stücke gesamt</div><div class="pdval">${f(tot,0)}</div></div>
-    </div>
-    <div class="progw">
-      <div class="proghd"><span class="proglbl">Fortschritt zum Ziel</span><span class="progpct">${hp?f(Math.min(prog,110))+'%':'—'}</span></div>
-      <div class="progtr"><div class="progfill ${prog>=100?'over':''}" style="width:${hp?Math.min(prog,100)+'%':'0%'}"></div></div>
-    </div>
     <div class="grow">
-      <div class="gi"><div class="gilbl">Gewinn %</div><div class="gival ${hit?'gg':'g'+gc}">${gain!=null?gs+f(gain)+'%':'—'}</div></div>
-      <div class="gi"><div class="gilbl">Gewinn €</div><div class="gival ${hit?'gg':'g'+gc}">${gainV!=null?(gainV>=0?'+':'')+fc(gainV):'—'}</div></div>
-      <div class="gi"><div class="gilbl">Zum Ziel</div><div class="gival ${hit?'gg':''}">${hit?'<i class="fa-solid fa-check"></i>':toTgt!=null?f(toTgt)+'%':'—'}</div></div>
-      <div class="gi"><div class="gilbl">Aktuell</div><div class="gival gs">${posV!=null?fc(posV):'—'}</div></div>
+      <div class="gi"><div class="gilbl"><i class="fa-solid fa-tag"></i> Ø Einkauf</div><div class="gival va">${fc(avg)}</div></div>
+      <div class="gi"><div class="gilbl"><i class="fa-solid fa-bullseye"></i> Zielpreis</div><div class="gival">${fc(s.targetPrice)}</div></div>
+      <div class="gi"><div class="gilbl"><i class="fa-solid fa-coins"></i> Investiert</div><div class="gival">${fc(inv)}</div></div>
+      <div class="gi"><div class="gilbl"><i class="fa-solid fa-cubes"></i> Stücke</div><div class="gival">${f(tot,0)}</div></div>
     </div>
     <div class="cf">
       <div class="cft">
