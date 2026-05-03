@@ -256,8 +256,8 @@ header{position:fixed;top:0;left:0;right:0;z-index:300;background:var(--hdr);bac
 .es{font-size:.85rem;max-width:300px;margin:0 auto;line-height:1.65}
 
 /* ═══ MODAL ══════════════════════════════════════════════════════════ */
-.ov{position:fixed;top:0;left:0;right:0;bottom:0;z-index:400;background:rgba(0,0,0,.72);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);display:none;align-items:center;justify-content:center;padding:70px 16px 20px;opacity:0;transition:opacity .22s}
-.ov.open{display:flex;opacity:1}
+.ov{position:fixed;inset:0;z-index:400;background:rgba(0,0,0,.72);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);display:flex;align-items:center;justify-content:center;padding:70px 16px 20px;opacity:0;pointer-events:none;transition:opacity .22s}
+.ov.open{opacity:1;pointer-events:all}
 
 .modal{background:var(--sur);border:1px solid var(--cb);border-radius:20px;padding:26px;width:100%;max-width:460px;transform:translateY(20px) scale(.97);transition:transform .25s cubic-bezier(.4,0,.2,1),background .3s,border-color .3s;box-shadow:0 28px 70px var(--shd);max-height:88vh;overflow-y:auto;-webkit-overflow-scrolling:touch}
 .ov.open .modal{transform:translateY(0) scale(1)}
@@ -432,8 +432,8 @@ footer{position:relative;z-index:1;background:var(--sur);border-top:1px solid va
 
 
 /* ═══ PURCHASE DETAIL POPUP ══════════════════════════════════════════ */
-.pop-ov{position:fixed;top:0;left:0;right:0;bottom:0;z-index:500;background:rgba(0,0,0,.75);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);display:none;align-items:center;justify-content:center;padding:70px 14px 20px;opacity:0;transition:opacity .22s}
-.pop-ov.open{display:flex;opacity:1}
+.pop-ov{position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.75);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);display:flex;align-items:center;justify-content:center;padding:70px 14px 20px;opacity:0;pointer-events:none;transition:opacity .22s}
+.pop-ov.open{opacity:1;pointer-events:all}
 .pop-box{background:var(--sur);border:1px solid var(--cb);border-radius:20px;width:100%;max-width:520px;max-height:84vh;overflow-y:auto;-webkit-overflow-scrolling:touch;box-shadow:0 28px 70px var(--shd);transform:translateY(22px) scale(.97);transition:transform .25s cubic-bezier(.4,0,.2,1),background .3s}
 .pop-ov.open .pop-box{transform:translateY(0) scale(1)}
 .pop-hd{padding:20px 22px 0;display:flex;align-items:flex-start;justify-content:space-between;gap:12px;position:sticky;top:0;background:var(--sur);border-bottom:1px solid var(--cb);padding-bottom:14px;z-index:2}
@@ -700,7 +700,7 @@ create policy "own" on public.sw_portfolio
 </footer>
 
 <!-- ══════════════ STOCK MODAL ════════════════════════════════════════ -->
-<div class="ov" id="ov" style="display:none">
+<div class="ov" id="ov">
   <div class="modal">
     <div class="mt" id="mTitle"><i class="fa-solid fa-circle-plus" style="color:var(--acc)"></i> Aktie hinzufügen</div>
     <div class="ms" id="mSub">Symbol, Kaufdatum und Preis eintragen.</div>
@@ -741,20 +741,6 @@ create policy "own" on public.sw_portfolio
 </div>
 
 <div class="tc" id="tc"></div>
-
-<!-- ══════════════ PURCHASE DETAIL POPUP ═════════════════════════════ -->
-<div class="pop-ov" id="popOv" style="display:none" onclick="if(event.target===this)closePop()">
-  <div class="pop-box" id="popBox">
-    <div class="pop-hd">
-      <div>
-        <div class="pop-title" id="popTitle">Käufe</div>
-        <div class="pop-sub" id="popSub"></div>
-      </div>
-      <button class="pop-close" onclick="closePop()"><i class="fa-solid fa-xmark"></i></button>
-    </div>
-    <div class="pop-body" id="popBody"></div>
-  </div>
-</div>
 
 <script>
 // ─── CONSTANTS ───────────────────────────────────────────────────────
@@ -1509,10 +1495,7 @@ function openModal() {
   document.getElementById('fShares').value='1';
   document.getElementById('fDate').valueAsDate=new Date();
   const h=document.getElementById('histHint'); h.style.color=''; h.textContent='Datum + Symbol eingeben → „Kurs laden" → historischer Schlusskurs.';
-  const _ov=document.getElementById('ov');
-  _ov.style.cssText='position:fixed!important;top:0;left:0;right:0;bottom:0;z-index:9998;background:rgba(0,0,0,.72);display:flex;align-items:center;justify-content:center;padding:70px 16px 20px;opacity:1;pointer-events:auto;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)';
-  _ov.classList.add('open');
-  document.body.style.overflow='hidden';
+  document.getElementById('ov').classList.add('open');
   setTimeout(()=>document.getElementById('fSym').focus(),250);
 }
 function openEdit(id) {
@@ -1540,10 +1523,7 @@ function openEditTarget(id) {
   document.getElementById('ov').classList.add('open');
 }
 function closeModal() {
-  const _ov=document.getElementById('ov');
-  _ov.classList.remove('open');
-  _ov.style.cssText='display:none';
-  document.body.style.overflow='';
+  document.getElementById('ov').classList.remove('open');
   editId=null; isRebuy=false;
   const sym=document.getElementById('fSym'); sym.readOnly=false; sym.style.opacity='';
 }
@@ -1744,10 +1724,7 @@ function openPop(id) {
   const addBtn = `<button class="btn btn-ghost btn-sm" onclick="openRebuyFromPop('${id}')" style="width:100%"><i class="fa-solid fa-plus"></i> Weiteren Kauf hinzufügen</button>`;
 
   document.getElementById('popBody').innerHTML = sumHtml + tgtHtml + `<div class="pur-lbl" style="margin-bottom:8px"><i class="fa-solid fa-list"></i> Einzelne Käufe</div>` + `<div class="pur-list">${purHtml}</div>` + addBtn;
-  const _pov=document.getElementById('popOv');
-  _pov.style.cssText='position:fixed!important;top:0;left:0;right:0;bottom:0;z-index:9999;background:rgba(0,0,0,.75);display:flex;align-items:center;justify-content:center;padding:70px 14px 20px;opacity:1;pointer-events:auto;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)';
-  _pov.classList.add('open');
-  document.body.style.overflow='hidden';
+  document.getElementById('popOv').classList.add('open');
 }
 
 // Datum geändert → Tooltip am Satelliten-Button aktualisieren
@@ -1863,10 +1840,7 @@ function openRebuyFromPop(stockId) {
 }
 
 function closePop() {
-  const _pov=document.getElementById('popOv');
-  _pov.classList.remove('open');
-  _pov.style.cssText='display:none';
-  document.body.style.overflow='';
+  document.getElementById('popOv').classList.remove('open');
   popStockId=null;
 }
 
@@ -1961,6 +1935,20 @@ document.getElementById('ov').addEventListener('click',e=>{
 firstRender=true;
 init().then(()=>{ firstRender=false; });
 </script>
+<!-- ══════════════ PURCHASE DETAIL POPUP ═════════════════════════════ -->
+<div class="pop-ov" id="popOv" onclick="if(event.target===this)closePop()">
+  <div class="pop-box" id="popBox">
+    <div class="pop-hd">
+      <div>
+        <div class="pop-title" id="popTitle">Käufe</div>
+        <div class="pop-sub" id="popSub"></div>
+      </div>
+      <button class="pop-close" onclick="closePop()"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="pop-body" id="popBody"></div>
+  </div>
+</div>
+
 
 </body>
 </html>
