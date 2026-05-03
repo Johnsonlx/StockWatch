@@ -1431,6 +1431,16 @@ function cardHTML(s, idx) {
       <div class="gi"><div class="gilbl"><i class="fa-solid fa-coins"></i> Investiert</div><div class="gival">${fc(inv)}</div></div>
       <div class="gi"><div class="gilbl"><i class="fa-solid fa-cubes"></i> Stücke</div><div class="gival">${f(tot,0)}</div></div>
     </div>
+    <div class="progw">
+      <div class="proghd"><span class="proglbl">Fortschritt zum Ziel</span><span class="progpct">${hp?f(Math.min(prog,110))+'%':'—'}</span></div>
+      <div class="progtr"><div class="progfill ${prog>=100?'over':''}" style="width:${hp?Math.min(prog,100)+'%':'0%'}"></div></div>
+    </div>
+    <div class="grow">
+      <div class="gi"><div class="gilbl"><i class="fa-solid fa-chart-line"></i> Gewinn %</div><div class="gival ${hit?'gg':'g'+gc}">${gain!=null?gs+f(gain)+'%':'—'}</div></div>
+      <div class="gi"><div class="gilbl"><i class="fa-solid fa-sack-dollar"></i> Gewinn</div><div class="gival ${hit?'gg':'g'+gc}">${gainV!=null?(gainV>=0?'+':'')+fc(gainV):'—'}</div></div>
+      <div class="gi"><div class="gilbl"><i class="fa-solid fa-flag-checkered"></i> Zum Ziel</div><div class="gival ${hit?'gg':''}">${hit?'<i class="fa-solid fa-check"></i> Erreicht':toTgt!=null?f(toTgt)+'%':'—'}</div></div>
+      <div class="gi"><div class="gilbl"><i class="fa-solid fa-wallet"></i> Aktueller Wert</div><div class="gival gs">${posV!=null?fc(posV):'—'}</div></div>
+    </div>
     <div class="cf">
       <div class="cft">
         ${hp&&s.priceSource?`<span class="src-badge ${s.priceSource==='yahoo'?'src-yahoo':'src-finnhub'}"><i class="fa-solid fa-${s.priceSource==='yahoo'?'y':'bolt'}"></i>${s.priceSource==='yahoo'?'Yahoo Finance':'Finnhub'}${s.exchange?' · '+s.exchange:''}</span>`:'<span style="color:var(--mut);font-size:.65rem"><i class="fa-regular fa-clock"></i> Noch nicht geladen</span>'}
