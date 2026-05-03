@@ -12,14 +12,14 @@
 /* ═══ POPUP (at top to guarantee browser applies it) ═══════════════ */
 .pop-ov{position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.75);backdrop-filter:blur(12px);display:flex;align-items:center;justify-content:center;padding:70px 14px 20px;opacity:0;pointer-events:none;transition:opacity .22s}
 .pop-ov.open{opacity:1;pointer-events:all}
-.pop-box{background:var(--sur);border:1px solid var(--cb);border-radius:20px;width:100%;max-width:520px;max-height:84vh;overflow-y:auto;box-shadow:0 28px 70px var(--shd);transform:translateY(22px) scale(.97);transition:transform .25s cubic-bezier(.4,0,.2,1),background .3s}
+.pop-box{background:var(--sur);border:1px solid var(--cb);border-radius:20px;width:100%;max-width:560px;max-height:84vh;overflow-y:auto;box-shadow:0 28px 70px var(--shd);transform:translateY(22px) scale(.97);transition:transform .25s cubic-bezier(.4,0,.2,1),background .3s}
 .pop-ov.open .pop-box{transform:translateY(0) scale(1)}
-.pop-hd{padding:20px 22px 0;display:flex;align-items:flex-start;justify-content:space-between;gap:12px;position:sticky;top:0;background:var(--sur);border-bottom:1px solid var(--cb);padding-bottom:14px;z-index:2}
-.pop-title{font-size:1.1rem;font-weight:800}
-.pop-sub{font-size:.78rem;color:var(--sub);margin-top:3px}
-.pop-close{width:30px;height:30px;border:none;background:var(--nbg);color:var(--neg);border-radius:7px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0;transition:all .15s}
+.pop-hd{padding:20px 24px 0;display:flex;align-items:flex-start;justify-content:space-between;gap:12px;position:sticky;top:0;background:var(--sur);border-bottom:1px solid var(--cb);padding-bottom:16px;z-index:2}
+.pop-title{font-size:1.15rem;font-weight:800}
+.pop-sub{font-size:.78rem;color:var(--sub);margin-top:4px}
+.pop-close{width:32px;height:32px;border:none;background:var(--nbg);color:var(--neg);border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0;transition:all .15s}
 .pop-close:hover{background:var(--neg);color:#fff}
-.pop-body{padding:18px 22px 22px}
+.pop-body{padding:20px 24px 24px}
 *{-webkit-tap-highlight-color:transparent}
 button,select,input{-webkit-tap-highlight-color:transparent;touch-action:manipulation}
 html{-webkit-text-size-adjust:100%}
@@ -401,11 +401,13 @@ footer{position:relative;z-index:1;background:var(--sur);border-top:1px solid va
   .fsbar-sep{display:none}
   .fs-count{margin-left:0;font-size:.7rem}
   /* Pop-up Käufe Liste mobile */
-  .pur-row{grid-template-columns:1fr 1fr;gap:8px}
-  .pur-row > .pur-field:nth-child(3){grid-column:1/-1}
-  .pur-edit-btn,.pur-del-btn{width:36px;height:36px;font-size:13px}
-  .pur-edit-row{grid-template-columns:1fr 1fr}
-  .pop-summary{grid-template-columns:1fr 1fr}
+  .pur-metrics{grid-template-columns:1fr 1fr;gap:10px 16px}
+  .pur-hdr{padding:10px 14px 8px}
+  .pur-body{padding:12px 14px 14px}
+  .pur-edit-btn,.pur-del-btn{width:34px;height:34px;font-size:13px}
+  .pur-edit-row{grid-template-columns:1fr 1fr;padding:12px 14px 14px}
+  .pur-save-btn{margin:0 14px 14px;width:calc(100% - 28px)}
+  .pop-summary{grid-template-columns:1fr 1fr;gap:8px}
   /* Karten-Buttons größer */
   .bic{width:36px;height:36px;font-size:13px}
   /* Footer-Tools stapeln */
@@ -424,7 +426,8 @@ footer{position:relative;z-index:1;background:var(--sur);border-top:1px solid va
   .sbar{grid-template-columns:1fr 1fr;gap:8px}
   .scard{padding:12px 10px}
   .scval{font-size:1.1rem}
-  .pop-summary{grid-template-columns:1fr 1fr}
+  .pop-summary{grid-template-columns:1fr 1fr;gap:8px}
+  .pur-hdr{flex-wrap:wrap}
   /* Filter-Chips dürfen schrumpfen */
   .fs-chip{font-size:.7rem;padding:6px 9px;min-height:34px}
   /* Card optimieren */
@@ -440,41 +443,78 @@ footer{position:relative;z-index:1;background:var(--sur);border-top:1px solid va
 }
 
 
-/* Purchase rows */
-.pur-list{display:flex;flex-direction:column;gap:10px;margin-bottom:18px}
-.pur-item{background:var(--card);border:1px solid var(--cb);border-radius:12px;padding:13px 15px;position:relative;transition:border-color .2s}
-.pur-item:hover{border-color:var(--acc)}
-.pur-row{display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:10px;align-items:end}
-.pur-field{}
-.pur-lbl{font-size:.65rem;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--mut);margin-bottom:4px}
-.pur-val{font-family:'JetBrains Mono',monospace;font-size:.9rem;font-weight:600;color:var(--tx)}
-.pur-gain{font-size:.73rem;font-family:'JetBrains Mono',monospace;margin-top:4px}
-.pur-gain.p{color:var(--pos)}.pur-gain.n{color:var(--neg)}
-.pur-date{font-size:.7rem;color:var(--mut);font-family:'JetBrains Mono',monospace;margin-top:3px}
-.pur-del-btn{width:34px;height:34px;border:none;background:var(--nbg);color:var(--neg);border-radius:7px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0;align-self:center;transition:all .15s}
-.pur-del-btn:hover{background:var(--neg);color:#fff}
-.pur-edit-row{display:none;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px;padding-top:10px;border-top:1px solid var(--cb)}
-.pur-item.editing .pur-edit-row{display:grid}
-.pur-save-btn{display:none;margin-top:8px;width:100%}
-.pur-item.editing .pur-save-btn{display:flex}
-.pur-edit-btn{width:34px;height:34px;border:none;background:var(--adim);color:var(--acc);border-radius:7px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0;align-self:center;transition:all .15s}
+/* ═══ PURCHASE LIST — redesigned ═════════════════════════════════════ */
+.pur-list{display:flex;flex-direction:column;gap:12px;margin-bottom:20px}
+
+/* Individual purchase card */
+.pur-item{background:var(--card);border:1px solid var(--cb);border-radius:14px;overflow:hidden;position:relative;transition:border-color .2s,box-shadow .2s}
+.pur-item:hover{border-color:color-mix(in srgb,var(--acc) 50%,transparent);box-shadow:0 4px 16px var(--shd)}
+
+/* Card header — purchase number + date on left, actions on right */
+.pur-hdr{display:flex;align-items:center;justify-content:space-between;padding:12px 16px 10px;gap:10px;border-bottom:1px solid var(--cb);background:color-mix(in srgb,var(--acc) 4%,transparent)}
+.pur-hdr-left{display:flex;align-items:center;gap:10px;min-width:0}
+.pur-badge{display:inline-flex;align-items:center;justify-content:center;min-width:28px;height:28px;border-radius:8px;background:var(--adim);border:1px solid color-mix(in srgb,var(--acc) 30%,transparent);color:var(--acc);font-size:.72rem;font-weight:800;font-family:'JetBrains Mono',monospace;flex-shrink:0;padding:0 6px}
+.pur-hdr-meta{display:flex;flex-direction:column;gap:1px;min-width:0}
+.pur-hdr-date{font-size:.82rem;font-weight:600;color:var(--tx);font-family:'JetBrains Mono',monospace;white-space:nowrap}
+.pur-hdr-time{font-size:.7rem;color:var(--mut);font-family:'JetBrains Mono',monospace}
+.pur-hdr-actions{display:flex;gap:6px;flex-shrink:0}
+
+/* Action buttons */
+.pur-edit-btn{width:32px;height:32px;border:none;background:var(--adim);color:var(--acc);border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0;transition:all .15s}
 .pur-edit-btn:hover{background:var(--acc);color:#fff}
 .pur-item.editing .pur-edit-btn{background:var(--acc);color:#fff}
+.pur-del-btn{width:32px;height:32px;border:none;background:var(--nbg);color:var(--neg);border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0;transition:all .15s}
+.pur-del-btn:hover{background:var(--neg);color:#fff}
+
+/* Card body — metrics grid */
+.pur-body{padding:14px 16px 16px}
+.pur-metrics{display:grid;grid-template-columns:1fr 1fr;gap:14px 20px}
+.pur-metric{}
+.pur-lbl{font-size:.68rem;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--sub);margin-bottom:5px;display:flex;align-items:center;gap:5px}
+.pur-lbl i{font-size:.6rem;opacity:.7}
+.pur-val{font-family:'JetBrains Mono',monospace;font-size:.95rem;font-weight:700;color:var(--tx);line-height:1.3}
+.pur-gain{font-size:.78rem;font-family:'JetBrains Mono',monospace;margin-top:4px;font-weight:600;display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:6px}
+.pur-gain.p{color:var(--pos);background:var(--pbg)}
+.pur-gain.n{color:var(--neg);background:var(--nbg)}
+.pur-gain i{font-size:.6rem}
+
+/* Invested subtotal per purchase */
+.pur-invested{margin-top:12px;padding-top:12px;border-top:1px solid var(--cb);display:flex;align-items:center;justify-content:space-between;gap:10px}
+.pur-inv-lbl{font-size:.7rem;font-weight:600;color:var(--sub);text-transform:uppercase;letter-spacing:.06em}
+.pur-inv-val{font-family:'JetBrains Mono',monospace;font-size:.88rem;font-weight:700;color:var(--tx)}
+
+/* Edit row */
+.pur-edit-row{display:none;grid-template-columns:1fr 1fr;gap:10px;padding:14px 16px 16px;border-top:1px solid var(--cb);background:color-mix(in srgb,var(--acc) 3%,transparent)}
+.pur-item.editing .pur-edit-row{display:grid}
+.pur-edit-row .pur-lbl{margin-bottom:6px}
+.pur-edit-row .fi{padding:9px 11px;font-size:.85rem;border-radius:9px}
+.pur-save-btn{display:none;margin:0 16px 16px;width:calc(100% - 32px)}
+.pur-item.editing .pur-save-btn{display:flex}
+
 /* Live-Kurs-Button Glow */
 button[id^="purLiveBtn_"]{transition:all .2s;border-color:var(--acc);color:var(--acc)}
 button[id^="purLiveBtn_"]:hover{background:var(--adim);color:var(--acc);box-shadow:0 0 14px color-mix(in srgb,var(--acc) 55%,transparent);border-color:var(--acc)}
 .pur-item.editing button[id^="purLiveBtn_"]{color:var(--acc);border-color:var(--acc);box-shadow:0 0 7px color-mix(in srgb,var(--acc) 40%,transparent);animation:liveGlow 2s ease-in-out infinite}
 @keyframes liveGlow{0%,100%{box-shadow:0 0 5px color-mix(in srgb,var(--acc) 30%,transparent)}50%{box-shadow:0 0 12px color-mix(in srgb,var(--acc) 65%,transparent)}}
 
-/* Target edit section */
-.pop-tgt{background:var(--adim);border:1px solid var(--acc);border-radius:12px;padding:13px 15px;margin-bottom:18px}
+/* ═══ TARGET EDIT SECTION ═══════════════════════════════════════════ */
+.pop-tgt{background:var(--adim);border:1px solid color-mix(in srgb,var(--acc) 30%,transparent);border-radius:14px;padding:16px 18px;margin-bottom:20px}
 .pop-tgt-row{display:flex;gap:10px;align-items:flex-end}
 .pop-tgt-row .fi{flex:1}
 
-/* Summary strip */
-.pop-summary{background:var(--card);border:1px solid var(--cb);border-radius:12px;padding:12px 15px;display:grid;grid-template-columns:repeat(4,1fr);gap:8px;text-align:center;margin-bottom:16px}
-.ps-lbl{font-size:.62rem;text-transform:uppercase;letter-spacing:.07em;color:var(--mut);font-weight:600;margin-bottom:2px}
-.ps-val{font-family:'JetBrains Mono',monospace;font-size:.9rem;font-weight:700}
+/* ═══ SUMMARY STRIP ═════════════════════════════════════════════════ */
+.pop-summary{background:var(--card);border:1px solid var(--cb);border-radius:14px;padding:16px 18px;display:grid;grid-template-columns:repeat(4,1fr);gap:12px;text-align:center;margin-bottom:20px}
+.pop-summary > div{padding:8px 4px;border-radius:10px;background:color-mix(in srgb,var(--bg) 50%,transparent)}
+.ps-lbl{font-size:.66rem;text-transform:uppercase;letter-spacing:.08em;color:var(--sub);font-weight:600;margin-bottom:5px}
+.ps-val{font-family:'JetBrains Mono',monospace;font-size:.92rem;font-weight:700}
+.ps-val.gp{color:var(--pos)}.ps-val.gn{color:var(--neg)}
+
+/* Section label in popup */
+.pop-section-lbl{font-size:.74rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--sub);margin-bottom:10px;display:flex;align-items:center;gap:7px}
+.pop-section-lbl i{color:var(--acc);font-size:.7rem}
+
+/* Refresh button in popup */
+.pop-refresh-btn{width:100%;margin-bottom:18px}
 
 
 </style>
@@ -1653,6 +1693,9 @@ function openPop(id) {
     <div><div class="ps-lbl">Gewinn</div><div class="ps-val ${gain==null?'':gain>=0?'gp':'gn'}">${gain!=null?gs+f(gain)+'%':'—'}</div></div>
   </div>`;
 
+  // Refresh button
+  const refreshBtn = hp ? '' : `<button class="btn btn-acc btn-sm pop-refresh-btn" id="popRefreshBtn" onclick="refreshFromPop('${id}')"><i class="fa-solid fa-satellite-dish"></i> Live Kurs abfragen</button>`;
+
   // Target edit
   const tgtHtml = `<div class="pop-tgt">
     <div class="pur-lbl" style="margin-bottom:8px"><i class="fa-solid fa-bullseye"></i> Zielpreis anpassen</div>
@@ -1662,48 +1705,65 @@ function openPop(id) {
     </div>
   </div>`;
 
-  // Purchase rows
+  // Purchase rows — redesigned cards
   const sortedP = [...s.purchases].sort((a,b)=>b.buyDate?.localeCompare(a.buyDate||'')||0);
   const purHtml = sortedP.map((p,i)=>{
     const purGain = hp ? (s.price - p.buyPrice)/p.buyPrice*100 : null;
     const purGainV = hp ? (s.price - p.buyPrice)*p.shares : null;
     const gc = purGain==null?'':(purGain>=0?'p':'n');
     const gs2 = purGain!=null&&purGain>=0?'+':'';
-    const dStr = p.buyDate ? new Date(p.buyDate+'T12:00:00').toLocaleDateString('de-DE') : '—';
+    const gainIcon = purGain!=null ? (purGain>=0 ? 'fa-arrow-trend-up' : 'fa-arrow-trend-down') : '';
+    const dStr = p.buyDate ? new Date(p.buyDate+'T12:00:00').toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'numeric'}) : '—';
+    const purInvested = p.buyPrice * p.shares;
+
     return `<div class="pur-item" id="purItem_${p.id}">
-      <div class="pur-row">
-        <div class="pur-field">
-          <div class="pur-lbl"><i class="fa-solid fa-tag"></i> Einkaufspreis</div>
-          <div class="pur-val">${fc(p.buyPrice)}</div>
-          ${purGain!=null?`<div class="pur-gain ${gc}">${gs2}${f(purGain)}%</div>`:''}
+      <!-- Header -->
+      <div class="pur-hdr">
+        <div class="pur-hdr-left">
+          <div class="pur-badge">#${i+1}</div>
+          <div class="pur-hdr-meta">
+            <div class="pur-hdr-date"><i class="fa-regular fa-calendar" style="opacity:.6;margin-right:4px;font-size:.7rem"></i>${dStr}</div>
+            ${p.buyTime ? `<div class="pur-hdr-time"><i class="fa-regular fa-clock" style="opacity:.5;margin-right:3px;font-size:.6rem"></i>${p.buyTime}</div>` : ''}
+          </div>
         </div>
-        <div class="pur-field">
-          <div class="pur-lbl"><i class="fa-solid fa-hashtag"></i> Stücke</div>
-          <div class="pur-val">${f(p.shares,0)}</div>
-          ${purGainV!=null?`<div class="pur-gain ${gc}">${purGainV>=0?'+':''}${fc(purGainV)}</div>`:''}
+        <div class="pur-hdr-actions">
+          <button class="pur-edit-btn" id="peb_${p.id}" onclick="togglePurchaseEdit('${p.id}')" title="Kauf bearbeiten"><i class="fa-solid fa-pen"></i></button>
+          <button class="pur-del-btn" onclick="deletePurchase('${id}','${p.id}')" title="Kauf entfernen"><i class="fa-solid fa-trash-can"></i></button>
         </div>
-        <div class="pur-field">
-          <div class="pur-lbl"><i class="fa-solid fa-calendar"></i> Datum</div>
-          <div class="pur-val" style="font-size:.82rem">${dStr}</div>
-          <div class="pur-date">${p.buyTime||''}</div>
-        </div>
-        <button class="pur-edit-btn" id="peb_${p.id}" onclick="togglePurchaseEdit('${p.id}')" title="Kauf bearbeiten"><i class="fa-solid fa-pen"></i></button>
-        <button class="pur-del-btn" onclick="deletePurchase('${id}','${p.id}')" title="Kauf entfernen"><i class="fa-solid fa-trash-can"></i></button>
       </div>
-      <!-- Inline edit row (klappt auf via .editing) -->
+      <!-- Body -->
+      <div class="pur-body">
+        <div class="pur-metrics">
+          <div class="pur-metric">
+            <div class="pur-lbl"><i class="fa-solid fa-tag"></i> Einkaufspreis</div>
+            <div class="pur-val">${fc(p.buyPrice)}</div>
+            ${purGain!=null ? `<div class="pur-gain ${gc}"><i class="fa-solid ${gainIcon}"></i> ${gs2}${f(purGain)}%</div>` : ''}
+          </div>
+          <div class="pur-metric">
+            <div class="pur-lbl"><i class="fa-solid fa-cubes"></i> Stücke</div>
+            <div class="pur-val">${f(p.shares,p.shares%1===0?0:3)}</div>
+            ${purGainV!=null ? `<div class="pur-gain ${gc}"><i class="fa-solid ${gainIcon}"></i> ${purGainV>=0?'+':''}${fc(purGainV)}</div>` : ''}
+          </div>
+        </div>
+        <div class="pur-invested">
+          <span class="pur-inv-lbl">Investiert</span>
+          <span class="pur-inv-val">${fc(purInvested)}</span>
+        </div>
+      </div>
+      <!-- Inline edit row -->
       <div class="pur-edit-row">
         <div>
           <div class="pur-lbl">Datum</div>
-          <input class="fi" id="ped_${p.id}" type="date" value="${p.buyDate||''}" style="padding:6px 9px;font-size:.82rem" onchange="purDateChanged('${p.id}')">
+          <input class="fi" id="ped_${p.id}" type="date" value="${p.buyDate||''}" onchange="purDateChanged('${p.id}')">
         </div>
         <div>
           <div class="pur-lbl">Uhrzeit</div>
-          <input class="fi" id="pet_${p.id}" type="time" value="${p.buyTime||''}" style="padding:6px 9px;font-size:.82rem">
+          <input class="fi" id="pet_${p.id}" type="time" value="${p.buyTime||''}">
         </div>
         <div style="position:relative">
           <div class="pur-lbl">Einkaufspreis</div>
           <div style="display:flex;gap:5px;align-items:center">
-            <input class="fi" id="pep_${p.id}" type="number" step="0.0001" value="${p.buyPrice}" placeholder="Preis" style="padding:6px 9px;font-size:.82rem;flex:1;min-width:0">
+            <input class="fi" id="pep_${p.id}" type="number" step="0.0001" value="${p.buyPrice}" placeholder="Preis" style="flex:1;min-width:0">
             <button class="btn btn-ghost btn-sm" id="purLiveBtn_${p.id}" onclick="fetchPurLivePrice('${id}','${p.id}')" title="Kurs für gewähltes Datum abrufen" style="padding:6px 8px;flex-shrink:0;white-space:nowrap">
               <i class="fa-solid fa-satellite-dish"></i>
             </button>
@@ -1711,7 +1771,7 @@ function openPop(id) {
         </div>
         <div>
           <div class="pur-lbl">Stückzahl</div>
-          <input class="fi" id="pes_${p.id}" type="number" step="0.001" value="${p.shares}" placeholder="Stücke" style="padding:6px 9px;font-size:.82rem">
+          <input class="fi" id="pes_${p.id}" type="number" step="0.001" value="${p.shares}" placeholder="Stücke">
         </div>
       </div>
       <button class="btn btn-acc btn-sm pur-save-btn" onclick="savePurchaseEdit('${id}','${p.id}')">
@@ -1720,9 +1780,9 @@ function openPop(id) {
     </div>`;
   }).join('');
 
-  const addBtn = `<button class="btn btn-ghost btn-sm" onclick="openRebuyFromPop('${id}')" style="width:100%"><i class="fa-solid fa-plus"></i> Weiteren Kauf hinzufügen</button>`;
+  const addBtn = `<button class="btn btn-ghost btn-sm" onclick="openRebuyFromPop('${id}')" style="width:100%;margin-top:4px"><i class="fa-solid fa-plus"></i> Weiteren Kauf hinzufügen</button>`;
 
-  document.getElementById('popBody').innerHTML = sumHtml + tgtHtml + `<div class="pur-lbl" style="margin-bottom:8px"><i class="fa-solid fa-list"></i> Einzelne Käufe</div>` + `<div class="pur-list">${purHtml}</div>` + addBtn;
+  document.getElementById('popBody').innerHTML = sumHtml + refreshBtn + tgtHtml + `<div class="pop-section-lbl"><i class="fa-solid fa-layer-group"></i> Einzelne Käufe</div>` + `<div class="pur-list">${purHtml}</div>` + addBtn;
   document.getElementById('popOv').classList.add('open');
 }
 
