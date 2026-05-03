@@ -1935,6 +1935,19 @@ document.getElementById('ov').addEventListener('click',e=>{
 firstRender=true;
 init().then(()=>{ firstRender=false; });
 </script>
+<style id="popup-styles">
+/* Failsafe popup styles - separate block to guarantee application */
+.pop-ov{position:fixed;top:0;left:0;right:0;bottom:0;z-index:500;background:rgba(0,0,0,.75);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);display:flex;align-items:center;justify-content:center;padding:70px 14px 20px;opacity:0;pointer-events:none;transition:opacity .22s}
+.pop-ov.open{opacity:1;pointer-events:all}
+.pop-box{background:var(--sur,#1e1e2e);border:1px solid var(--cb,#333);border-radius:20px;width:100%;max-width:520px;max-height:84vh;overflow-y:auto;-webkit-overflow-scrolling:touch;box-shadow:0 28px 70px rgba(0,0,0,.5);transform:translateY(22px) scale(.97);transition:transform .25s cubic-bezier(.4,0,.2,1)}
+.pop-ov.open .pop-box{transform:translateY(0) scale(1)}
+.pop-hd{padding:20px 22px 0;display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.pop-title{font-size:1.1rem;font-weight:800}
+.pop-sub{font-size:.75rem;color:var(--sub,#888);margin-top:2px}
+.pop-close{width:32px;height:32px;border:none;background:var(--nbg,rgba(239,68,68,.1));color:var(--neg,#ef4444);border-radius:7px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0;transition:all .15s}
+.pop-close:hover{background:var(--neg,#ef4444);color:#fff}
+.pop-body{padding:18px 22px 22px}
+</style>
 <!-- ══════════════ PURCHASE DETAIL POPUP ═════════════════════════════ -->
 <div class="pop-ov" id="popOv" onclick="if(event.target===this)closePop()">
   <div class="pop-box" id="popBox">
