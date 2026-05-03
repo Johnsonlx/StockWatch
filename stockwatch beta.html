@@ -8,6 +8,18 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <style>
+
+/* ═══ POPUP (at top to guarantee browser applies it) ═══════════════ */
+.pop-ov{position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.75);backdrop-filter:blur(12px);display:flex;align-items:center;justify-content:center;padding:70px 14px 20px;opacity:0;pointer-events:none;transition:opacity .22s}
+.pop-ov.open{opacity:1;pointer-events:all}
+.pop-box{background:var(--sur);border:1px solid var(--cb);border-radius:20px;width:100%;max-width:520px;max-height:84vh;overflow-y:auto;box-shadow:0 28px 70px var(--shd);transform:translateY(22px) scale(.97);transition:transform .25s cubic-bezier(.4,0,.2,1),background .3s}
+.pop-ov.open .pop-box{transform:translateY(0) scale(1)}
+.pop-hd{padding:20px 22px 0;display:flex;align-items:flex-start;justify-content:space-between;gap:12px;position:sticky;top:0;background:var(--sur);border-bottom:1px solid var(--cb);padding-bottom:14px;z-index:2}
+.pop-title{font-size:1.1rem;font-weight:800}
+.pop-sub{font-size:.78rem;color:var(--sub);margin-top:3px}
+.pop-close{width:30px;height:30px;border:none;background:var(--nbg);color:var(--neg);border-radius:7px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0;transition:all .15s}
+.pop-close:hover{background:var(--neg);color:#fff}
+.pop-body{padding:18px 22px 22px}
 *{-webkit-tap-highlight-color:transparent}
 button,select,input{-webkit-tap-highlight-color:transparent;touch-action:manipulation}
 html{-webkit-text-size-adjust:100%}
@@ -428,8 +440,6 @@ footer{position:relative;z-index:1;background:var(--sur);border-top:1px solid va
 }
 
 
-/* Popup uses .ov/.modal classes */
-
 /* Purchase rows */
 .pur-list{display:flex;flex-direction:column;gap:10px;margin-bottom:18px}
 .pur-item{background:var(--card);border:1px solid var(--cb);border-radius:12px;padding:13px 15px;position:relative;transition:border-color .2s}
@@ -727,19 +737,7 @@ create policy "own" on public.sw_portfolio
   </div>
 </div>
 
-<!-- ══════════════ PURCHASE DETAIL POPUP (uses same .ov/.modal as Aktie hinzufügen) ══ -->
-<div class="ov" id="popOv" onclick="if(event.target===this)closePop()">
-  <div class="modal" style="max-width:520px">
-    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:12px">
-      <div>
-        <div id="popTitle" style="font-size:1.1rem;font-weight:800">Käufe</div>
-        <div id="popSub" style="font-size:.75rem;color:var(--sub);margin-top:2px"></div>
-      </div>
-      <button onclick="closePop()" style="width:32px;height:32px;border:none;background:var(--nbg);color:var(--neg);border-radius:7px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0"><i class="fa-solid fa-xmark"></i></button>
-    </div>
-    <div id="popBody"></div>
-  </div>
-</div>
+
 
 <div class="tc" id="tc"></div>
 
@@ -1936,8 +1934,18 @@ document.getElementById('ov').addEventListener('click',e=>{
 firstRender=true;
 init().then(()=>{ firstRender=false; });
 </script>
-
-
-
+<!-- ══════════════ PURCHASE DETAIL POPUP ═════════════════════════════ -->
+<div class="pop-ov" id="popOv" onclick="if(event.target===this)closePop()">
+  <div class="pop-box" id="popBox">
+    <div class="pop-hd">
+      <div>
+        <div class="pop-title" id="popTitle">Käufe</div>
+        <div class="pop-sub" id="popSub"></div>
+      </div>
+      <button class="pop-close" onclick="closePop()"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="pop-body" id="popBody"></div>
+  </div>
+</div>
 </body>
 </html>
