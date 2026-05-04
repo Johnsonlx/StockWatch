@@ -112,8 +112,12 @@ header{position:fixed;top:0;left:0;right:0;z-index:300;background:var(--hdr);bac
 .rbtn{width:36px;height:36px;border-radius:8px;background:var(--adim);border:1px solid var(--acc);color:var(--acc);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s;font-size:12px;flex-shrink:0}
 .rbtn:hover{background:var(--acc);color:#fff}
 .rbtn.spin i{animation:spin 1s linear infinite}
-.pdot{width:10px;height:10px;border-radius:50%;background:var(--pos);box-shadow:0 0 6px var(--pos);animation:pa 2.5s ease-in-out infinite;flex-shrink:0;cursor:pointer;transition:background .2s,box-shadow .2s}
-.pdot.off{background:var(--mut);box-shadow:none;animation:none}
+.ar-toggle{display:inline-flex;align-items:center;gap:5px;font-size:.68rem;font-weight:700;font-family:'JetBrains Mono',monospace;
+  padding:4px 10px;border-radius:8px;border:1px solid var(--pos);background:var(--pbg);color:var(--pos);
+  cursor:pointer;transition:all .2s;white-space:nowrap;flex-shrink:0;letter-spacing:.02em}
+.ar-toggle i{font-size:.62rem}
+.ar-toggle:hover{box-shadow:0 0 10px var(--pbg)}
+.ar-toggle.paused{border-color:var(--gld);background:var(--gbg);color:var(--gld)}
 @keyframes pa{0%,100%{opacity:1}50%{opacity:.3}}
 @keyframes spin{to{transform:rotate(360deg)}}
 @keyframes cardIn{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
@@ -418,6 +422,8 @@ footer{position:relative;z-index:1;background:var(--sur);border-top:1px solid va
   .mact{flex-direction:column}
   .logo span{display:none}
   .hbtn span{display:none}
+  .ar-toggle span{display:none}
+  .ar-toggle{padding:5px 8px}
   .hbtn{padding:8px 10px;min-height:38px}
   /* iOS prevents auto-zoom when input font-size >= 16px */
   .fi,.fi-sm,select,input[type="text"],input[type="number"],input[type="date"],input[type="time"],input[type="email"],input[type="password"]{font-size:16px}
@@ -577,7 +583,10 @@ button[id^="purLiveBtn_"]:hover{background:var(--adim);color:var(--acc);box-shad
   </div>
   <div class="hdr-gap"></div>
   <div class="hdr-r">
-    <div class="pdot" id="pdot" title="Auto-Refresh (alle 5 Min.) — Klicken zum Umschalten" onclick="toggleAutoRefresh()" style="cursor:pointer"></div>
+    <button class="ar-toggle" id="arToggle" onclick="toggleAutoRefresh()" title="Auto-Refresh an/aus">
+      <i class="fa-solid fa-rotate" id="arIcon"></i>
+      <span id="arLabel">5 Min</span>
+    </button>
     <span class="rt-time" id="rtLbl">—</span>
     <div class="mkt-badge closed" id="mktBadge"><i class="fa-solid fa-circle"></i><span id="mktLbl">Markt</span></div>
     <div class="sync-badge" id="syncBadge"><div class="sync-dot off" id="syncDot"></div><span id="syncLbl">Lokal</span></div>
@@ -708,9 +717,39 @@ create policy "own" on public.sw_portfolio
       <div class="stitle" style="font-size:.95rem;margin-bottom:8px"><i class="fa-solid fa-palette"></i> Design</div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px">
         <button class="btn btn-ghost btn-sm" onclick="setTheme('dark')"><i class="fa-solid fa-moon"></i> Midnight</button>
-        <button class="btn btn-ghost btn-sm" onclick="setTheme('ocean')"><i class="fa-solid fa-circle-half-stroke"></i> Ocean</button>
+        <button class="btn btn-ghost btn-sm" onclick="setTheme('ocean')"><i class="fa-solid fa-water"></i> Ocean</button>
         <button class="btn btn-ghost btn-sm" onclick="setTheme('lavender')"><i class="fa-solid fa-star"></i> Lavender</button>
-        <button class="btn btn-ghost btn-sm" onclick="setTheme('mint')"><i class="fa-solid fa-leaf"></i> Mint</button>
+        <button class="btn btn-ghost btn-sm" onclick="setTheme('mint')"><i class="fa-solid fa-droplet"></i> Mint</button>
+        <button class="btn btn-ghost btn-sm" onclick="setTheme('earth')"><i class="fa-solid fa-seedling"></i> Earth</button>
+      </div>
+    </div>
+    <div class="sbox" style="margin-top:14px">
+      <div class="stitle" style="font-size:.95rem;margin-bottom:12px"><i class="fa-solid fa-sliders"></i> Einstellungen</div>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <!-- Auto-Refresh Toggle -->
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px">
+          <div>
+            <div style="font-size:.84rem;font-weight:700;color:var(--tx)"><i class="fa-solid fa-rotate" style="color:var(--acc);margin-right:5px"></i>Auto-Refresh</div>
+            <div style="font-size:.72rem;color:var(--sub);margin-top:3px">Kurse werden alle 5 Minuten automatisch aktualisiert</div>
+          </div>
+          <button class="btn btn-sm" id="arSettingBtn" onclick="toggleAutoRefresh();updateArSetting()" style="min-width:80px"></button>
+        </div>
+        <!-- Portfolio Reset -->
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding-top:14px;border-top:1px solid var(--cb)">
+          <div>
+            <div style="font-size:.84rem;font-weight:700;color:var(--tx)"><i class="fa-solid fa-trash-can" style="color:var(--neg);margin-right:5px"></i>Portfolio zurücksetzen</div>
+            <div style="font-size:.72rem;color:var(--sub);margin-top:3px">Alle Aktien und Käufe unwiderruflich löschen</div>
+          </div>
+          <button class="btn btn-sm" style="background:var(--nbg);color:var(--neg);min-width:80px;border:1px solid var(--neg)" onclick="resetPortfolio()"><i class="fa-solid fa-trash-can"></i> Reset</button>
+        </div>
+        <!-- API Key Reset -->
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding-top:14px;border-top:1px solid var(--cb)">
+          <div>
+            <div style="font-size:.84rem;font-weight:700;color:var(--tx)"><i class="fa-solid fa-key" style="color:var(--acc);margin-right:5px"></i>API Key ändern</div>
+            <div style="font-size:.72rem;color:var(--sub);margin-top:3px">Finnhub API Key neu einrichten</div>
+          </div>
+          <button class="btn btn-ghost btn-sm" style="min-width:80px" onclick="showSetupScreen()"><i class="fa-solid fa-pen"></i> Ändern</button>
+        </div>
       </div>
     </div>
   </div>
@@ -922,19 +961,23 @@ function updateMarketBadge() {
   const open = isMarketHours();
   const badge = document.getElementById('mktBadge');
   const lbl = document.getElementById('mktLbl');
-  const dot = document.getElementById('pdot');
+  const arBtn = document.getElementById('arToggle');
+  const arIcon = document.getElementById('arIcon');
+  const arLabel = document.getElementById('arLabel');
   const fDot = document.getElementById('fMktDot');
   const fTxt = document.getElementById('fMktTxt');
   badge.className = 'mkt-badge ' + (open?'open':'closed');
   lbl.textContent = open ? 'Markt offen' : 'Markt zu';
   fDot.style.color = open ? 'var(--pos)' : 'var(--gld)';
   if(autoRefreshPaused) {
-    dot.className = 'pdot off';
-    dot.title = 'Auto-Refresh PAUSIERT — Klicken zum Fortsetzen';
+    arBtn.className = 'ar-toggle paused';
+    arIcon.className = 'fa-solid fa-pause';
+    arLabel.textContent = 'Pause';
     fTxt.textContent = open ? 'Markt offen — Auto-Refresh pausiert' : 'Markt geschlossen — Auto-Refresh pausiert';
   } else {
-    dot.className = 'pdot ' + (open?'':'off');
-    dot.title = 'Kurse alle 5 Min. — Klicken zum Pausieren';
+    arBtn.className = 'ar-toggle';
+    arIcon.className = 'fa-solid fa-rotate';
+    arLabel.textContent = '5 Min';
     fTxt.textContent = open ? 'Markt offen — Kurse alle 5 Min.' : 'Markt geschlossen — kein Auto-Refresh';
   }
 }
@@ -1002,6 +1045,7 @@ function showSyncScreen() {
   document.getElementById('app').classList.add('hidden');
   document.getElementById('mainFooter').classList.add('hidden');
   updateSyncInfo();
+  updateArSetting();
 }
 function closeSyncScreen() { showApp(); }
 function showApp() {
@@ -1398,6 +1442,29 @@ function toggleAutoRefresh() {
     toast('Auto-Refresh aktiv (alle 5 Min.)','ts');
   }
   updateMarketBadge();
+  updateArSetting();
+}
+
+function updateArSetting() {
+  const btn = document.getElementById('arSettingBtn');
+  if(!btn) return;
+  if(autoRefreshPaused) {
+    btn.style.background='var(--pbg)'; btn.style.color='var(--pos)'; btn.style.border='1px solid var(--pos)';
+    btn.innerHTML='<i class="fa-solid fa-play"></i> Start';
+  } else {
+    btn.style.background='var(--gbg)'; btn.style.color='var(--gld)'; btn.style.border='1px solid var(--gld)';
+    btn.innerHTML='<i class="fa-solid fa-pause"></i> Pause';
+  }
+}
+
+function resetPortfolio() {
+  if(!portfolio.length) return toast('Portfolio ist bereits leer.','tw');
+  const count = portfolio.length;
+  // Use the delete confirmation modal
+  pendingDelId = '__RESET__';
+  document.getElementById('delTitle').textContent = 'Gesamtes Portfolio löschen?';
+  document.getElementById('delMsg').innerHTML = `Alle <strong>${count} Aktien</strong> und deren Käufe werden unwiderruflich gelöscht. Diese Aktion kann nicht rückgängig gemacht werden.`;
+  document.getElementById('delOv').classList.add('open');
 }
 
 // ─── COMPUTED HELPERS ────────────────────────────────────────────────
@@ -1737,6 +1804,13 @@ function delStock(id){
 function closeDelModal(){ document.getElementById('delOv').classList.remove('open'); pendingDelId=null; }
 function confirmDel(){
   if(!pendingDelId) return;
+  if(pendingDelId === '__RESET__') {
+    portfolio = []; notified.clear();
+    save(); renderGrid(); updateSummary();
+    toast('Portfolio zurückgesetzt.','ti');
+    closeDelModal();
+    return;
+  }
   const s=portfolio.find(x=>x.id===pendingDelId);
   portfolio=portfolio.filter(x=>x.id!==pendingDelId); notified.delete(pendingDelId);
   if(sbClient&&sbUser) delSb(pendingDelId);
