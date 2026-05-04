@@ -521,6 +521,50 @@ button[id^="purLiveBtn_"]:hover{background:var(--adim);color:var(--acc);box-shad
   .pop-summary{grid-template-columns:1fr 1fr;gap:6px}
 }
 
+/* ═══ MOBILE COMPACT CARDS ═══════════════════════════════════════════ */
+/* Desktop: everything visible, expand-hint hidden */
+.sc-head{position:relative}
+.sc-detail{/* visible by default on desktop */}
+.sc-expand-hint{display:none}
+
+@media(max-width:700px){
+  /* Compact card: hide details, reduce padding */
+  .sc{padding:14px 16px}
+  .sc .sc-detail{
+    display:none;
+    /* prep for animation when expanded */
+  }
+  .sc .prow{margin-bottom:0}
+
+  /* Expand hint: subtle chevron at bottom */
+  .sc-expand-hint{
+    display:flex;align-items:center;justify-content:center;
+    padding-top:8px;margin-top:4px;
+    color:var(--mut);font-size:.55rem;
+    transition:transform .2s,color .2s;
+    border-top:1px dashed var(--cb);
+  }
+  .sc:hover{transform:none;box-shadow:none}
+
+  /* Expanded state */
+  .sc.expanded{padding:18px}
+  .sc.expanded .sc-detail{
+    display:block;
+    animation:slideDetail .25s ease both;
+  }
+  .sc.expanded .prow{margin-bottom:4px}
+  .sc.expanded .sc-expand-hint{
+    transform:rotate(180deg);
+    color:var(--acc);
+    border-top-color:var(--acc);
+  }
+}
+
+@keyframes slideDetail{
+  from{opacity:0;transform:translateY(-8px)}
+  to{opacity:1;transform:translateY(0)}
+}
+
 </style>
 </head>
 <body>
@@ -1326,6 +1370,18 @@ async function doRefresh() {
 
 function logoClick() { doRefresh(); }
 
+// ─── MOBILE CARD TAP: expand → then open popup ─────────────────────
+const MOBILE_BP = 700;
+function cardTap(id, el) {
+  if(window.innerWidth <= MOBILE_BP && !el.classList.contains('expanded')) {
+    // Collapse any other expanded card
+    document.querySelectorAll('.sc.expanded').forEach(c=>{ if(c!==el) c.classList.remove('expanded'); });
+    el.classList.add('expanded');
+    return;
+  }
+  openPop(id);
+}
+
 function startLoop() {
   if(loopTimer) clearInterval(loopTimer);
   if(autoRefreshPaused) return;
@@ -1483,44 +1539,49 @@ function cardHTML(s, idx) {
     ? `<div class="ch-buys"><i class="fa-solid fa-layer-group"></i> ${s.purchases.length} Käufe · Ø ${f(avg)} ${cur}</div>`
     : '';
 
-  return `<div class="sc ${hit?'hit':''} ${s.fetchError?'err':''}" style="${animStyle}" data-id="${s.id}" onclick="openPop('${s.id}')" title="Klicken für Kaufdetails">
-    <div class="ch">
-      <div class="ch-l">
-        <div class="ch-sym">${s.symbol}</div>
-        <div class="ch-name" title="${s.name||''}">${s.name||s.symbol}</div>
-        ${dateStr}${buyCountStr}
+  return `<div class="sc ${hit?'hit':''} ${s.fetchError?'err':''}" style="${animStyle}" data-id="${s.id}" onclick="cardTap('${s.id}',this)" title="Klicken für Details">
+    <div class="sc-head">
+      <div class="ch">
+        <div class="ch-l">
+          <div class="ch-sym">${s.symbol}</div>
+          <div class="ch-name" title="${s.name||''}">${s.name||s.symbol}</div>
+          ${dateStr}${buyCountStr}
+        </div>
+        <div class="badges">${badge}</div>
       </div>
-      <div class="badges">${badge}</div>
-    </div>
-    <div class="prow">
-      <div class="pmain" style="color:${pc}">${hp?f(s.price):'—'}</div>
-      <div class="pcur">${cur}</div>${dayH}
-    </div>
-    ${s.fetchError?`<div class="errmsg"><i class="fa-solid fa-circle-exclamation"></i> Kurs nicht abrufbar. WKN ≠ Ticker! DAX-Beispiele: <b>SAP.DE · BMW.DE · SIE.DE</b> &nbsp;|&nbsp; US: <b>AAPL · NOW</b>. <a href="https://finance.yahoo.com/lookup/" target="_blank" style="color:var(--acc)">Ticker nachschlagen</a></div>`:''}
-    <div class="dvd"></div>
-    <div class="grow">
-      <div class="gi"><div class="gilbl"><i class="fa-solid fa-tag"></i> Ø Einkauf</div><div class="gival va">${fc(avg)}</div></div>
-      <div class="gi"><div class="gilbl"><i class="fa-solid fa-bullseye"></i> Zielpreis</div><div class="gival">${fc(s.targetPrice)}</div></div>
-      <div class="gi"><div class="gilbl"><i class="fa-solid fa-coins"></i> Investiert</div><div class="gival">${fc(inv)}</div></div>
-      <div class="gi"><div class="gilbl"><i class="fa-solid fa-cubes"></i> Stücke</div><div class="gival">${f(tot,0)}</div></div>
-    </div>
-    <div class="progw">
-      <div class="proghd"><span class="proglbl">Fortschritt zum Ziel</span><span class="progpct">${hp?f(Math.min(prog,110))+'%':'—'}</span></div>
-      <div class="progtr"><div class="progfill ${prog>=100?'over':''}" style="width:${hp?Math.min(prog,100)+'%':'0%'}"></div></div>
-    </div>
-    <div class="grow">
-      <div class="gi"><div class="gilbl"><i class="fa-solid fa-chart-line"></i> Gewinn %</div><div class="gival ${hit?'gg':'g'+gc}">${gain!=null?gs+f(gain)+'%':'—'}</div></div>
-      <div class="gi"><div class="gilbl"><i class="fa-solid fa-sack-dollar"></i> Gewinn</div><div class="gival ${hit?'gg':'g'+gc}">${gainV!=null?(gainV>=0?'+':'')+fc(gainV):'—'}</div></div>
-      <div class="gi"><div class="gilbl"><i class="fa-solid fa-flag-checkered"></i> Zum Ziel</div><div class="gival ${hit?'gg':''}">${hit?'<i class="fa-solid fa-check"></i> Erreicht':toTgt!=null?f(toTgt)+'%':'—'}</div></div>
-      <div class="gi"><div class="gilbl"><i class="fa-solid fa-wallet"></i> Aktueller Wert</div><div class="gival gs">${posV!=null?fc(posV):'—'}</div></div>
-    </div>
-    <div class="cf">
-      <div class="cft">
-        ${hp&&s.priceSource?`<span class="src-badge ${s.priceSource==='yahoo'?'src-yahoo':'src-finnhub'}"><i class="fa-solid fa-${s.priceSource==='yahoo'?'y':'bolt'}"></i>${s.priceSource==='yahoo'?'Yahoo Finance':'Finnhub'}${s.exchange?' · '+s.exchange:''}</span>`:'<span style="color:var(--mut);font-size:.65rem"><i class="fa-regular fa-clock"></i> Noch nicht geladen</span>'}
+      <div class="prow">
+        <div class="pmain" style="color:${pc}">${hp?f(s.price):'—'}</div>
+        <div class="pcur">${cur}</div>${dayH}
       </div>
-      <div class="cfb" onclick="event.stopPropagation()">
-        <button class="bic bedt" data-id="${s.id}" title="Nachkauf"><i class="fa-solid fa-cart-plus"></i></button>
-        <button class="bic bdel" data-id="${s.id}" title="Entfernen"><i class="fa-solid fa-trash-can"></i></button>
+      <div class="sc-expand-hint"><i class="fa-solid fa-chevron-down"></i></div>
+    </div>
+    <div class="sc-detail">
+      ${s.fetchError?`<div class="errmsg"><i class="fa-solid fa-circle-exclamation"></i> Kurs nicht abrufbar. WKN ≠ Ticker! DAX-Beispiele: <b>SAP.DE · BMW.DE · SIE.DE</b> &nbsp;|&nbsp; US: <b>AAPL · NOW</b>. <a href="https://finance.yahoo.com/lookup/" target="_blank" style="color:var(--acc)">Ticker nachschlagen</a></div>`:''}
+      <div class="dvd"></div>
+      <div class="grow">
+        <div class="gi"><div class="gilbl"><i class="fa-solid fa-tag"></i> Ø Einkauf</div><div class="gival va">${fc(avg)}</div></div>
+        <div class="gi"><div class="gilbl"><i class="fa-solid fa-bullseye"></i> Zielpreis</div><div class="gival">${fc(s.targetPrice)}</div></div>
+        <div class="gi"><div class="gilbl"><i class="fa-solid fa-coins"></i> Investiert</div><div class="gival">${fc(inv)}</div></div>
+        <div class="gi"><div class="gilbl"><i class="fa-solid fa-cubes"></i> Stücke</div><div class="gival">${f(tot,0)}</div></div>
+      </div>
+      <div class="progw">
+        <div class="proghd"><span class="proglbl">Fortschritt zum Ziel</span><span class="progpct">${hp?f(Math.min(prog,110))+'%':'—'}</span></div>
+        <div class="progtr"><div class="progfill ${prog>=100?'over':''}" style="width:${hp?Math.min(prog,100)+'%':'0%'}"></div></div>
+      </div>
+      <div class="grow">
+        <div class="gi"><div class="gilbl"><i class="fa-solid fa-chart-line"></i> Gewinn %</div><div class="gival ${hit?'gg':'g'+gc}">${gain!=null?gs+f(gain)+'%':'—'}</div></div>
+        <div class="gi"><div class="gilbl"><i class="fa-solid fa-sack-dollar"></i> Gewinn</div><div class="gival ${hit?'gg':'g'+gc}">${gainV!=null?(gainV>=0?'+':'')+fc(gainV):'—'}</div></div>
+        <div class="gi"><div class="gilbl"><i class="fa-solid fa-flag-checkered"></i> Zum Ziel</div><div class="gival ${hit?'gg':''}">${hit?'<i class="fa-solid fa-check"></i> Erreicht':toTgt!=null?f(toTgt)+'%':'—'}</div></div>
+        <div class="gi"><div class="gilbl"><i class="fa-solid fa-wallet"></i> Aktueller Wert</div><div class="gival gs">${posV!=null?fc(posV):'—'}</div></div>
+      </div>
+      <div class="cf">
+        <div class="cft">
+          ${hp&&s.priceSource?`<span class="src-badge ${s.priceSource==='yahoo'?'src-yahoo':'src-finnhub'}"><i class="fa-solid fa-${s.priceSource==='yahoo'?'y':'bolt'}"></i>${s.priceSource==='yahoo'?'Yahoo Finance':'Finnhub'}${s.exchange?' · '+s.exchange:''}</span>`:'<span style="color:var(--mut);font-size:.65rem"><i class="fa-regular fa-clock"></i> Noch nicht geladen</span>'}
+        </div>
+        <div class="cfb" onclick="event.stopPropagation()">
+          <button class="bic bedt" data-id="${s.id}" title="Nachkauf"><i class="fa-solid fa-cart-plus"></i></button>
+          <button class="bic bdel" data-id="${s.id}" title="Entfernen"><i class="fa-solid fa-trash-can"></i></button>
+        </div>
       </div>
     </div>
   </div>`;
