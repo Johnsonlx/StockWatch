@@ -194,10 +194,11 @@ header{position:fixed;top:0;left:0;right:0;z-index:300;background:var(--hdr);bac
 #app{position:relative;z-index:1;padding:80px 16px 0;max-width:1280px;margin:0 auto}
 
 /* SUMMARY */
-.sbar{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:22px;max-width:1400px;margin-left:auto;margin-right:auto}
+.sbar{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:22px;max-width:1400px;margin-left:auto;margin-right:auto}
 .scard{background:var(--sur);border:1px solid var(--cb);border-radius:13px;padding:14px 16px;transition:background .3s,border-color .3s;position:relative;overflow:hidden;animation:fadeUp .5s ease both}
 .scard:nth-child(1){animation-delay:.05s}.scard:nth-child(2){animation-delay:.10s}
 .scard:nth-child(3){animation-delay:.15s}.scard:nth-child(4){animation-delay:.20s}.scard:nth-child(5){animation-delay:.25s}
+.scard:nth-child(6){animation-delay:.30s}.scard:nth-child(7){animation-delay:.35s}
 .scard::after{content:'';position:absolute;top:-15px;right:-15px;width:50px;height:50px;border-radius:50%;background:var(--adim)}
 .scico{font-size:.85rem;color:var(--acc);margin-bottom:7px;opacity:.8}
 .sclbl{font-size:.67rem;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--sub);margin-bottom:3px}
@@ -275,6 +276,7 @@ header{position:fixed;top:0;left:0;right:0;z-index:300;background:var(--hdr);bac
 .bic{width:32px;height:32px;border-radius:7px;border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .15s;font-size:12px;-webkit-tap-highlight-color:transparent}
 .bic:active{transform:scale(.92)}
 .bdel{background:var(--nbg);color:var(--neg)}.bdel:hover{background:var(--neg);color:#fff}
+.bsell{background:var(--pbg);color:var(--pos)}.bsell:hover{background:var(--pos);color:#fff}
 .bedt{background:var(--adim);color:var(--acc)}.bedt:hover{background:var(--acc);color:#fff}
 
 /* Empty */
@@ -318,16 +320,12 @@ footer{position:relative;z-index:1;background:var(--sur);border-top:1px solid va
 /* ═══ TOASTS ═════════════════════════════════════════════════════════ */
 .tc{position:fixed;bottom:24px;right:16px;z-index:600;display:flex;flex-direction:column;gap:8px;max-width:340px;width:calc(100% - 32px);pointer-events:none}
 .tc .toast{pointer-events:auto}
-.toast{padding:10px 15px;border-radius:11px;font-size:.82rem;font-weight:500;display:flex;align-items:center;gap:8px;animation:toastIn .3s cubic-bezier(.4,0,.2,1) both;box-shadow:0 8px 24px var(--shd);transition:opacity .3s}
-.ts{background:var(--pbg);border:1px solid var(--pbr);color:var(--pos)}
-.te{background:var(--nbg);border:1px solid var(--nbr);color:var(--neg)}
-.ti{background:var(--adim);border:1px solid rgba(92,107,255,.3);color:var(--acc)}
-.tw{background:var(--gbg);border:1px solid var(--gbr);color:var(--gld)}
-[data-theme="lavender"] .ts{background:#f0fff4}
-[data-theme="lavender"] .te{background:#fff5f5}
-[data-theme="mint"] .ts{background:#f0fff8}
-[data-theme="earth"] .ts{background:#f0fff4}
-[data-theme="earth"] .te{background:#fff5f5}
+.toast{padding:12px 16px;border-radius:12px;font-size:.84rem;font-weight:600;display:flex;align-items:center;gap:8px;animation:toastIn .3s cubic-bezier(.4,0,.2,1) both;box-shadow:0 8px 24px var(--shd);transition:opacity .3s;background:var(--sur);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+.ts{background:var(--sur);border:2px solid var(--pos);color:var(--pos)}
+.te{background:var(--sur);border:2px solid var(--neg);color:var(--neg)}
+.ti{background:var(--sur);border:2px solid var(--acc);color:var(--acc)}
+.tw{background:var(--sur);border:2px solid var(--gld);color:var(--gld)}
+[data-theme="lavender"] .toast,[data-theme="mint"] .toast,[data-theme="earth"] .toast{background:var(--card)}
 
 /* ═══ SYNC BADGE ══════════════════════════════════════════════════════ */
 .sync-badge{display:flex;align-items:center;gap:5px;font-size:.7rem;font-family:'JetBrains Mono',monospace;color:var(--sub);padding:3px 8px;border-radius:6px;background:var(--adim);white-space:nowrap;flex-shrink:0}
@@ -587,7 +585,7 @@ button[id^="purLiveBtn_"]:hover{background:var(--adim);color:var(--acc);box-shad
       <i class="fa-solid fa-rotate" id="arIcon"></i>
       <span id="arLabel">5 Min</span>
     </button>
-    <span class="rt-time" id="rtLbl">—</span>
+    <span class="rt-time" id="rtLbl">--:--</span>
     <div class="mkt-badge closed" id="mktBadge"><i class="fa-solid fa-circle"></i><span id="mktLbl">Markt</span></div>
     <div class="sync-badge" id="syncBadge"><div class="sync-dot off" id="syncDot"></div><span id="syncLbl">Lokal</span></div>
     <div class="thm-grp" title="Design">
@@ -817,8 +815,10 @@ create policy "own" on public.sw_portfolio
     <div class="scard"><div class="scico"><i class="fa-solid fa-briefcase"></i></div><div class="sclbl">Positionen</div><div class="scval va" id="sN">0</div></div>
     <div class="scard"><div class="scico"><i class="fa-solid fa-wallet"></i></div><div class="sclbl">Investiert</div><div class="scval vt" id="sI">—</div></div>
     <div class="scard"><div class="scico"><i class="fa-solid fa-chart-pie"></i></div><div class="sclbl">Aktuell</div><div class="scval vt" id="sC">—</div></div>
-    <div class="scard"><div class="scico"><i class="fa-solid fa-arrow-trend-up"></i></div><div class="sclbl">Gewinn / Verlust</div><div class="scval vt" id="sG">—</div></div>
+    <div class="scard"><div class="scico"><i class="fa-solid fa-arrow-trend-up"></i></div><div class="sclbl">Unrealisiert G/V</div><div class="scval vt" id="sG">—</div></div>
+    <div class="scard"><div class="scico"><i class="fa-solid fa-cash-register"></i></div><div class="sclbl">Realisiert G/V</div><div class="scval vt" id="sR">—</div></div>
     <div class="scard"><div class="scico"><i class="fa-solid fa-bullseye"></i></div><div class="sclbl">Ziele erreicht</div><div class="scval vg" id="sT">0</div></div>
+    <div class="scard"><div class="scico"><i class="fa-solid fa-arrow-right-arrow-left"></i></div><div class="sclbl">Trades</div><div class="scval va" id="sTr">0</div></div>
   </div>
   <!-- Portfolio Header Zeile 1: Titel + Refresh + Stand + AddBtn -->
   <div class="pf-header">
@@ -869,6 +869,30 @@ create policy "own" on public.sw_portfolio
     <div class="del-btns">
       <button class="btn btn-ghost btn-sm" onclick="closeDelModal()"><i class="fa-solid fa-xmark"></i> Abbrechen</button>
       <button class="btn btn-sm" id="delConfirmBtn" style="background:var(--neg);color:#fff" onclick="confirmDel()"><i class="fa-solid fa-trash-can"></i> Entfernen</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ SELL MODAL ════════════════════════════════════════ -->
+<div class="del-ov" id="sellOv" onclick="if(event.target===this)closeSellModal()">
+  <div class="del-box" style="text-align:left;max-width:420px">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+      <div class="del-ico" style="margin:0;background:var(--pbg)"><i class="fa-solid fa-hand-holding-dollar" style="color:var(--pos)"></i></div>
+      <div>
+        <div class="del-title" id="sellTitle" style="margin:0;text-align:left">Aktie verkaufen</div>
+        <div style="font-size:.75rem;color:var(--sub)" id="sellSub"></div>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+      <div><div class="pur-lbl">Verkaufsdatum</div><input class="fi" id="sellDate" type="date"></div>
+      <div><div class="pur-lbl">Uhrzeit</div><input class="fi" id="sellTime" type="time"></div>
+      <div><div class="pur-lbl">Verkaufspreis</div><input class="fi" id="sellPrice" type="number" step="0.01" placeholder="Preis"></div>
+      <div><div class="pur-lbl">Stückzahl</div><input class="fi" id="sellShares" type="number" step="0.001" placeholder="Stücke"></div>
+    </div>
+    <div style="background:var(--adim);border-radius:10px;padding:10px 14px;margin-bottom:16px;font-size:.78rem;color:var(--sub)" id="sellPreview"></div>
+    <div class="del-btns">
+      <button class="btn btn-ghost btn-sm" onclick="closeSellModal()"><i class="fa-solid fa-xmark"></i> Abbrechen</button>
+      <button class="btn btn-sm" style="background:var(--pos);color:#fff" onclick="executeSell()"><i class="fa-solid fa-check"></i> Verkauf buchen</button>
     </div>
   </div>
 </div>
@@ -1040,6 +1064,14 @@ function updateMarketBadge() {
 setInterval(updateMarketBadge, 30000);
 updateMarketBadge();
 
+// Live clock in header
+function updateClock() {
+  const now = new Date();
+  document.getElementById('rtLbl').textContent = now.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+}
+setInterval(updateClock, 1000);
+updateClock();
+
 // ─── INIT ────────────────────────────────────────────────────────────
 // Einmalige Korrektur: US-Ticker ohne Suffix müssen USD haben
 portfolio.forEach(s => {
@@ -1181,10 +1213,16 @@ async function saveSb() {
   btn.disabled=true; btn.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i>';
   try {
     sbClient = window.supabase.createClient(url, key);
-    await sbClient.auth.getSession(); // test connection
+    const {data} = await sbClient.auth.getSession();
     localStorage.setItem('sw_sb_url',url); localStorage.setItem('sw_sb_key',key);
-    toast('Supabase verbunden! Bitte anmelden.','ts');
-    showAuthScreen();
+    if(data?.session?.user) {
+      sbUser = data.session.user;
+      toast('Verbunden & eingeloggt ✓','ts');
+      showApp();
+    } else {
+      toast('Supabase verbunden! Bitte anmelden.','ts');
+      showAuthScreen();
+    }
   } catch(e) {
     toast('Verbindung fehlgeschlagen: '+(e.message||'Unbekannt'),'te');
     sbClient=null;
@@ -1219,10 +1257,16 @@ async function saveSbP() {
   btn.disabled=true; btn.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i>';
   try {
     sbClient = window.supabase.createClient(url, key);
-    await sbClient.auth.getSession();
+    const {data} = await sbClient.auth.getSession();
     localStorage.setItem('sw_sb_url',url); localStorage.setItem('sw_sb_key',key);
-    toast('Supabase verbunden! Bitte anmelden.','ts');
-    showAuthScreen();
+    if(data?.session?.user) {
+      sbUser = data.session.user;
+      toast('Verbunden & eingeloggt ✓','ts');
+      showApp();
+    } else {
+      toast('Supabase verbunden! Bitte anmelden.','ts');
+      showAuthScreen();
+    }
   } catch(e) {
     toast('Verbindung fehlgeschlagen: '+(e.message||'Unbekannt'),'te');
     sbClient=null;
@@ -1361,27 +1405,109 @@ const fhQ = s => fh(`/quote?symbol=${encodeURIComponent(s)}`);
 const fhP = s => fh(`/stock/profile2?symbol=${encodeURIComponent(s)}`);
 const fhC = (s,f,t) => fh(`/stock/candle?symbol=${encodeURIComponent(s)}&resolution=D&from=${f}&to=${t}`);
 
+// ─── CORS PROXY HELPER ──────────────────────────────────────────────
+async function fetchViaProxy(url, timeout=8000) {
+  const strategies = [
+    [`https://api.allorigins.win/get?url=${encodeURIComponent(url)}`, true, 'allorigins/get'],
+    [`https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`, false, 'allorigins/raw'],
+    [`https://corsproxy.io/?${encodeURIComponent(url)}`, false, 'corsproxy.io'],
+    [`https://corsproxy.org/?${encodeURIComponent(url)}`, false, 'corsproxy.org'],
+    [`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`, false, 'codetabs'],
+    [`https://thingproxy.freeboard.io/fetch/${url}`, false, 'thingproxy'],
+  ];
+  for (const [proxyUrl, unwrap, name] of strategies) {
+    try {
+      const r = await fetch(proxyUrl, {signal: AbortSignal.timeout(timeout)});
+      if (!r.ok) { console.log(`[Proxy] ${name}: HTTP ${r.status}`); continue; }
+      let data;
+      if (unwrap) {
+        const wrapper = await r.json();
+        if (!wrapper?.contents) { console.log(`[Proxy] ${name}: empty contents`); continue; }
+        try { data = JSON.parse(wrapper.contents); } catch(_) { console.log(`[Proxy] ${name}: contents not JSON`); continue; }
+      } else {
+        const text = await r.text();
+        if (text.startsWith('<!') || text.startsWith('<html')) { console.log(`[Proxy] ${name}: HTML error page`); continue; }
+        try { data = JSON.parse(text); } catch(_) { console.log(`[Proxy] ${name}: not JSON`); continue; }
+      }
+      if (data && typeof data === 'object') { console.log(`[Proxy] ✓ ${name} OK`); return data; }
+    } catch(e) { console.log(`[Proxy] ${name}: ${e.name||e.message}`); continue; }
+  }
+  console.warn(`[Proxy] All 6 proxies failed for: ${url.substring(0,80)}…`);
+  return null;
+}
+
 // ─── YAHOO FINANCE LIVE QUOTE (Fallback für .DE und andere nicht-US Symbole) ──
 async function yahooLiveQuote(sym) {
-  const yfUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(sym)}?interval=1m&range=1d`;
-  for (const proxy of [
-    `https://corsproxy.io/?url=${encodeURIComponent(yfUrl)}`,
-    `https://api.allorigins.win/raw?url=${encodeURIComponent(yfUrl)}`
-  ]) {
+  console.log(`[Yahoo] Fetching live quote for ${sym}…`);
+  // Strategy 1: v8 chart endpoint
+  const v8urls = [
+    `https://query2.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(sym)}?interval=1m&range=1d`,
+    `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(sym)}?interval=1m&range=1d`
+  ];
+  for (const yfUrl of v8urls) {
+    const data = await fetchViaProxy(yfUrl, 12000);
+    if (!data) continue;
+    const meta = data?.chart?.result?.[0]?.meta;
+    if (!meta) continue;
+    const price = meta.regularMarketPrice || meta.previousClose;
+    if (!price) continue;
+    const prevClose = meta.chartPreviousClose || meta.previousClose || price;
+    console.log(`[Yahoo] ✓ v8 chart OK for ${sym}: ${price}`);
+    return { c: price, pc: prevClose, d: price-prevClose, dp: prevClose?(price-prevClose)/prevClose*100:0, currency: meta.currency||'', exchange: meta.exchangeName||meta.fullExchangeName||'', _src: 'yahoo' };
+  }
+
+  // Strategy 2: v6 quote endpoint
+  try {
+    const v6url = `https://query2.finance.yahoo.com/v6/finance/quote?symbols=${encodeURIComponent(sym)}`;
+    const v6data = await fetchViaProxy(v6url, 12000);
+    const q6 = v6data?.quoteResponse?.result?.[0];
+    if (q6 && (q6.regularMarketPrice > 0)) {
+      console.log(`[Yahoo] ✓ v6 quote OK for ${sym}: ${q6.regularMarketPrice}`);
+      return {
+        c: q6.regularMarketPrice, pc: q6.regularMarketPreviousClose || q6.regularMarketPrice,
+        d: q6.regularMarketChange || 0, dp: q6.regularMarketChangePercent || 0,
+        currency: q6.currency || '', exchange: q6.exchange || '', _src: 'yahoo'
+      };
+    }
+  } catch(_){}
+
+  // Strategy 3: scrape finance page via allorigins
+  try {
+    const pageUrl = `https://finance.yahoo.com/quote/${encodeURIComponent(sym)}/`;
+    const html = await fetchTextViaProxy(pageUrl, 10000);
+    if (html) {
+      const m = html.match(/"regularMarketPrice":\{"raw":([\d.]+)/);
+      const pc = html.match(/"regularMarketPreviousClose":\{"raw":([\d.]+)/);
+      const cur = html.match(/"currency":"([A-Z]+)"/);
+      if (m && parseFloat(m[1]) > 0) {
+        const price = parseFloat(m[1]);
+        const prev = pc ? parseFloat(pc[1]) : price;
+        console.log(`[Yahoo] ✓ page scrape OK for ${sym}: ${price}`);
+        return { c: price, pc: prev, d: price-prev, dp: prev?(price-prev)/prev*100:0, currency: cur?cur[1]:'', exchange:'', _src:'yahoo' };
+      }
+    }
+  } catch(_){}
+
+  console.warn(`[Yahoo] ✗ All strategies failed for ${sym}`);
+  return null;
+}
+
+// Fetch raw text via CORS proxy (for HTML scraping)
+async function fetchTextViaProxy(url, timeout=10000) {
+  const strategies = [
+    [`https://api.allorigins.win/get?url=${encodeURIComponent(url)}`, true],
+    [`https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`, false],
+    [`https://corsproxy.io/?${encodeURIComponent(url)}`, false],
+  ];
+  for (const [proxyUrl, unwrap] of strategies) {
     try {
-      const r = await fetch(proxy, {signal: AbortSignal.timeout(10000)});
+      const r = await fetch(proxyUrl, {signal: AbortSignal.timeout(timeout)});
       if (!r.ok) continue;
-      const data = await r.json();
-      const meta = data?.chart?.result?.[0]?.meta;
-      if (!meta) continue;
-      const price = meta.regularMarketPrice || meta.previousClose;
-      if (!price) continue;
-      const prevClose = meta.chartPreviousClose || meta.previousClose || price;
-      const dayChange = price - prevClose;
-      const dayPct = prevClose ? (dayChange / prevClose * 100) : 0;
-      const currency = meta.currency || '';
-      const exchange = meta.exchangeName || meta.fullExchangeName || '';
-      return { c: price, pc: prevClose, d: dayChange, dp: dayPct, currency, exchange, _src: 'yahoo' };
+      if (unwrap) {
+        const wrapper = await r.json();
+        return wrapper?.contents || null;
+      }
+      return await r.text();
     } catch(_) { continue; }
   }
   return null;
@@ -1392,24 +1518,21 @@ async function fetchYahooHist(sym, dateStr) {
   const d=new Date(dateStr+'T12:00:00Z');
   const from=Math.floor(d.getTime()/1000)-259200;
   const to=Math.floor(d.getTime()/1000)+259200;
-  const yfUrl=`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(sym)}?interval=1d&period1=${from}&period2=${to}`;
-  for (const px of [
-    `https://corsproxy.io/?url=${encodeURIComponent(yfUrl)}`,
-    `https://api.allorigins.win/raw?url=${encodeURIComponent(yfUrl)}`
-  ]) {
-    try {
-      const r=await fetch(px,{signal:AbortSignal.timeout(9000)});
-      if(!r.ok) continue;
-      const data=await r.json();
-      const res=data?.chart?.result?.[0];
-      if(!res) continue;
-      const closes=res.indicators?.quote?.[0]?.close, times=res.timestamp;
-      if(!closes||!times) continue;
-      let ci=0,md=Infinity;
-      const tgt=d.getTime()/1000;
-      times.forEach((ts,i)=>{ if(closes[i]==null)return; const df=Math.abs(ts-tgt); if(df<md){md=df;ci=i;} });
-      if(closes[ci]!=null) return {price:closes[ci], date:new Date(times[ci]*1000)};
-    } catch(_){ continue; }
+  const endpoints = [
+    `https://query2.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(sym)}?interval=1d&period1=${from}&period2=${to}`,
+    `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(sym)}?interval=1d&period1=${from}&period2=${to}`
+  ];
+  for (const yfUrl of endpoints) {
+    const data = await fetchViaProxy(yfUrl, 12000);
+    if (!data) continue;
+    const res=data?.chart?.result?.[0];
+    if(!res) continue;
+    const closes=res.indicators?.quote?.[0]?.close, times=res.timestamp;
+    if(!closes||!times) continue;
+    let ci=0,md=Infinity;
+    const tgt=d.getTime()/1000;
+    times.forEach((ts,i)=>{ if(closes[i]==null)return; const df=Math.abs(ts-tgt); if(df<md){md=df;ci=i;} });
+    if(closes[ci]!=null) return {price:closes[ci], date:new Date(times[ci]*1000)};
   }
   return null;
 }
@@ -1423,8 +1546,12 @@ async function loadHist() {
   const hint=document.getElementById('histHint');
   btn.disabled=true; btn.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i>';
   hint.style.color=''; hint.textContent='Suche historischen Kurs…';
-  let result = await fetchYahooHist(sym,date);
-  if(!result) {
+
+  let result = null;
+
+  // 1) Finnhub Candle FIRST (no CORS issues, user has API key)
+  if(apiKey) {
+    hint.textContent='Finnhub wird abgefragt…';
     try {
       const d=new Date(date+'T12:00:00Z');
       const from=Math.floor(d.getTime()/1000)-259200, to=Math.floor(d.getTime()/1000)+259200;
@@ -1436,6 +1563,13 @@ async function loadHist() {
       }
     } catch(e) { if(e.message==='BAD_KEY'){showProfileScreen();pTab(1);toast('API Key ungültig.','te');} }
   }
+
+  // 2) Yahoo Finance Fallback (via CORS proxies)
+  if(!result) {
+    hint.textContent='Yahoo Finance wird abgefragt…';
+    result = await fetchYahooHist(sym,date);
+  }
+
   if(result) {
     document.getElementById('fBuy').value=result.price.toFixed(4);
     hint.style.color='var(--pos)';
@@ -1468,9 +1602,14 @@ async function doRefresh() {
     return !q || q.c==null || (q.c===0 && (q.pc==null||q.pc===0) && q.o===0);
   });
   if(needYahoo.length) {
-    await Promise.allSettled(needYahoo.map(sym=>
-      yahooLiveQuote(sym).then(q=>{ if(q) qMap[sym]=q; }).catch(()=>{})
-    ));
+    console.log(`[Refresh] ${needYahoo.length} symbols need Yahoo: ${needYahoo.join(', ')}`);
+    // Sequential to avoid proxy rate-limiting
+    for (const sym of needYahoo) {
+      try {
+        const q = await yahooLiveQuote(sym);
+        if(q) qMap[sym] = q;
+      } catch(_){}
+    }
   }
   portfolio.forEach(s=>{
     const q=qMap[s.symbol];
@@ -1512,8 +1651,6 @@ async function doRefresh() {
   if(badKey){toast('API Key ungültig (401).','te');showProfileScreen();pTab(1);}
   save(); renderGrid(); updateSummary();
   const now=new Date();
-  const timeStr = now.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});
-  document.getElementById('rtLbl').textContent = timeStr;
   document.getElementById('updLbl').textContent = '⟳ Stand: ' + now.toLocaleTimeString('de-DE') + ' · nächster in 5 Min.';
   rb.classList.remove('spin'); rb.disabled=false;
 }
@@ -1579,12 +1716,114 @@ function resetPortfolio() {
 
 // ─── COMPUTED HELPERS ────────────────────────────────────────────────
 function totalShares(s) { return s.purchases.reduce((a,p)=>a+p.shares,0); }
+function soldShares(s) { return (s.sales||[]).reduce((a,sl)=>a+sl.shares,0); }
+function activeShares(s) { return totalShares(s) - soldShares(s); }
 function avgBuyPrice(s) {
   const tot=totalShares(s);
   if(!tot) return 0;
   return s.purchases.reduce((a,p)=>a+p.buyPrice*p.shares,0)/tot;
 }
 function investedVal(s) { return s.purchases.reduce((a,p)=>a+p.buyPrice*p.shares,0); }
+function activeInvested(s) { return avgBuyPrice(s) * activeShares(s); }
+function realizedPL(s) { return (s.sales||[]).reduce((a,sl)=>a+(sl.sellPrice-sl.avgBuyPrice)*sl.shares,0); }
+function totalRealizedPL() { return portfolio.reduce((a,s)=>a+realizedPL(s),0); }
+function tradeCount() { return portfolio.reduce((a,s)=>a+s.purchases.length+(s.sales||[]).length,0); }
+
+// ─── SELL MODAL ─────────────────────────────────────────────────────
+let sellStockId = null;
+function openSellModal(id) {
+  const s = portfolio.find(x=>x.id===id); if(!s) return;
+  sellStockId = id;
+  const avail = activeShares(s);
+  const cur = s.currency||'';
+  document.getElementById('sellTitle').textContent = `${s.symbol} verkaufen`;
+  document.getElementById('sellSub').textContent = `${avail.toLocaleString('de-DE')} Stücke verfügbar · Ø ${avgBuyPrice(s).toFixed(2)} ${cur}`;
+  document.getElementById('sellDate').valueAsDate = new Date();
+  document.getElementById('sellTime').value = '';
+  document.getElementById('sellPrice').value = s.price || '';
+  document.getElementById('sellShares').value = '';
+  updateSellPreview();
+  document.getElementById('sellPrice').oninput = updateSellPreview;
+  document.getElementById('sellShares').oninput = updateSellPreview;
+  document.getElementById('sellOv').classList.add('open');
+}
+function closeSellModal() { document.getElementById('sellOv').classList.remove('open'); sellStockId=null; }
+function updateSellPreview() {
+  const s = portfolio.find(x=>x.id===sellStockId);
+  const el = document.getElementById('sellPreview');
+  if(!s) { el.textContent='—'; return; }
+  const price = parseFloat(document.getElementById('sellPrice').value)||0;
+  const shares = parseFloat(document.getElementById('sellShares').value)||0;
+  const avg = avgBuyPrice(s);
+  const pl = (price - avg) * shares;
+  const pct = avg ? ((price-avg)/avg*100) : 0;
+  const cur = s.currency||'';
+  const sign = pl>=0?'+':'';
+  if(!price||!shares) { el.innerHTML='Preis und Stückzahl eingeben für Vorschau.'; return; }
+  el.innerHTML = `<strong>Erlös:</strong> ${(price*shares).toLocaleString('de-DE',{minimumFractionDigits:2})} ${cur} · <strong style="color:${pl>=0?'var(--pos)':'var(--neg)'}">G/V: ${sign}${pl.toLocaleString('de-DE',{minimumFractionDigits:2})} ${cur} (${sign}${pct.toFixed(2)}%)</strong>`;
+}
+function executeSell() {
+  const s = portfolio.find(x=>x.id===sellStockId); if(!s) return;
+  const date = document.getElementById('sellDate').value;
+  const time = document.getElementById('sellTime').value;
+  const price = parseFloat(document.getElementById('sellPrice').value);
+  const shares = parseFloat(document.getElementById('sellShares').value);
+  if(!date) return toast('Bitte Datum wählen.','te');
+  if(!price||price<=0) return toast('Bitte Verkaufspreis eingeben.','te');
+  if(!shares||shares<=0) return toast('Bitte Stückzahl eingeben.','te');
+  const avail = activeShares(s);
+  if(shares>avail) return toast(`Nur ${avail} Stücke verfügbar.`,'te');
+  if(!s.sales) s.sales = [];
+  const sale = {
+    id: Date.now().toString(36)+Math.random().toString(36).slice(2,6),
+    shares, sellPrice: price, sellDate: date, sellTime: time||'',
+    avgBuyPrice: avgBuyPrice(s),
+    realizedPL: (price - avgBuyPrice(s)) * shares
+  };
+  s.sales.push(sale);
+  save(); renderGrid(); updateSummary();
+  if(sbClient&&sbUser) pushSb(s);
+  closeSellModal();
+  const pl = sale.realizedPL;
+  toast(`${s.symbol}: ${shares} Stücke verkauft · ${pl>=0?'+':''}${pl.toFixed(2)} ${s.currency||''}`, pl>=0?'ts':'te');
+}
+
+// Undo sale (restore shares)
+function undoSale(stockId, saleId) {
+  const s = portfolio.find(x=>x.id===stockId); if(!s||!s.sales) return;
+  s.sales = s.sales.filter(sl=>sl.id!==saleId);
+  save(); renderGrid(); updateSummary();
+  if(sbClient&&sbUser) pushSb(s);
+  closePop(); openPop(stockId);
+  toast('Verkauf rückgängig gemacht.','ts');
+}
+// Delete sale permanently
+function deleteSale(stockId, saleId) {
+  const s = portfolio.find(x=>x.id===stockId); if(!s||!s.sales) return;
+  s.sales = s.sales.filter(sl=>sl.id!==saleId);
+  save(); renderGrid(); updateSummary();
+  if(sbClient&&sbUser) pushSb(s);
+  closePop(); openPop(stockId);
+  toast('Verkauf entfernt.','ti');
+}
+// Edit sale
+function toggleSaleEdit(saleId) {
+  const el = document.getElementById('saleItem_'+saleId);
+  if(el) el.classList.toggle('editing');
+}
+function saveSaleEdit(stockId, saleId) {
+  const s = portfolio.find(x=>x.id===stockId); if(!s||!s.sales) return;
+  const sale = s.sales.find(sl=>sl.id===saleId); if(!sale) return;
+  sale.sellDate = document.getElementById('sed_'+saleId)?.value || sale.sellDate;
+  sale.sellTime = document.getElementById('set_'+saleId)?.value || '';
+  sale.sellPrice = parseFloat(document.getElementById('sep_'+saleId)?.value) || sale.sellPrice;
+  sale.shares = parseFloat(document.getElementById('ses_'+saleId)?.value) || sale.shares;
+  sale.realizedPL = (sale.sellPrice - sale.avgBuyPrice) * sale.shares;
+  save(); renderGrid(); updateSummary();
+  if(sbClient&&sbUser) pushSb(s);
+  closePop(); openPop(stockId);
+  toast('Verkauf aktualisiert.','ts');
+}
 
 // ─── RENDER ──────────────────────────────────────────────────────────
 // ─── FILTER & SORT ───────────────────────────────────────────────────
@@ -1674,17 +1913,18 @@ function renderGrid() {
   g.innerHTML=filtered.map((s,i)=>cardHTML(s,i)).join('');
   g.querySelectorAll('.bdel').forEach(b=>b.addEventListener('click',()=>delStock(b.dataset.id)));
   g.querySelectorAll('.bedt').forEach(b=>b.addEventListener('click',()=>openEdit(b.dataset.id)));
+  g.querySelectorAll('.bsell').forEach(b=>b.addEventListener('click',()=>openSellModal(b.dataset.id)));
 }
 
 function cardHTML(s, idx) {
   const hp=s.price!=null&&!s.fetchError;
   const avg=avgBuyPrice(s);
-  const tot=totalShares(s);
-  const inv=investedVal(s);
+  const tot=activeShares(s);
+  const inv=activeInvested(s);
   const gain=hp?(s.price-avg)/avg*100:null;
   const toTgt=hp?(s.targetPrice-s.price)/s.price*100:null;
   const prog=hp&&s.targetPrice>avg?Math.min(110,Math.max(0,(s.price-avg)/(s.targetPrice-avg)*100)):0;
-  const hit=hp&&s.price>=s.targetPrice;
+  const hit=hp&&s.price>=s.targetPrice&&tot>0;
   const posV=hp?s.price*tot:null;
   const gainV=posV!=null?posV-inv:null;
   const gc=gain==null?'':(gain>=0?'p':'n');
@@ -1757,6 +1997,7 @@ function cardHTML(s, idx) {
         </div>
         <div class="cfb" onclick="event.stopPropagation()">
           <button class="bic bedt" data-id="${s.id}" title="Nachkauf"><i class="fa-solid fa-cart-plus"></i></button>
+          <button class="bic bsell" data-id="${s.id}" title="Verkaufen"><i class="fa-solid fa-hand-holding-dollar"></i></button>
           <button class="bic bdel" data-id="${s.id}" title="Entfernen"><i class="fa-solid fa-trash-can"></i></button>
         </div>
       </div>
@@ -1767,20 +2008,27 @@ function cardHTML(s, idx) {
 // ─── SUMMARY ─────────────────────────────────────────────────────────
 function updateSummary() {
   const n=portfolio.length;
-  const inv=portfolio.reduce((a,s)=>a+investedVal(s),0);
+  const inv=portfolio.reduce((a,s)=>a+activeInvested(s),0);
   const hasPrices=portfolio.filter(s=>s.price);
-  const cur=hasPrices.reduce((a,s)=>a+s.price*totalShares(s),0);
-  const invF=hasPrices.reduce((a,s)=>a+investedVal(s),0);
+  const cur=hasPrices.reduce((a,s)=>a+s.price*activeShares(s),0);
+  const invF=hasPrices.reduce((a,s)=>a+activeInvested(s),0);
   const gain=cur-invF;
-  const tgts=portfolio.filter(s=>s.price&&s.price>=s.targetPrice).length;
+  // Ziele erreicht: nur aktive Positionen (nicht vollständig verkauft) die Ziel erreichen
+  const tgts=portfolio.filter(s=>s.price&&s.price>=s.targetPrice&&activeShares(s)>0).length;
+  const rpl=totalRealizedPL();
+  const trades=tradeCount();
   const f2=n=>n.toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2});
   document.getElementById('sN').textContent=n;
   document.getElementById('sI').textContent=f2(inv)+' €';
   document.getElementById('sC').textContent=cur>0?f2(cur)+' €':'—';
   document.getElementById('sT').textContent=tgts;
+  document.getElementById('sTr').textContent=trades;
   const ge=document.getElementById('sG');
   if(cur>0){ge.textContent=(gain>=0?'+':'')+f2(gain)+' €';ge.className='scval '+(gain>=0?'vp':'vn');}
   else{ge.textContent='—';ge.className='scval vt';}
+  const re=document.getElementById('sR');
+  if(rpl!==0||portfolio.some(s=>(s.sales||[]).length)){re.textContent=(rpl>=0?'+':'')+f2(rpl)+' €';re.className='scval '+(rpl>=0?'vp':'vn');}
+  else{re.textContent='—';re.className='scval vt';}
 }
 
 // ─── DUPLICATE CHECK ─────────────────────────────────────────────────
@@ -1990,23 +2238,26 @@ function openPop(id) {
   const s = portfolio.find(x=>x.id===id); if(!s) return;
   popStockId = id;
   const cur = s.currency||'';
-  const avg = avgBuyPrice(s), tot = totalShares(s), inv = investedVal(s);
+  const avg = avgBuyPrice(s), tot = activeShares(s), inv = activeInvested(s);
   const hp = s.price!=null&&!s.fetchError;
   const gain = hp ? (s.price-avg)/avg*100 : null;
   const gainV = hp ? s.price*tot - inv : null;
+  const rpl = realizedPL(s);
+  const salesCount = (s.sales||[]).length;
   const f = (n,d=2) => n!=null ? n.toLocaleString('de-DE',{minimumFractionDigits:d,maximumFractionDigits:d}) : '—';
   const fc = n => n!=null ? f(n)+(cur?' '+cur:'') : '—';
   const gs = gain!=null&&gain>=0?'+':'';
 
   document.getElementById('popTitle').textContent = s.symbol + (s.name&&s.name!==s.symbol ? ' — ' + s.name : '');
-  document.getElementById('popSub').textContent = s.purchases.length + ' Kauf/Käufe · Zielpreis: ' + fc(s.targetPrice);
+  document.getElementById('popSub').textContent = s.purchases.length + ' Käufe · ' + salesCount + ' Verkäufe · Zielpreis: ' + fc(s.targetPrice);
 
   // Summary strip
   const sumHtml = `<div class="pop-summary">
     <div><div class="ps-lbl">Ø Einkauf</div><div class="ps-val" style="color:var(--acc)">${fc(avg)}</div></div>
-    <div><div class="ps-lbl">Stücke</div><div class="ps-val">${f(tot,0)}</div></div>
+    <div><div class="ps-lbl">Aktive Stücke</div><div class="ps-val">${f(tot,0)}</div></div>
     <div><div class="ps-lbl">Investiert</div><div class="ps-val">${fc(inv)}</div></div>
-    <div><div class="ps-lbl">Gewinn</div><div class="ps-val ${gain==null?'':gain>=0?'gp':'gn'}">${gain!=null?gs+f(gain)+'%':'—'}</div></div>
+    <div><div class="ps-lbl">Unrealisiert</div><div class="ps-val ${gain==null?'':gain>=0?'gp':'gn'}">${gain!=null?gs+f(gain)+'%':'—'}</div></div>
+    ${salesCount?`<div style="grid-column:1/-1;border-top:1px solid var(--cb);padding-top:10px;display:flex;justify-content:space-between;align-items:center"><span class="ps-lbl" style="margin:0">Realisierter G/V</span><span class="ps-val ${rpl>=0?'gp':'gn'}">${(rpl>=0?'+':'')+fc(rpl)}</span></div>`:''}
   </div>`;
 
   // Target edit
@@ -2077,8 +2328,51 @@ function openPop(id) {
   }).join('');
 
   const addBtn = `<button class="btn btn-ghost btn-sm" onclick="openRebuyFromPop('${id}')" style="width:100%"><i class="fa-solid fa-plus"></i> Weiteren Kauf hinzufügen</button>`;
+  const sellBtn = `<button class="btn btn-sm" onclick="openSellModal('${id}')" style="width:100%;background:var(--pbg);color:var(--pos);border:1px solid var(--pos);margin-top:6px"><i class="fa-solid fa-hand-holding-dollar"></i> Verkaufen</button>`;
 
-  document.getElementById('popBody').innerHTML = sumHtml + tgtHtml + `<div class="pur-lbl" style="margin-bottom:8px"><i class="fa-solid fa-list"></i> Einzelne Käufe</div>` + `<div class="pur-list">${purHtml}</div>` + addBtn;
+  // Sales section
+  let salesHtml = '';
+  if((s.sales||[]).length) {
+    const sortedSales = [...s.sales].sort((a,b)=>(b.sellDate||'').localeCompare(a.sellDate||''));
+    salesHtml = `<div class="pur-lbl" style="margin-bottom:8px;margin-top:20px"><i class="fa-solid fa-hand-holding-dollar"></i> Verkäufe (${s.sales.length})</div><div class="pur-list">` +
+    sortedSales.map((sl,i)=>{
+      const dStr = sl.sellDate ? new Date(sl.sellDate+'T12:00:00').toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'numeric'}) : '—';
+      const pl = sl.realizedPL || (sl.sellPrice-sl.avgBuyPrice)*sl.shares;
+      const plPct = sl.avgBuyPrice ? ((sl.sellPrice-sl.avgBuyPrice)/sl.avgBuyPrice*100) : 0;
+      const plC = pl>=0?'p':'n';
+      return `<div class="pur-item" id="saleItem_${sl.id}" style="border-left:3px solid ${pl>=0?'var(--pos)':'var(--neg)'}">
+        <div class="pur-row">
+          <div class="pur-field">
+            <div class="pur-lbl"><i class="fa-solid fa-tag"></i> Verkaufspreis</div>
+            <div class="pur-val">${fc(sl.sellPrice)}</div>
+            <div class="pur-gain ${plC}">${pl>=0?'+':''}${fc(pl)} (${pl>=0?'+':''}${f(plPct)}%)</div>
+          </div>
+          <div class="pur-field">
+            <div class="pur-lbl"><i class="fa-solid fa-cubes"></i> Stücke</div>
+            <div class="pur-val">${f(sl.shares,sl.shares%1===0?0:3)}</div>
+          </div>
+          <div class="pur-field">
+            <div class="pur-lbl"><i class="fa-solid fa-calendar"></i> Datum</div>
+            <div class="pur-val" style="font-size:.82rem">${dStr}</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap">
+          <button class="btn btn-ghost btn-sm" style="flex:1;font-size:.72rem" onclick="toggleSaleEdit('${sl.id}')"><i class="fa-solid fa-pen"></i> Bearbeiten</button>
+          <button class="btn btn-ghost btn-sm" style="flex:1;font-size:.72rem;color:var(--pos);border-color:var(--pos)" onclick="undoSale('${id}','${sl.id}')"><i class="fa-solid fa-rotate-left"></i> Rückgängig</button>
+          <button class="btn btn-ghost btn-sm" style="flex:1;font-size:.72rem;color:var(--neg);border-color:var(--neg)" onclick="deleteSale('${id}','${sl.id}')"><i class="fa-solid fa-trash-can"></i> Entfernen</button>
+        </div>
+        <div class="pur-edit-row">
+          <div><div class="pur-lbl">Datum</div><input class="fi" id="sed_${sl.id}" type="date" value="${sl.sellDate||''}"></div>
+          <div><div class="pur-lbl">Uhrzeit</div><input class="fi" id="set_${sl.id}" type="time" value="${sl.sellTime||''}"></div>
+          <div><div class="pur-lbl">Verkaufspreis</div><input class="fi" id="sep_${sl.id}" type="number" step="0.01" value="${sl.sellPrice}"></div>
+          <div><div class="pur-lbl">Stückzahl</div><input class="fi" id="ses_${sl.id}" type="number" step="0.001" value="${sl.shares}"></div>
+        </div>
+        <button class="btn btn-acc btn-sm pur-save-btn" onclick="saveSaleEdit('${id}','${sl.id}')"><i class="fa-solid fa-floppy-disk"></i> Änderung speichern</button>
+      </div>`;
+    }).join('') + '</div>';
+  }
+
+  document.getElementById('popBody').innerHTML = sumHtml + tgtHtml + `<div class="pur-lbl" style="margin-bottom:8px"><i class="fa-solid fa-list"></i> Einzelne Käufe</div>` + `<div class="pur-list">${purHtml}</div>` + addBtn + sellBtn + salesHtml;
   document.getElementById('popOv').classList.add('open');
 }
 
@@ -2120,18 +2414,22 @@ async function fetchPurLivePrice(stockId, purId) {
         result = { price: q.c>0 ? q.c : q.pc };
       }
     } else {
-      // Historisches Datum → Yahoo Hist, dann Finnhub Candle als Fallback
-      result = await fetchYahooHist(sym, date);
+      // Historisches Datum → Finnhub Candle FIRST, dann Yahoo als Fallback
+      if(apiKey) {
+        try {
+          const d = new Date(date+'T12:00:00Z');
+          const from = Math.floor(d.getTime()/1000)-259200;
+          const to   = Math.floor(d.getTime()/1000)+259200;
+          const data = await fhC(sym, from, to);
+          if(data.s==='ok' && data.c?.length) {
+            let ci=0, md=Infinity; const tgt=d.getTime()/1000;
+            data.t.forEach((ts,i)=>{ const df=Math.abs(ts-tgt); if(df<md){md=df;ci=i;} });
+            result = { price: data.c[ci] };
+          }
+        } catch(_){}
+      }
       if(!result) {
-        const d = new Date(date+'T12:00:00Z');
-        const from = Math.floor(d.getTime()/1000)-259200;
-        const to   = Math.floor(d.getTime()/1000)+259200;
-        const data = await fhC(sym, from, to);
-        if(data.s==='ok' && data.c?.length) {
-          let ci=0, md=Infinity; const tgt=d.getTime()/1000;
-          data.t.forEach((ts,i)=>{ const df=Math.abs(ts-tgt); if(df<md){md=df;ci=i;} });
-          result = { price: data.c[ci] };
-        }
+        result = await fetchYahooHist(sym, date);
       }
     }
   } catch(e) {
