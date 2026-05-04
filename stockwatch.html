@@ -2,21 +2,37 @@
 <html lang="de" data-theme="dark">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>StockWatch — Portfolio Tracker</title>
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <style>
+
+/* ═══ POPUP (at top to guarantee browser applies it) ═══════════════ */
+.pop-ov{position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.75);backdrop-filter:blur(12px);display:flex;align-items:center;justify-content:center;padding:70px 14px 20px;opacity:0;pointer-events:none;transition:opacity .22s}
+.pop-ov.open{opacity:1;pointer-events:all}
+.pop-box{background:var(--sur);border:1px solid var(--cb);border-radius:20px;width:100%;max-width:520px;max-height:84vh;overflow-y:auto;box-shadow:0 28px 70px var(--shd);transform:translateY(22px) scale(.97);transition:transform .25s cubic-bezier(.4,0,.2,1),background .3s}
+.pop-ov.open .pop-box{transform:translateY(0) scale(1)}
+.pop-hd{padding:20px 22px 0;display:flex;align-items:flex-start;justify-content:space-between;gap:12px;position:sticky;top:0;background:var(--sur);border-bottom:1px solid var(--cb);padding-bottom:14px;z-index:2}
+.pop-title{font-size:1.1rem;font-weight:800}
+.pop-sub{font-size:.78rem;color:var(--sub);margin-top:3px}
+.pop-close{width:30px;height:30px;border:none;background:var(--nbg);color:var(--neg);border-radius:7px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0;transition:all .15s}
+.pop-close:hover{background:var(--neg);color:#fff}
+.pop-body{padding:18px 22px 22px}
+*{-webkit-tap-highlight-color:transparent}
+button,select,input{-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+html{-webkit-text-size-adjust:100%}
+
 /* ═══ THEMES ═════════════════════════════════════════════════════════ */
 [data-theme="dark"]{
-  --bg:#080b14;--sur:#0e1120;--card:#131626;--cb:#1e2240;--hov:#181c30;
-  --acc:#5c6bff;--adim:rgba(92,107,255,.18);--aglow:rgba(92,107,255,.35);
+  --bg:#0A2647;--sur:#0f2d52;--card:#144272;--cb:#205295;--hov:#1a3a65;
+  --acc:#2C74B3;--adim:rgba(44,116,179,.20);--aglow:rgba(44,116,179,.40);
   --pos:#00e676;--pbg:rgba(0,230,118,.10);--pbr:rgba(0,230,118,.28);
   --neg:#ff4d6a;--nbg:rgba(255,77,106,.10);--nbr:rgba(255,77,106,.28);
   --gld:#ffc740;--gbg:rgba(255,199,64,.12);--gbr:rgba(255,199,64,.30);
-  --tx:#dde1f5;--sub:#6970a0;--mut:#2f3458;
-  --shd:rgba(0,0,0,.55);--hdr:rgba(8,11,20,.90);--gc:rgba(92,107,255,.03);
+  --tx:#d8e8f8;--sub:#6a95be;--mut:#2a4a6e;
+  --shd:rgba(0,0,0,.55);--hdr:rgba(10,38,71,.92);--gc:rgba(44,116,179,.04);
 }
 [data-theme="ocean"]{
   --bg:#1a2130;--sur:#222b3d;--card:#28354a;--cb:#354660;--hov:#2e3d55;
@@ -28,22 +44,31 @@
   --shd:rgba(0,0,0,.5);--hdr:rgba(26,33,48,.92);--gc:rgba(0,180,216,.03);
 }
 [data-theme="lavender"]{
-  --bg:#f4eeff;--sur:#ede5ff;--card:#ffffff;--cb:#dcd6f7;--hov:#e8e0ff;
-  --acc:#424874;--adim:rgba(66,72,116,.12);--aglow:rgba(66,72,116,.25);
+  --bg:#EEF1FF;--sur:#D2DAFF;--card:#ffffff;--cb:#AAC4FF;--hov:#c3cfff;
+  --acc:#6366f1;--adim:rgba(99,102,241,.12);--aglow:rgba(99,102,241,.25);
   --pos:#2d7a2d;--pbg:rgba(45,122,45,.08);--pbr:rgba(45,122,45,.25);
   --neg:#c0392b;--nbg:rgba(192,57,43,.08);--nbr:rgba(192,57,43,.22);
   --gld:#b8860b;--gbg:rgba(184,134,11,.10);--gbr:rgba(184,134,11,.28);
-  --tx:#1a1a2e;--sub:#5a5a8a;--mut:#a6b1e1;
-  --shd:rgba(66,72,116,.15);--hdr:rgba(244,238,255,.95);--gc:rgba(66,72,116,.04);
+  --tx:#1e1e3a;--sub:#6a6aa0;--mut:#B1B2FF;
+  --shd:rgba(99,102,241,.12);--hdr:rgba(238,241,255,.95);--gc:rgba(99,102,241,.04);
 }
 [data-theme="mint"]{
-  --bg:#f8f6f4;--sur:#e3f4f4;--card:#ffffff;--cb:#c4dfdf;--hov:#d2e9e9;
-  --acc:#3a8b8b;--adim:rgba(58,139,139,.12);--aglow:rgba(58,139,139,.28);
+  --bg:#EEE9DA;--sur:#BDCDD6;--card:#ffffff;--cb:#93BFCF;--hov:#adc5cf;
+  --acc:#6096B4;--adim:rgba(96,150,180,.14);--aglow:rgba(96,150,180,.30);
   --pos:#2a7a4f;--pbg:rgba(42,122,79,.08);--pbr:rgba(42,122,79,.25);
   --neg:#b83232;--nbg:rgba(184,50,50,.08);--nbr:rgba(184,50,50,.22);
   --gld:#9a7010;--gbg:rgba(154,112,16,.10);--gbr:rgba(154,112,16,.28);
-  --tx:#1a3030;--sub:#4a7070;--mut:#88aaba;
-  --shd:rgba(58,139,139,.15);--hdr:rgba(248,246,244,.95);--gc:rgba(58,139,139,.04);
+  --tx:#1a2e30;--sub:#4a7080;--mut:#93BFCF;
+  --shd:rgba(96,150,180,.15);--hdr:rgba(238,233,218,.95);--gc:rgba(96,150,180,.04);
+}
+[data-theme="earth"]{
+  --bg:#F8EDE3;--sur:#BDD2B6;--card:#ffffff;--cb:#A2B29F;--hov:#b0c3a9;
+  --acc:#798777;--adim:rgba(121,135,119,.14);--aglow:rgba(121,135,119,.30);
+  --pos:#3d7a3d;--pbg:rgba(61,122,61,.08);--pbr:rgba(61,122,61,.25);
+  --neg:#a83232;--nbg:rgba(168,50,50,.08);--nbr:rgba(168,50,50,.22);
+  --gld:#8a6a10;--gbg:rgba(138,106,16,.10);--gbr:rgba(138,106,16,.28);
+  --tx:#2a2520;--sub:#5a6055;--mut:#A2B29F;
+  --shd:rgba(121,135,119,.15);--hdr:rgba(248,237,227,.95);--gc:rgba(121,135,119,.04);
 }
 
 /* ═══ RESET ══════════════════════════════════════════════════════════ */
@@ -67,8 +92,9 @@ header{position:fixed;top:0;left:0;right:0;z-index:300;background:var(--hdr);bac
 .logo:active{opacity:.6}
 .logo-ico{width:32px;height:32px;border-radius:9px;background:linear-gradient(135deg,var(--acc),#a06bff);display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px;transition:transform .2s;flex-shrink:0}
 [data-theme="ocean"] .logo-ico{background:linear-gradient(135deg,#00b4d8,#0077a8)}
-[data-theme="lavender"] .logo-ico{background:linear-gradient(135deg,#424874,#a6b1e1)}
-[data-theme="mint"] .logo-ico{background:linear-gradient(135deg,#3a8b8b,#c4dfdf)}
+[data-theme="lavender"] .logo-ico{background:linear-gradient(135deg,#6366f1,#AAC4FF)}
+[data-theme="mint"] .logo-ico{background:linear-gradient(135deg,#6096B4,#93BFCF)}
+[data-theme="earth"] .logo-ico{background:linear-gradient(135deg,#798777,#BDD2B6)}
 .logo span{color:var(--acc)}
 .hdr-gap{flex:1}
 .hdr-r{display:flex;align-items:center;gap:7px;flex-wrap:nowrap}
@@ -83,11 +109,15 @@ header{position:fixed;top:0;left:0;right:0;z-index:300;background:var(--hdr);bac
 .hbtn:hover{border-color:var(--acc);color:var(--acc)}
 .hbtn.on{color:var(--pos);border-color:var(--pbr);background:var(--pbg)}
 .hbtn.warn{color:var(--gld);border-color:var(--gbr);background:var(--gbg)}
-.rbtn{width:32px;height:32px;border-radius:8px;background:var(--adim);border:1px solid var(--acc);color:var(--acc);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s;font-size:12px;flex-shrink:0}
+.rbtn{width:36px;height:36px;border-radius:8px;background:var(--adim);border:1px solid var(--acc);color:var(--acc);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s;font-size:12px;flex-shrink:0}
 .rbtn:hover{background:var(--acc);color:#fff}
 .rbtn.spin i{animation:spin 1s linear infinite}
-.pdot{width:7px;height:7px;border-radius:50%;background:var(--pos);box-shadow:0 0 6px var(--pos);animation:pa 2.5s ease-in-out infinite;flex-shrink:0}
-.pdot.off{background:var(--mut);box-shadow:none;animation:none}
+.ar-toggle{display:inline-flex;align-items:center;gap:5px;font-size:.68rem;font-weight:700;font-family:'JetBrains Mono',monospace;
+  padding:4px 10px;border-radius:8px;border:1px solid var(--pos);background:var(--pbg);color:var(--pos);
+  cursor:pointer;transition:all .2s;white-space:nowrap;flex-shrink:0;letter-spacing:.02em}
+.ar-toggle i{font-size:.62rem}
+.ar-toggle:hover{box-shadow:0 0 10px var(--pbg)}
+.ar-toggle.paused{border-color:var(--gld);background:var(--gbg);color:var(--gld)}
 @keyframes pa{0%,100%{opacity:1}50%{opacity:.3}}
 @keyframes spin{to{transform:rotate(360deg)}}
 @keyframes cardIn{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
@@ -137,13 +167,15 @@ header{position:fixed;top:0;left:0;right:0;z-index:300;background:var(--hdr);bac
 .sdiv span{font-size:.69rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--mut);white-space:nowrap}
 .sdiv::before,.sdiv::after{content:'';flex:1;height:1px;background:var(--cb)}
 
-.btn{padding:10px 18px;border-radius:10px;border:none;font-size:.86rem;font-family:'Outfit',sans-serif;font-weight:700;cursor:pointer;transition:all .2s;display:inline-flex;align-items:center;gap:7px;white-space:nowrap}
+.btn{padding:10px 18px;border-radius:10px;border:none;font-size:.86rem;font-family:'Outfit',sans-serif;font-weight:700;cursor:pointer;transition:all .2s;display:inline-flex;align-items:center;justify-content:center;gap:7px;white-space:nowrap;-webkit-tap-highlight-color:transparent;min-height:40px;line-height:1}
+.btn:active{transform:scale(.97)}
 .btn:disabled{opacity:.5;cursor:not-allowed;transform:none!important}
 .btn-acc{background:linear-gradient(135deg,var(--acc),#a06bff);color:#fff;box-shadow:0 4px 14px var(--aglow)}
 .btn-acc:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 6px 20px var(--aglow)}
 [data-theme="ocean"] .btn-acc{background:linear-gradient(135deg,#00b4d8,#0077a8)}
-[data-theme="lavender"] .btn-acc{background:linear-gradient(135deg,#424874,#a6b1e1)}
-[data-theme="mint"] .btn-acc{background:linear-gradient(135deg,#3a8b8b,#c4dfdf);color:var(--tx)}
+[data-theme="lavender"] .btn-acc{background:linear-gradient(135deg,#6366f1,#AAC4FF)}
+[data-theme="mint"] .btn-acc{background:linear-gradient(135deg,#6096B4,#93BFCF);color:var(--tx)}
+[data-theme="earth"] .btn-acc{background:linear-gradient(135deg,#798777,#BDD2B6);color:var(--tx)}
 .btn-ghost{background:transparent;color:var(--sub);border:1px solid var(--cb)}
 .btn-ghost:hover:not(:disabled){border-color:var(--sub);color:var(--tx)}
 .btn-sm{padding:8px 13px;font-size:.78rem;border-radius:8px}
@@ -159,7 +191,7 @@ header{position:fixed;top:0;left:0;right:0;z-index:300;background:var(--hdr);bac
 .atab.on{color:var(--acc);border-bottom-color:var(--acc)}
 
 /* ═══ MAIN ══════════════════════════════════════════════════════════ */
-#app{position:relative;z-index:1;padding:80px 16px 0}
+#app{position:relative;z-index:1;padding:80px 16px 0;max-width:1280px;margin:0 auto}
 
 /* SUMMARY */
 .sbar{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:22px;max-width:1400px;margin-left:auto;margin-right:auto}
@@ -174,13 +206,15 @@ header{position:fixed;top:0;left:0;right:0;z-index:300;background:var(--hdr);bac
 
 /* ACTION ROW */
 .arow{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;gap:10px;flex-wrap:wrap;max-width:1400px;margin-left:auto;margin-right:auto}
-.sec-t{font-size:.85rem;font-weight:700;color:var(--sub);text-transform:uppercase;letter-spacing:.06em}
+.sec-t{font-size:.92rem;font-weight:700;color:var(--tx);text-transform:uppercase;letter-spacing:.07em;display:inline-flex;align-items:center;gap:7px}
+.sec-t i{color:var(--acc)}
 
 /* GRID */
 #grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px;max-width:1400px;margin:0 auto}
 
 /* STOCK CARD */
-.sc{background:var(--card);border:1px solid var(--cb);border-radius:16px;padding:18px;transition:transform .22s,border-color .22s,box-shadow .22s,background .3s;position:relative;overflow:hidden;animation:cardIn .4s ease both;cursor:pointer}
+.sc{background:var(--card);border:1px solid var(--cb);border-radius:16px;padding:18px;transition:transform .22s,border-color .22s,box-shadow .22s,background .3s;position:relative;overflow:hidden;animation:cardIn .4s ease both;cursor:pointer;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none}
+.sc:active{transform:scale(.98)}
 .sc::before{content:'';position:absolute;inset:0;border-radius:16px;background:linear-gradient(135deg,var(--adim) 0%,transparent 55%);pointer-events:none}
 .sc:hover{transform:translateY(-3px);border-color:var(--acc);box-shadow:0 12px 36px var(--shd)}
 .sc.hit{border-color:var(--gbr);background:var(--gbg)}
@@ -228,16 +262,18 @@ header{position:fixed;top:0;left:0;right:0;z-index:300;background:var(--hdr);bac
 .progfill{height:100%;border-radius:99px;background:linear-gradient(90deg,var(--acc),var(--pos));transition:width .7s cubic-bezier(.4,0,.2,1)}
 .progfill.over{background:linear-gradient(90deg,var(--pos),var(--gld))}
 
-.grow{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
-.gi{text-align:center}
-.gilbl{font-size:.62rem;text-transform:uppercase;letter-spacing:.07em;color:var(--mut);font-weight:600;margin-bottom:2px}
-.gival{font-family:'JetBrains Mono',monospace;font-size:.9rem;font-weight:700}
-.gp{color:var(--pos)}.gn{color:var(--neg)}.gg{color:var(--gld)}.gs{color:var(--sub)}
+.grow{display:grid;grid-template-columns:1fr 1fr;gap:12px 16px;margin-bottom:12px}
+.gi{min-width:0}
+.gilbl{font-size:.66rem;text-transform:uppercase;letter-spacing:.07em;color:var(--sub);font-weight:700;margin-bottom:4px;display:flex;align-items:center;gap:4px}
+.gilbl i{font-size:.58rem;opacity:.6}
+.gival{font-family:'JetBrains Mono',monospace;font-size:.95rem;font-weight:700}
+.gp{color:var(--pos)}.gn{color:var(--neg)}.gg{color:var(--gld)}.gs{color:var(--sub)}.va{color:var(--acc)}
 
 .cf{display:flex;align-items:center;justify-content:space-between;margin-top:12px;padding-top:10px;border-top:1px solid var(--cb)}
 .cft{font-size:.67rem;font-family:'JetBrains Mono',monospace;color:var(--mut)}
-.cfb{display:flex;gap:5px}
-.bic{width:26px;height:26px;border-radius:6px;border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .15s;font-size:11px}
+.cfb{display:flex;gap:6px;flex-shrink:0}
+.bic{width:32px;height:32px;border-radius:7px;border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .15s;font-size:12px;-webkit-tap-highlight-color:transparent}
+.bic:active{transform:scale(.92)}
 .bdel{background:var(--nbg);color:var(--neg)}.bdel:hover{background:var(--neg);color:#fff}
 .bedt{background:var(--adim);color:var(--acc)}.bedt:hover{background:var(--acc);color:#fff}
 
@@ -248,9 +284,10 @@ header{position:fixed;top:0;left:0;right:0;z-index:300;background:var(--hdr);bac
 .es{font-size:.85rem;max-width:300px;margin:0 auto;line-height:1.65}
 
 /* ═══ MODAL ══════════════════════════════════════════════════════════ */
-.ov{position:fixed;inset:0;z-index:400;background:rgba(0,0,0,.72);backdrop-filter:blur(10px);display:flex;align-items:center;justify-content:center;padding:70px 16px 20px;opacity:0;pointer-events:none;transition:opacity .22s}
+.ov{position:fixed;inset:0;z-index:400;background:rgba(0,0,0,.72);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);display:flex;align-items:center;justify-content:center;padding:70px 16px 20px;opacity:0;pointer-events:none;transition:opacity .22s}
 .ov.open{opacity:1;pointer-events:all}
-.modal{background:var(--sur);border:1px solid var(--cb);border-radius:20px;padding:26px;width:100%;max-width:460px;transform:translateY(20px) scale(.97);transition:transform .25s cubic-bezier(.4,0,.2,1),background .3s,border-color .3s;box-shadow:0 28px 70px var(--shd);max-height:88vh;overflow-y:auto}
+
+.modal{background:var(--sur);border:1px solid var(--cb);border-radius:20px;padding:26px;width:100%;max-width:460px;transform:translateY(20px) scale(.97);transition:transform .25s cubic-bezier(.4,0,.2,1),background .3s,border-color .3s;box-shadow:0 28px 70px var(--shd);max-height:88vh;overflow-y:auto;-webkit-overflow-scrolling:touch}
 .ov.open .modal{transform:translateY(0) scale(1)}
 .mt{font-size:1.08rem;font-weight:800;margin-bottom:4px}
 .ms{font-size:.8rem;color:var(--sub);margin-bottom:18px;line-height:1.5}
@@ -279,7 +316,8 @@ footer{position:relative;z-index:1;background:var(--sur);border-top:1px solid va
 .footer-copy{font-size:.68rem;color:var(--mut)}
 
 /* ═══ TOASTS ═════════════════════════════════════════════════════════ */
-.tc{position:fixed;bottom:24px;right:16px;z-index:600;display:flex;flex-direction:column;gap:8px;max-width:340px;width:calc(100% - 32px)}
+.tc{position:fixed;bottom:24px;right:16px;z-index:600;display:flex;flex-direction:column;gap:8px;max-width:340px;width:calc(100% - 32px);pointer-events:none}
+.tc .toast{pointer-events:auto}
 .toast{padding:10px 15px;border-radius:11px;font-size:.82rem;font-weight:500;display:flex;align-items:center;gap:8px;animation:toastIn .3s cubic-bezier(.4,0,.2,1) both;box-shadow:0 8px 24px var(--shd);transition:opacity .3s}
 .ts{background:var(--pbg);border:1px solid var(--pbr);color:var(--pos)}
 .te{background:var(--nbg);border:1px solid var(--nbr);color:var(--neg)}
@@ -288,6 +326,8 @@ footer{position:relative;z-index:1;background:var(--sur);border-top:1px solid va
 [data-theme="lavender"] .ts{background:#f0fff4}
 [data-theme="lavender"] .te{background:#fff5f5}
 [data-theme="mint"] .ts{background:#f0fff8}
+[data-theme="earth"] .ts{background:#f0fff4}
+[data-theme="earth"] .te{background:#fff5f5}
 
 /* ═══ SYNC BADGE ══════════════════════════════════════════════════════ */
 .sync-badge{display:flex;align-items:center;gap:5px;font-size:.7rem;font-family:'JetBrains Mono',monospace;color:var(--sub);padding:3px 8px;border-radius:6px;background:var(--adim);white-space:nowrap;flex-shrink:0}
@@ -299,23 +339,60 @@ footer{position:relative;z-index:1;background:var(--sur);border-top:1px solid va
 .mkt-badge.open{background:var(--pbg);color:var(--pos);border:1px solid var(--pbr)}
 .mkt-badge.closed{background:var(--gbg);color:var(--gld);border:1px solid var(--gbr)}
 
+/* Portfolio Header Row 1 ────────────────────────────────────────────── */
+.pf-header{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.pf-header .pf-addbtn{flex-shrink:0;min-height:40px;margin-left:auto}
+@media(max-width:560px){
+  .pf-header .pf-addbtn{width:100%;margin-left:0}
+}
+
 /* Filter & Sort Bar ─────────────────────────────────────────────────── */
-.fsbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:10px 14px;background:var(--card);border:1px solid var(--cb);border-radius:12px;margin-bottom:14px}
-.fsbar-sep{width:1px;height:20px;background:var(--cb);flex-shrink:0;margin:0 2px}
-.fsbar-label{font-size:.65rem;font-weight:700;color:var(--sub);text-transform:uppercase;letter-spacing:.06em;white-space:nowrap;flex-shrink:0}
-.fs-chip{display:inline-flex;align-items:center;gap:4px;font-size:.7rem;font-weight:600;padding:4px 10px;border-radius:7px;border:1px solid var(--cb);background:transparent;color:var(--sub);cursor:pointer;white-space:nowrap;transition:all .15s;font-family:inherit}
-.fs-chip:hover{border-color:var(--acc);color:var(--tx)}
+.fsbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:13px 18px;background:var(--card);border:1px solid var(--cb);border-radius:14px;margin-bottom:16px}
+.fsbar-sep{width:1px;height:24px;background:var(--cb);flex-shrink:0;margin:0 4px}
+.fsbar-label{font-size:.72rem;font-weight:700;color:var(--sub);text-transform:uppercase;letter-spacing:.07em;white-space:nowrap;flex-shrink:0}
+.fs-chip{display:inline-flex;align-items:center;gap:5px;font-size:.78rem;font-weight:600;padding:6px 13px;border-radius:9px;border:1px solid var(--cb);background:transparent;color:var(--sub);cursor:pointer;white-space:nowrap;transition:all .15s;font-family:inherit;line-height:1}
+.fs-chip:hover{border-color:var(--acc);color:var(--tx);background:var(--adim)}
+.fs-chip:active{transform:scale(.96)}
 .fs-chip.active{background:var(--adim);border-color:var(--acc);color:var(--acc)}
 .fs-chip.active.neg{background:rgba(239,68,68,.1);border-color:var(--neg);color:var(--neg)}
 .fs-chip.active.pos{background:rgba(34,197,94,.1);border-color:var(--pos);color:var(--pos)}
 .fs-chip.active.gld{background:rgba(234,179,8,.1);border-color:var(--gld);color:var(--gld)}
 .fs-chip.active.err{background:rgba(239,68,68,.08);border-color:var(--neg);color:var(--neg)}
-.fs-sort-select{font-size:.7rem;font-weight:600;background:transparent;border:1px solid var(--cb);color:var(--sub);border-radius:7px;padding:4px 8px;cursor:pointer;font-family:inherit;transition:all .15s;outline:none}
-.fs-sort-select:hover,.fs-sort-select:focus{border-color:var(--acc);color:var(--tx)}
-.fs-dir-btn{width:28px;height:28px;border:1px solid var(--cb);background:transparent;color:var(--sub);border-radius:7px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:.75rem;transition:all .15s;flex-shrink:0}
-.fs-dir-btn:hover{border-color:var(--acc);color:var(--acc)}
+
+/* Custom Sort Dropdown */
+.fs-sort-wrap{position:relative;display:inline-flex;align-items:center;flex-shrink:0}
+.fs-sort-btn{display:flex;align-items:center;gap:7px;font-size:.8rem;font-weight:600;
+  background:var(--adim);border:1px solid var(--acc);color:var(--tx);
+  border-radius:9px;padding:7px 12px;cursor:pointer;font-family:inherit;
+  transition:all .15s;outline:none;min-width:140px;line-height:1;white-space:nowrap;user-select:none}
+.fs-sort-btn i.chevron{font-size:.55rem;color:var(--acc);margin-left:auto;transition:transform .2s}
+.fs-sort-btn:hover{box-shadow:0 0 0 2px var(--aglow)}
+.fs-sort-wrap.open .fs-sort-btn{box-shadow:0 0 0 2px var(--aglow);border-color:var(--acc)}
+.fs-sort-wrap.open .fs-sort-btn i.chevron{transform:rotate(180deg)}
+.fs-sort-menu{position:absolute;top:calc(100% + 6px);left:0;min-width:100%;background:var(--sur);border:1px solid var(--cb);border-radius:11px;box-shadow:0 12px 32px var(--shd);z-index:999;overflow:hidden;opacity:0;visibility:hidden;transform:translateY(-6px);transition:all .18s ease}
+.fs-sort-wrap.open .fs-sort-menu{opacity:1;visibility:visible;transform:translateY(0)}
+.fs-sort-opt{display:flex;align-items:center;gap:8px;padding:10px 14px;font-size:.8rem;font-weight:600;color:var(--tx);cursor:pointer;transition:background .1s;white-space:nowrap}
+.fs-sort-opt:hover{background:var(--adim)}
+.fs-sort-opt.active{color:var(--acc);background:var(--adim)}
+.fs-sort-opt.active::before{content:'';width:4px;height:4px;border-radius:50%;background:var(--acc);flex-shrink:0}
+.fs-sort-opt:not(:last-child){border-bottom:1px solid var(--cb)}
+
+/* Delete confirmation modal */
+.del-ov{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;opacity:0;visibility:hidden;transition:all .2s}
+.del-ov.open{opacity:1;visibility:visible}
+.del-box{background:var(--sur);border:1px solid var(--cb);border-radius:18px;padding:28px 24px;max-width:380px;width:100%;box-shadow:0 20px 50px var(--shd);text-align:center;transform:scale(.92);transition:transform .2s}
+.del-ov.open .del-box{transform:scale(1)}
+.del-ico{width:52px;height:52px;border-radius:50%;background:var(--nbg);display:flex;align-items:center;justify-content:center;margin:0 auto 16px;font-size:1.3rem;color:var(--neg)}
+.del-title{font-size:1.05rem;font-weight:800;color:var(--tx);margin-bottom:8px}
+.del-msg{font-size:.84rem;color:var(--sub);line-height:1.5;margin-bottom:22px}
+.del-msg strong{color:var(--tx)}
+.del-btns{display:flex;gap:10px}
+.del-btns .btn{flex:1}
+
+.fs-dir-btn{width:38px;height:38px;border:1px solid var(--cb);background:transparent;color:var(--sub);border-radius:9px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:.8rem;transition:all .15s;flex-shrink:0}
+.fs-dir-btn:hover{border-color:var(--acc);color:var(--acc);background:var(--adim)}
 .fs-dir-btn.active{border-color:var(--acc);color:var(--acc);background:var(--adim)}
-.fs-count{font-size:.65rem;color:var(--sub);margin-left:auto;white-space:nowrap;font-family:'JetBrains Mono',monospace}
+.fs-count{font-size:.72rem;color:var(--sub);margin-left:auto;white-space:nowrap;font-family:'JetBrains Mono',monospace;padding:4px 10px;background:var(--sur);border:1px solid var(--cb);border-radius:7px}
 
 /* Zeitanzeigen ─────────────────────────────────────────────────────── */
 /* Header: letzte Aktualisierung */
@@ -323,13 +400,13 @@ footer{position:relative;z-index:1;background:var(--sur);border-top:1px solid va
   color:var(--tx);background:var(--adim);border:1px solid var(--acc);
   border-radius:7px;padding:3px 9px;letter-spacing:.04em;white-space:nowrap;flex-shrink:0;
   transition:color .3s,border-color .3s}
-/* Portfolio-Zeile: Stand */
-.upd-time{font-family:'JetBrains Mono',monospace;font-size:.72rem;font-weight:600;
-  color:var(--acc);background:var(--adim);border:1px solid var(--acc);
-  border-radius:6px;padding:2px 8px;letter-spacing:.03em;white-space:nowrap}
+/* Portfolio-Zeile: Stand – schlichter Text, bewusst kein Badge-Stil */
+.upd-time{font-family:'JetBrains Mono',monospace;font-size:.72rem;font-weight:500;
+  color:var(--sub);white-space:nowrap;letter-spacing:.02em}
 
 /* ═══ RESPONSIVE ══════════════════════════════════════════════════════ */
 @media(max-width:1100px){.sbar{grid-template-columns:repeat(3,1fr)}}
+
 @media(max-width:700px){
   header{padding:0 12px;gap:6px;height:56px}
   #app{padding:72px 12px 0}
@@ -338,7 +415,6 @@ footer{position:relative;z-index:1;background:var(--sur);border-top:1px solid va
   .thm-grp{display:none}
   .sync-badge span{display:none}
   .fr{grid-template-columns:1fr}
-  .grow{grid-template-columns:repeat(2,1fr)}
   .pfrow{flex-direction:column;align-items:stretch}
   .footer-inner{grid-template-columns:1fr;gap:16px}
   .footer-right{align-items:flex-start}
@@ -346,93 +422,183 @@ footer{position:relative;z-index:1;background:var(--sur);border-top:1px solid va
   .mact{flex-direction:column}
   .logo span{display:none}
   .hbtn span{display:none}
-  .hbtn{padding:5px 8px}
+  .ar-toggle span{display:none}
+  .ar-toggle{padding:5px 8px}
+  .hbtn{padding:8px 10px;min-height:38px}
+  /* iOS prevents auto-zoom when input font-size >= 16px */
+  .fi,.fi-sm,select,input[type="text"],input[type="number"],input[type="date"],input[type="time"],input[type="email"],input[type="password"]{font-size:16px}
+  /* Header time + market badge kompakter */
+  .rt-time{font-size:.68rem;padding:3px 7px}
+  .mkt-badge{font-size:.65rem;padding:3px 6px}
+  /* Filter-Leiste auf Mobile */
+  .fsbar{padding:10px 12px;gap:7px}
+  .fsbar-label{font-size:.65rem}
+  .fs-chip{font-size:.74rem;padding:7px 11px;min-height:36px}
+  .fs-sort-btn{font-size:.78rem;min-width:130px;padding:8px 12px;min-height:38px}
+  .fs-dir-btn{width:38px;height:38px}
+  .fsbar-sep{display:none}
+  .fs-count{margin-left:0;font-size:.7rem}
+  /* Karten-Buttons größer */
+  .bic{width:36px;height:36px;font-size:13px}
+  /* Footer-Tools stapeln */
+  .footer-actions{flex-wrap:wrap;justify-content:flex-start}
+  .footer-actions .btn{flex:1 1 calc(50% - 4px)}
+  /* Modale Vollbreite */
+  .ovb{padding:18px}
+  .modal{max-width:100%;border-radius:14px}
+  /* Setup-Screen kompakter */
+  .stp-card{padding:24px 20px}
+  /* Aktie hinzufügen Button volle Breite */
+  .arow > .btn-acc, .sec-t + .rbtn ~ .btn-acc{width:100%}
 }
-@media(max-width:400px){
-  .sbar{grid-template-columns:1fr 1fr}
-  .grow{grid-template-columns:1fr 1fr}
-  .ch-name{max-width:130px}
+@media(max-width:480px){
+  /* Sehr enge Geräte – Säulen-Layout maximal vereinfachen */
+  .sbar{grid-template-columns:1fr 1fr;gap:8px}
+  .scard{padding:12px 10px}
+  .scval{font-size:1.1rem}
+  /* Filter-Chips dürfen schrumpfen */
+  .fs-chip{font-size:.7rem;padding:6px 9px;min-height:34px}
+  /* Card optimieren */
+  .ch-name{max-width:90px}
+  /* Header sehr kompakt – Sync-Badge ausblenden, Markt-Badge nur Punkt */
+  .sync-badge{display:none}
+  .mkt-badge span{display:none}
+  .mkt-badge{padding:6px;width:28px;justify-content:center}
+  .rt-time{font-size:.66rem;padding:2px 6px}
+  /* Filter-Label ausblenden, nur Icons zeigen */
+  .fsbar-label{font-size:.6rem}
 }
 
-/* ═══ PURCHASE DETAIL POPUP ══════════════════════════════════════════ */
-.pop-ov{position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.75);backdrop-filter:blur(12px);display:flex;align-items:center;justify-content:center;padding:70px 14px 20px;opacity:0;pointer-events:none;transition:opacity .22s}
-.pop-ov.open{opacity:1;pointer-events:all}
-.pop-box{background:var(--sur);border:1px solid var(--cb);border-radius:20px;width:100%;max-width:520px;max-height:84vh;overflow-y:auto;box-shadow:0 28px 70px var(--shd);transform:translateY(22px) scale(.97);transition:transform .25s cubic-bezier(.4,0,.2,1),background .3s}
-.pop-ov.open .pop-box{transform:translateY(0) scale(1)}
-.pop-hd{padding:20px 22px 0;display:flex;align-items:flex-start;justify-content:space-between;gap:12px;position:sticky;top:0;background:var(--sur);border-bottom:1px solid var(--cb);padding-bottom:14px;z-index:2}
-.pop-title{font-size:1.1rem;font-weight:800}
-.pop-sub{font-size:.78rem;color:var(--sub);margin-top:3px}
-.pop-close{width:30px;height:30px;border:none;background:var(--nbg);color:var(--neg);border-radius:7px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0;transition:all .15s}
-.pop-close:hover{background:var(--neg);color:#fff}
-.pop-body{padding:18px 22px 22px}
 
-/* Purchase rows */
-.pur-list{display:flex;flex-direction:column;gap:10px;margin-bottom:18px}
-.pur-item{background:var(--card);border:1px solid var(--cb);border-radius:12px;padding:13px 15px;position:relative;transition:border-color .2s}
-.pur-item:hover{border-color:var(--acc)}
-.pur-row{display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:10px;align-items:end}
-.pur-field{}
-.pur-lbl{font-size:.65rem;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--mut);margin-bottom:4px}
-.pur-val{font-family:'JetBrains Mono',monospace;font-size:.9rem;font-weight:600;color:var(--tx)}
-.pur-gain{font-size:.73rem;font-family:'JetBrains Mono',monospace;margin-top:4px}
-.pur-gain.p{color:var(--pos)}.pur-gain.n{color:var(--neg)}
-.pur-date{font-size:.7rem;color:var(--mut);font-family:'JetBrains Mono',monospace;margin-top:3px}
-.pur-del-btn{width:26px;height:26px;border:none;background:var(--nbg);color:var(--neg);border-radius:6px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0;align-self:center;transition:all .15s}
-.pur-del-btn:hover{background:var(--neg);color:#fff}
-.pur-edit-row{display:none;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px;padding-top:10px;border-top:1px solid var(--cb)}
-.pur-item.editing .pur-edit-row{display:grid}
-.pur-save-btn{display:none;margin-top:8px;width:100%}
-.pur-item.editing .pur-save-btn{display:flex}
-.pur-edit-btn{width:26px;height:26px;border:none;background:var(--adim);color:var(--acc);border-radius:6px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0;align-self:center;transition:all .15s}
-.pur-edit-btn:hover{background:var(--acc);color:#fff}
-.pur-item.editing .pur-edit-btn{background:var(--acc);color:#fff}
-/* Live-Kurs-Button Glow */
-button[id^="purLiveBtn_"]{transition:all .2s;border-color:var(--acc);color:var(--acc)}
-button[id^="purLiveBtn_"]:hover{background:var(--adim);color:var(--acc);box-shadow:0 0 14px color-mix(in srgb,var(--acc) 55%,transparent);border-color:var(--acc)}
-.pur-item.editing button[id^="purLiveBtn_"]{color:var(--acc);border-color:var(--acc);box-shadow:0 0 7px color-mix(in srgb,var(--acc) 40%,transparent);animation:liveGlow 2s ease-in-out infinite}
-@keyframes liveGlow{0%,100%{box-shadow:0 0 5px color-mix(in srgb,var(--acc) 30%,transparent)}50%{box-shadow:0 0 12px color-mix(in srgb,var(--acc) 65%,transparent)}}
 
-/* Target edit section */
-.pop-tgt{background:var(--adim);border:1px solid var(--acc);border-radius:12px;padding:13px 15px;margin-bottom:18px}
+/* ═══ POPUP PURCHASE DISPLAY (self-contained, incl. responsive) ═════ */
+
+/* Summary strip */
+.pop-summary{background:var(--card);border:1px solid var(--cb);border-radius:14px;padding:14px 16px;display:grid;grid-template-columns:repeat(4,1fr);gap:10px;text-align:center;margin-bottom:18px}
+.pop-summary > div{padding:10px 6px;border-radius:10px;background:var(--bg)}
+.ps-lbl{font-size:.66rem;text-transform:uppercase;letter-spacing:.08em;color:var(--sub);font-weight:700;margin-bottom:4px}
+.ps-val{font-family:'JetBrains Mono',monospace;font-size:.95rem;font-weight:700}
+
+/* Target edit */
+.pop-tgt{background:var(--adim);border:1px solid var(--acc);border-radius:14px;padding:15px 18px;margin-bottom:18px}
 .pop-tgt-row{display:flex;gap:10px;align-items:flex-end}
 .pop-tgt-row .fi{flex:1}
 
-/* Summary strip */
-.pop-summary{background:var(--card);border:1px solid var(--cb);border-radius:12px;padding:12px 15px;display:grid;grid-template-columns:repeat(4,1fr);gap:8px;text-align:center;margin-bottom:16px}
-.ps-lbl{font-size:.62rem;text-transform:uppercase;letter-spacing:.07em;color:var(--mut);font-weight:600;margin-bottom:2px}
-.ps-val{font-family:'JetBrains Mono',monospace;font-size:.9rem;font-weight:700}
+/* Purchase list */
+.pur-list{display:flex;flex-direction:column;gap:12px;margin-bottom:18px}
+.pur-item{background:var(--card);border:1px solid var(--cb);border-radius:14px;padding:16px 18px;position:relative;transition:border-color .2s,box-shadow .2s}
+.pur-item:hover{border-color:var(--acc);box-shadow:0 4px 16px var(--shd)}
+.pur-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;align-items:start}
+.pur-field{min-width:0}
+.pur-lbl{font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--sub);margin-bottom:5px;display:flex;align-items:center;gap:4px}
+.pur-lbl i{font-size:.6rem;opacity:.65}
+.pur-val{font-family:'JetBrains Mono',monospace;font-size:1rem;font-weight:700;color:var(--tx);line-height:1.3}
+.pur-gain{font-size:.76rem;font-family:'JetBrains Mono',monospace;margin-top:5px;font-weight:600;display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:5px;line-height:1}
+.pur-gain.p{color:var(--pos);background:var(--pbg)}
+.pur-gain.n{color:var(--neg);background:var(--nbg)}
+.pur-date{font-size:.72rem;color:var(--sub);font-family:'JetBrains Mono',monospace;margin-top:4px}
+.pur-edit-btn{width:36px;height:36px;border:none;background:var(--adim);color:var(--acc);border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;transition:all .15s;margin-top:4px}
+.pur-edit-btn:hover{background:var(--acc);color:#fff}
+.pur-item.editing .pur-edit-btn{background:var(--acc);color:#fff}
+.pur-del-btn{width:36px;height:36px;border:none;background:var(--nbg);color:var(--neg);border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;transition:all .15s;margin-top:4px}
+.pur-del-btn:hover{background:var(--neg);color:#fff}
 
-@media(max-width:560px){
-  .pur-row{grid-template-columns:1fr 1fr auto}
+/* Inline edit */
+.pur-edit-row{display:none;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px;padding-top:14px;border-top:1px solid var(--cb)}
+.pur-item.editing .pur-edit-row{display:grid}
+.pur-edit-row .pur-lbl{margin-bottom:6px}
+.pur-save-btn{display:none;margin-top:10px;width:100%}
+.pur-item.editing .pur-save-btn{display:flex}
+
+/* Live-Kurs glow */
+button[id^="purLiveBtn_"]{transition:all .2s;border-color:var(--acc);color:var(--acc)}
+button[id^="purLiveBtn_"]:hover{background:var(--adim);color:var(--acc);box-shadow:0 0 14px var(--aglow);border-color:var(--acc)}
+.pur-item.editing button[id^="purLiveBtn_"]{color:var(--acc);border-color:var(--acc);box-shadow:0 0 7px var(--aglow);animation:liveGlow 2s ease-in-out infinite}
+@keyframes liveGlow{0%,100%{box-shadow:0 0 5px var(--adim)}50%{box-shadow:0 0 12px var(--aglow)}}
+
+/* ── Responsive overrides (MUST be after base rules) ────────────── */
+@media(max-width:700px){
+  .pop-summary{grid-template-columns:1fr 1fr;gap:8px}
+  .pur-row{grid-template-columns:1fr 1fr 1fr;gap:8px}
+  .pur-edit-btn,.pur-del-btn{width:38px;height:38px;font-size:14px}
   .pur-edit-row{grid-template-columns:1fr 1fr}
-  .pop-summary{grid-template-columns:1fr 1fr}
 }
+@media(max-width:480px){
+  .pop-summary{grid-template-columns:1fr 1fr;gap:6px}
+}
+
+/* ═══ MOBILE COMPACT CARDS ═══════════════════════════════════════════ */
+/* Desktop: everything visible, expand-hint hidden */
+.sc-head{position:relative}
+.sc-detail{/* visible by default on desktop */}
+.sc-expand-hint{display:none}
+
+@media(max-width:700px){
+  /* Compact card: hide details, reduce padding */
+  .sc{padding:14px 16px}
+  .sc .sc-detail{
+    display:none;
+    /* prep for animation when expanded */
+  }
+  .sc .prow{margin-bottom:0}
+
+  /* Expand hint: subtle chevron at bottom */
+  .sc-expand-hint{
+    display:flex;align-items:center;justify-content:center;
+    padding-top:8px;margin-top:4px;
+    color:var(--mut);font-size:.55rem;
+    transition:transform .2s,color .2s;
+    border-top:1px dashed var(--cb);
+  }
+  .sc:hover{transform:none;box-shadow:none}
+
+  /* Expanded state */
+  .sc.expanded{padding:18px}
+  .sc.expanded .sc-detail{
+    display:block;
+    animation:slideDetail .25s ease both;
+  }
+  .sc.expanded .prow{margin-bottom:4px}
+  .sc.expanded .sc-expand-hint{
+    transform:rotate(180deg);
+    color:var(--acc);
+    border-top-color:var(--acc);
+  }
+}
+
+@keyframes slideDetail{
+  from{opacity:0;transform:translateY(-8px)}
+  to{opacity:1;transform:translateY(0)}
+}
+
 </style>
 </head>
 <body>
 
 <!-- ══════════════ HEADER (always visible) ══════════════════════════ -->
 <header>
-  <div class="logo" onclick="logoClick()" title="Klicken = Refresh">
+  <div class="logo" onclick="logoClick()" title="Zurück zum Portfolio / Refresh">
     <div class="logo-ico"><i class="fa-solid fa-chart-line"></i></div>
     Stock<span>Watch</span>
   </div>
   <div class="hdr-gap"></div>
   <div class="hdr-r">
-    <div class="pdot" id="pdot" title="Auto-Refresh"></div>
+    <button class="ar-toggle" id="arToggle" onclick="toggleAutoRefresh()" title="Auto-Refresh an/aus">
+      <i class="fa-solid fa-rotate" id="arIcon"></i>
+      <span id="arLabel">5 Min</span>
+    </button>
     <span class="rt-time" id="rtLbl">—</span>
     <div class="mkt-badge closed" id="mktBadge"><i class="fa-solid fa-circle"></i><span id="mktLbl">Markt</span></div>
     <div class="sync-badge" id="syncBadge"><div class="sync-dot off" id="syncDot"></div><span id="syncLbl">Lokal</span></div>
     <div class="thm-grp" title="Design">
       <button class="tbtn on" id="tDark"  onclick="setTheme('dark')"     title="Midnight"><i class="fa-solid fa-moon"></i></button>
-      <button class="tbtn"    id="tOcean" onclick="setTheme('ocean')"    title="Ocean"><i class="fa-solid fa-circle-half-stroke"></i></button>
+      <button class="tbtn"    id="tOcean" onclick="setTheme('ocean')"    title="Ocean"><i class="fa-solid fa-water"></i></button>
       <button class="tbtn"    id="tLav"   onclick="setTheme('lavender')" title="Lavender"><i class="fa-solid fa-star"></i></button>
-      <button class="tbtn"    id="tMint"  onclick="setTheme('mint')"     title="Mint"><i class="fa-solid fa-leaf"></i></button>
+      <button class="tbtn"    id="tMint"  onclick="setTheme('mint')"     title="Mint"><i class="fa-solid fa-droplet"></i></button>
+      <button class="tbtn"    id="tEarth" onclick="setTheme('earth')"    title="Earth"><i class="fa-solid fa-seedling"></i></button>
     </div>
 
-    <button class="hbtn hidden" id="userBtn" onclick="showSyncScreen()"><i class="fa-solid fa-user"></i><span id="userLbl">Konto</span></button>
-    <button class="hbtn hidden" id="setupBtn" onclick="showSetupScreen()"><i class="fa-solid fa-gear"></i></button>
-    <button class="rbtn" id="rBtn" onclick="doRefresh()" title="Aktualisieren"><i class="fa-solid fa-rotate" id="rIco"></i></button>
+    <button class="hbtn hidden" id="userBtn" onclick="showProfileScreen()"><i class="fa-solid fa-user-gear"></i><span id="userLbl">Profil</span></button>
   </div>
 </header>
 
@@ -525,34 +691,121 @@ create policy "own" on public.sw_portfolio
   </div>
 </div>
 
-<!-- ══════════════ SYNC/ACCOUNT SCREEN ══════════════════════════════ -->
+<!-- ══════════════ PROFIL (merged settings) ═══════════════════════════ -->
 <div class="screen hidden" id="syncScreen">
   <div class="screen-inner">
     <div class="sbox">
-      <div class="stitle"><i class="fa-solid fa-cloud"></i> Konto &amp; Sync</div>
-      <div id="syncInfo" style="margin-bottom:14px"></div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap">
-        <button class="btn btn-ghost btn-sm" onclick="doLogout()"><i class="fa-solid fa-right-from-bracket"></i> Abmelden</button>
-        <button class="btn btn-ghost btn-sm" onclick="showSetupScreen()"><i class="fa-solid fa-gear"></i> API / Einstellungen</button>
-        <button class="btn btn-ghost btn-sm" onclick="closeSyncScreen()"><i class="fa-solid fa-xmark"></i> Schließen</button>
+      <div class="stitle"><i class="fa-solid fa-user-gear"></i> Profil &amp; Einstellungen</div>
+      <div class="ssub" style="margin-bottom:16px">Konto, API, Design und weitere Optionen.</div>
+      <div class="stabs">
+        <button class="stab on" onclick="pTab(0)"><i class="fa-solid fa-sliders"></i> Allgemein</button>
+        <button class="stab"    onclick="pTab(1)"><i class="fa-solid fa-key"></i> API &amp; Sync</button>
       </div>
-    </div>
-    <div class="sbox" style="margin-top:14px">
-      <div class="stitle" style="font-size:.95rem;margin-bottom:14px"><i class="fa-solid fa-file-export"></i> Export / Import</div>
-      <p style="font-size:.82rem;color:var(--sub);margin-bottom:14px;line-height:1.6">Portfolio als JSON-Datei sichern oder auf einem anderen Gerät importieren.</p>
-      <div style="display:flex;gap:8px;flex-wrap:wrap">
-        <button class="btn btn-acc btn-sm" onclick="exportJSON()"><i class="fa-solid fa-download"></i> Exportieren</button>
-        <button class="btn btn-ghost btn-sm" onclick="document.getElementById('importFile').click()"><i class="fa-solid fa-upload"></i> Importieren</button>
+
+      <!-- Tab 0: Allgemein -->
+      <div class="spanel on" id="pp0">
+        <!-- Konto-Info -->
+        <div id="syncInfo" style="margin-bottom:16px"></div>
+
+        <!-- Design -->
+        <div style="margin-bottom:18px">
+          <div style="font-size:.84rem;font-weight:700;color:var(--tx);margin-bottom:10px"><i class="fa-solid fa-palette" style="color:var(--acc);margin-right:5px"></i>Design</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn btn-ghost btn-sm" onclick="setTheme('dark')"><i class="fa-solid fa-moon"></i> Midnight</button>
+            <button class="btn btn-ghost btn-sm" onclick="setTheme('ocean')"><i class="fa-solid fa-water"></i> Ocean</button>
+            <button class="btn btn-ghost btn-sm" onclick="setTheme('lavender')"><i class="fa-solid fa-star"></i> Lavender</button>
+            <button class="btn btn-ghost btn-sm" onclick="setTheme('mint')"><i class="fa-solid fa-droplet"></i> Mint</button>
+            <button class="btn btn-ghost btn-sm" onclick="setTheme('earth')"><i class="fa-solid fa-seedling"></i> Earth</button>
+          </div>
+        </div>
+
+        <!-- Auto-Refresh -->
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 0;border-top:1px solid var(--cb)">
+          <div>
+            <div style="font-size:.84rem;font-weight:700;color:var(--tx)"><i class="fa-solid fa-rotate" style="color:var(--acc);margin-right:5px"></i>Auto-Refresh</div>
+            <div style="font-size:.72rem;color:var(--sub);margin-top:3px">Kurse alle 5 Minuten automatisch aktualisieren</div>
+          </div>
+          <button class="btn btn-sm" id="arSettingBtn" onclick="toggleAutoRefresh();updateArSetting()" style="min-width:80px"></button>
+        </div>
+
+        <!-- Export / Import -->
+        <div style="padding:14px 0;border-top:1px solid var(--cb)">
+          <div style="font-size:.84rem;font-weight:700;color:var(--tx);margin-bottom:10px"><i class="fa-solid fa-file-export" style="color:var(--acc);margin-right:5px"></i>Export / Import</div>
+          <p style="font-size:.78rem;color:var(--sub);margin-bottom:10px;line-height:1.5">Portfolio als JSON sichern oder importieren.</p>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn btn-acc btn-sm" onclick="exportJSON()"><i class="fa-solid fa-download"></i> Exportieren</button>
+            <button class="btn btn-ghost btn-sm" onclick="document.getElementById('importFile').click()"><i class="fa-solid fa-upload"></i> Importieren</button>
+          </div>
+          <input type="file" id="importFile" accept=".json" style="display:none" onchange="importJSON(event)">
+        </div>
+
+        <!-- Danger Zone -->
+        <div style="padding:14px 0;border-top:1px solid var(--cb)">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:12px">
+            <div>
+              <div style="font-size:.84rem;font-weight:700;color:var(--tx)"><i class="fa-solid fa-trash-can" style="color:var(--neg);margin-right:5px"></i>Portfolio zurücksetzen</div>
+              <div style="font-size:.72rem;color:var(--sub);margin-top:3px">Alle Aktien unwiderruflich löschen</div>
+            </div>
+            <button class="btn btn-sm" style="background:var(--nbg);color:var(--neg);min-width:80px;border:1px solid var(--neg)" onclick="resetPortfolio()"><i class="fa-solid fa-trash-can"></i> Reset</button>
+          </div>
+        </div>
+
+        <!-- Zurück -->
+        <div style="padding-top:14px;border-top:1px solid var(--cb);display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn btn-acc btn-sm" onclick="showApp()" style="flex:1"><i class="fa-solid fa-arrow-left"></i> Zurück zum Portfolio</button>
+          <button class="btn btn-ghost btn-sm" onclick="doLogout()" id="profLogoutBtn" style="flex:0"><i class="fa-solid fa-right-from-bracket"></i> Abmelden</button>
+        </div>
       </div>
-      <input type="file" id="importFile" accept=".json" style="display:none" onchange="importJSON(event)">
-    </div>
-    <div class="sbox" style="margin-top:14px">
-      <div class="stitle" style="font-size:.95rem;margin-bottom:8px"><i class="fa-solid fa-palette"></i> Design</div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px">
-        <button class="btn btn-ghost btn-sm" onclick="setTheme('dark')"><i class="fa-solid fa-moon"></i> Midnight</button>
-        <button class="btn btn-ghost btn-sm" onclick="setTheme('ocean')"><i class="fa-solid fa-circle-half-stroke"></i> Ocean</button>
-        <button class="btn btn-ghost btn-sm" onclick="setTheme('lavender')"><i class="fa-solid fa-star"></i> Lavender</button>
-        <button class="btn btn-ghost btn-sm" onclick="setTheme('mint')"><i class="fa-solid fa-leaf"></i> Mint</button>
+
+      <!-- Tab 1: API & Sync -->
+      <div class="spanel" id="pp1">
+        <!-- Finnhub API Key -->
+        <div style="margin-bottom:20px">
+          <div style="font-size:.84rem;font-weight:700;color:var(--tx);margin-bottom:10px"><i class="fa-solid fa-key" style="color:var(--acc);margin-right:5px"></i>Finnhub API Key</div>
+          <div class="steps">
+            <div class="step"><div class="snum">1</div><div class="stxt">Registrieren auf <a href="https://finnhub.io/register" target="_blank">finnhub.io/register</a> — kostenlos.</div></div>
+            <div class="step"><div class="snum">2</div><div class="stxt"><strong>API Key</strong> kopieren (60 Abfragen/Min. im Free-Plan).</div></div>
+          </div>
+          <div class="srow">
+            <input class="si" id="pKey" type="text" placeholder="Ihr Finnhub API Key…">
+            <button class="btn btn-acc btn-sm" id="pBtnKey" onclick="saveKeyP()"><i class="fa-solid fa-check"></i> OK</button>
+          </div>
+          <p style="font-size:.72rem;color:var(--mut);margin-top:9px"><i class="fa-solid fa-circle-info"></i> DAX: <span class="mono" style="color:var(--acc)">SAP.DE · BMW.DE · SIE.DE · BAS.DE · ALV.DE · DTE.DE</span></p>
+        </div>
+
+        <!-- Supabase Sync -->
+        <div style="padding-top:16px;border-top:1px solid var(--cb)">
+          <div style="font-size:.84rem;font-weight:700;color:var(--tx);margin-bottom:10px"><i class="fa-solid fa-cloud" style="color:var(--acc);margin-right:5px"></i>Cloud-Sync (optional)</div>
+          <p style="font-size:.78rem;color:var(--sub);margin-bottom:14px;line-height:1.5">Mit Supabase auf mehreren Geräten synchronisieren.</p>
+          <div class="steps">
+            <div class="step"><div class="snum">1</div><div class="stxt">Projekt auf <a href="https://supabase.com" target="_blank">supabase.com</a> erstellen</div></div>
+            <div class="step"><div class="snum">2</div><div class="stxt">In <strong>Authentication → Settings</strong>: „Confirm email" <strong>deaktivieren</strong></div></div>
+            <div class="step"><div class="snum">3</div><div class="stxt">In <strong>Database → Replication</strong>: Tabelle <code>sw_portfolio</code> aktivieren</div></div>
+            <div class="step"><div class="snum">4</div><div class="stxt">Im <strong>SQL Editor</strong> ausführen:</div></div>
+          </div>
+          <div class="sql">create table public.sw_portfolio (
+  id text primary key,
+  user_id uuid not null references auth.users on delete cascade,
+  symbol text not null, target_price float8 not null,
+  name text default '', currency text default '',
+  purchases jsonb not null default '[]'::jsonb,
+  created_at timestamptz default now()
+);
+alter table public.sw_portfolio enable row level security;
+create policy "own" on public.sw_portfolio
+  for all using (auth.uid() = user_id)
+  with check (auth.uid() = user_id);</div>
+          <button class="btn btn-ghost btn-sm" onclick="copySql()" style="margin-bottom:14px"><i class="fa-regular fa-copy"></i> SQL kopieren</button>
+          <div class="steps">
+            <div class="step"><div class="snum">5</div><div class="stxt">In <strong>Settings → API</strong>: URL + Key einfügen:</div></div>
+          </div>
+          <div class="fg"><input class="si" id="pUrl" type="text" placeholder="https://xxxx.supabase.co"></div>
+          <div class="srow">
+            <input class="si" id="pSb" type="text" placeholder="anon / public key…">
+            <button class="btn btn-acc btn-sm" id="pBtnSb" onclick="saveSbP()"><i class="fa-solid fa-cloud-arrow-up"></i> Verbinden</button>
+          </div>
+          <button class="btn btn-ghost btn-sm" onclick="skipSb();showApp()" style="margin-top:10px"><i class="fa-solid fa-arrow-right"></i> Überspringen — nur lokal</button>
+        </div>
       </div>
     </div>
   </div>
@@ -567,14 +820,14 @@ create policy "own" on public.sw_portfolio
     <div class="scard"><div class="scico"><i class="fa-solid fa-arrow-trend-up"></i></div><div class="sclbl">Gewinn / Verlust</div><div class="scval vt" id="sG">—</div></div>
     <div class="scard"><div class="scico"><i class="fa-solid fa-bullseye"></i></div><div class="sclbl">Ziele erreicht</div><div class="scval vg" id="sT">0</div></div>
   </div>
-  <div class="arow">
-    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
-      <span class="sec-t"><i class="fa-solid fa-layer-group"></i> Portfolio</span>
-      <span class="upd-time" id="updLbl"></span>
-    </div>
-    <button class="btn btn-acc btn-sm" onclick="openModal()"><i class="fa-solid fa-plus"></i> Aktie hinzufügen</button>
+  <!-- Portfolio Header Zeile 1: Titel + Refresh + Stand + AddBtn -->
+  <div class="pf-header">
+    <span class="sec-t"><i class="fa-solid fa-layer-group"></i> Portfolio</span>
+    <button class="rbtn" id="rBtn" onclick="doRefresh()" title="Aktualisieren"><i class="fa-solid fa-rotate" id="rIco"></i></button>
+    <span class="upd-time" id="updLbl"></span>
+    <button class="btn btn-acc btn-sm pf-addbtn" onclick="openModal()"><i class="fa-solid fa-plus"></i> Aktie hinzufügen</button>
   </div>
-  <!-- Filter & Sort Bar -->
+  <!-- Portfolio Header Zeile 2: Filter & Sort Bar -->
   <div class="fsbar" id="fsBar">
     <span class="fsbar-label"><i class="fa-solid fa-filter"></i> Filter</span>
     <button class="fs-chip active" id="fc-all"    onclick="setFilter('all')"   ><i class="fa-solid fa-border-all"></i> Alle</button>
@@ -584,15 +837,21 @@ create policy "own" on public.sw_portfolio
     <button class="fs-chip"        id="fc-error"  onclick="setFilter('error')" ><i class="fa-solid fa-circle-exclamation"></i> Kein Kurs</button>
     <div class="fsbar-sep"></div>
     <span class="fsbar-label"><i class="fa-solid fa-arrow-up-wide-short"></i> Sortierung</span>
-    <select class="fs-sort-select" id="fsSortSel" onchange="setSort(this.value)">
-      <option value="added">Hinzugefügt</option>
-      <option value="name">Symbol A–Z</option>
-      <option value="gain">G/V %</option>
-      <option value="gainval">G/V Betrag</option>
-      <option value="invested">Investiert</option>
-      <option value="price">Kurs</option>
-      <option value="target">Zielpreis</option>
-    </select>
+    <div class="fs-sort-wrap" id="fsSortWrap">
+      <button class="fs-sort-btn" onclick="toggleSortMenu()">
+        <span id="fsSortLabel">Hinzugefügt</span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="fs-sort-menu" id="fsSortMenu">
+        <div class="fs-sort-opt active" data-val="added" onclick="pickSort('added',this)">Hinzugefügt</div>
+        <div class="fs-sort-opt" data-val="name" onclick="pickSort('name',this)">Symbol A–Z</div>
+        <div class="fs-sort-opt" data-val="gain" onclick="pickSort('gain',this)">G/V %</div>
+        <div class="fs-sort-opt" data-val="gainval" onclick="pickSort('gainval',this)">G/V Betrag</div>
+        <div class="fs-sort-opt" data-val="invested" onclick="pickSort('invested',this)">Investiert</div>
+        <div class="fs-sort-opt" data-val="price" onclick="pickSort('price',this)">Kurs</div>
+        <div class="fs-sort-opt" data-val="target" onclick="pickSort('target',this)">Zielpreis</div>
+      </div>
+    </div>
     <button class="fs-dir-btn active" id="fsDirBtn" onclick="toggleDir()" title="Reihenfolge umkehren">
       <i class="fa-solid fa-arrow-down-short-wide" id="fsDirIcon"></i>
     </button>
@@ -601,12 +860,25 @@ create policy "own" on public.sw_portfolio
   <div id="grid"></div>
 </div>
 
+<!-- ══════════════ DELETE CONFIRMATION ═══════════════════════════════ -->
+<div class="del-ov" id="delOv" onclick="if(event.target===this)closeDelModal()">
+  <div class="del-box">
+    <div class="del-ico"><i class="fa-solid fa-trash-can"></i></div>
+    <div class="del-title" id="delTitle">Aktie entfernen?</div>
+    <div class="del-msg" id="delMsg"></div>
+    <div class="del-btns">
+      <button class="btn btn-ghost btn-sm" onclick="closeDelModal()"><i class="fa-solid fa-xmark"></i> Abbrechen</button>
+      <button class="btn btn-sm" id="delConfirmBtn" style="background:var(--neg);color:#fff" onclick="confirmDel()"><i class="fa-solid fa-trash-can"></i> Entfernen</button>
+    </div>
+  </div>
+</div>
+
 <!-- ══════════════ FOOTER ═════════════════════════════════════════════ -->
 <footer id="mainFooter" class="hidden">
   <div class="footer-inner">
     <div class="footer-left">
       <div class="footer-logo"><div class="logo-ico"><i class="fa-solid fa-chart-line"></i></div>Stock<span>Watch</span></div>
-      <div class="footer-sub">Live-Kurse via Finnhub · Lokale Speicherung<br>Cloud-Sync via Supabase (optional)</div>
+      <div class="footer-sub">Live-Kurse alle 5 Min. via Finnhub &amp; Yahoo<br>Cloud-Sync via Supabase (optional)</div>
     </div>
     <div class="footer-center">
       <div class="footer-market"><i class="fa-solid fa-circle" id="fMktDot" style="color:var(--mut)"></i><span id="fMktTxt">—</span></div>
@@ -668,12 +940,14 @@ create policy "own" on public.sw_portfolio
   </div>
 </div>
 
+
+
 <div class="tc" id="tc"></div>
 
 <script>
 // ─── CONSTANTS ───────────────────────────────────────────────────────
 const FH = 'https://finnhub.io/api/v1';
-const INTV = 60000;
+const INTV = 300000; // 5 Minuten
 const MARKET_START = 8, MARKET_END = 22; // local hours
 
 // ─── STATE ──────────────────────────────────────────────────────────
@@ -688,13 +962,14 @@ let sbClient   = null, sbUser = null;
 let editId     = null, isRebuy = false;
 let loopTimer  = null, authMode = 'login';
 let firstRender = true; // prevent AOS double-anim on refresh
+let autoRefreshPaused = false; // user can pause auto-refresh
 
 // ─── THEME ──────────────────────────────────────────────────────────
 function setTheme(t) {
   document.documentElement.setAttribute('data-theme', t);
   localStorage.setItem('sw_theme', t);
-  ['Dark','Ocean','Lav','Mint'].forEach((n,i)=>{
-    const id='t'+n, th=['dark','ocean','lavender','mint'][i];
+  ['Dark','Ocean','Lav','Mint','Earth'].forEach((n,i)=>{
+    const id='t'+n, th=['dark','ocean','lavender','mint','earth'][i];
     document.getElementById(id)?.classList.toggle('on',th===t);
   });
 }
@@ -742,14 +1017,25 @@ function updateMarketBadge() {
   const open = isMarketHours();
   const badge = document.getElementById('mktBadge');
   const lbl = document.getElementById('mktLbl');
-  const dot = document.getElementById('pdot');
+  const arBtn = document.getElementById('arToggle');
+  const arIcon = document.getElementById('arIcon');
+  const arLabel = document.getElementById('arLabel');
   const fDot = document.getElementById('fMktDot');
   const fTxt = document.getElementById('fMktTxt');
   badge.className = 'mkt-badge ' + (open?'open':'closed');
   lbl.textContent = open ? 'Markt offen' : 'Markt zu';
   fDot.style.color = open ? 'var(--pos)' : 'var(--gld)';
-  fTxt.textContent = open ? 'Markt offen — Auto-Refresh aktiv' : 'Markt geschlossen — kein Auto-Refresh';
-  dot.className = 'pdot ' + (open?'':'off');
+  if(autoRefreshPaused) {
+    arBtn.className = 'ar-toggle paused';
+    arIcon.className = 'fa-solid fa-pause';
+    arLabel.textContent = 'Pause';
+    fTxt.textContent = open ? 'Markt offen — Auto-Refresh pausiert' : 'Markt geschlossen — Auto-Refresh pausiert';
+  } else {
+    arBtn.className = 'ar-toggle';
+    arIcon.className = 'fa-solid fa-rotate';
+    arLabel.textContent = '5 Min';
+    fTxt.textContent = open ? 'Markt offen — Kurse alle 5 Min.' : 'Markt geschlossen — kein Auto-Refresh';
+  }
 }
 setInterval(updateMarketBadge, 30000);
 updateMarketBadge();
@@ -809,19 +1095,33 @@ function showAuthScreen() {
   document.getElementById('app').classList.add('hidden');
   document.getElementById('mainFooter').classList.add('hidden');
 }
-function showSyncScreen() {
+function showProfileScreen() {
   hideAllScreens();
   document.getElementById('syncScreen').classList.remove('hidden');
   document.getElementById('app').classList.add('hidden');
   document.getElementById('mainFooter').classList.add('hidden');
   updateSyncInfo();
+  updateArSetting();
+  // Pre-fill API & Sync fields
+  if(apiKey) document.getElementById('pKey').value = apiKey;
+  const su=localStorage.getItem('sw_sb_url'), sk=localStorage.getItem('sw_sb_key');
+  if(su) document.getElementById('pUrl').value=su;
+  if(sk) document.getElementById('pSb').value=sk;
+  // Show/hide logout button
+  const lb = document.getElementById('profLogoutBtn');
+  if(lb) lb.style.display = sbUser ? '' : 'none';
 }
+function showSyncScreen() { showProfileScreen(); }
 function closeSyncScreen() { showApp(); }
+function pTab(i) {
+  document.querySelectorAll('#syncScreen .stab').forEach((t,j)=>t.classList.toggle('on',j===i));
+  ['pp0','pp1'].forEach((id,j)=>document.getElementById(id)?.classList.toggle('on',j===i));
+}
 function showApp() {
   hideAllScreens();
   document.getElementById('app').classList.remove('hidden');
   document.getElementById('mainFooter').classList.remove('hidden');
-  document.getElementById('setupBtn').classList.remove('hidden');
+  document.getElementById('userBtn').classList.remove('hidden');
   document.getElementById('fDate').valueAsDate = new Date();
   updateSyncBadge();
   renderGrid();
@@ -881,10 +1181,16 @@ async function saveSb() {
   btn.disabled=true; btn.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i>';
   try {
     sbClient = window.supabase.createClient(url, key);
-    await sbClient.auth.getSession(); // test connection
+    const {data} = await sbClient.auth.getSession();
     localStorage.setItem('sw_sb_url',url); localStorage.setItem('sw_sb_key',key);
-    toast('Supabase verbunden! Bitte anmelden.','ts');
-    showAuthScreen();
+    if(data?.session?.user) {
+      sbUser = data.session.user;
+      toast('Verbunden & eingeloggt ✓','ts');
+      showApp();
+    } else {
+      toast('Supabase verbunden! Bitte anmelden.','ts');
+      showAuthScreen();
+    }
   } catch(e) {
     toast('Verbindung fehlgeschlagen: '+(e.message||'Unbekannt'),'te');
     sbClient=null;
@@ -892,6 +1198,49 @@ async function saveSb() {
   btn.disabled=false; btn.innerHTML='<i class="fa-solid fa-cloud-arrow-up"></i> Verbinden';
 }
 function skipSb() { sbClient=null; sbUser=null; localStorage.removeItem('sw_sb_url'); localStorage.removeItem('sw_sb_key'); showApp(); }
+
+// Profile-screen save wrappers (use pKey/pUrl/pSb inputs)
+async function saveKeyP() {
+  const k = document.getElementById('pKey').value.trim();
+  if (!k||k.length<8) return toast('Bitte gültigen API Key eingeben.','te');
+  const btn = document.getElementById('pBtnKey');
+  btn.disabled=true; btn.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i>';
+  try {
+    const r = await fetch(`${FH}/quote?symbol=AAPL&token=${k}`,{signal:AbortSignal.timeout(9000)});
+    if (r.status===401) throw new Error('BAD_KEY');
+    const d = await r.json();
+    if (!d||d.c==null) throw new Error('NO_DATA');
+    apiKey=k; localStorage.setItem('sw_key',k);
+    toast('API Key gespeichert ✓','ts');
+  } catch(e) {
+    toast(e.message==='BAD_KEY'?'API Key ungültig.':'Verbindungsfehler — Internet prüfen.','te');
+  }
+  btn.disabled=false; btn.innerHTML='<i class="fa-solid fa-check"></i> OK';
+}
+async function saveSbP() {
+  const url=document.getElementById('pUrl').value.trim();
+  const key=document.getElementById('pSb').value.trim();
+  if (!url||!key) return toast('URL und Key eingeben.','te');
+  const btn=document.getElementById('pBtnSb');
+  btn.disabled=true; btn.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i>';
+  try {
+    sbClient = window.supabase.createClient(url, key);
+    const {data} = await sbClient.auth.getSession();
+    localStorage.setItem('sw_sb_url',url); localStorage.setItem('sw_sb_key',key);
+    if(data?.session?.user) {
+      sbUser = data.session.user;
+      toast('Verbunden & eingeloggt ✓','ts');
+      showApp();
+    } else {
+      toast('Supabase verbunden! Bitte anmelden.','ts');
+      showAuthScreen();
+    }
+  } catch(e) {
+    toast('Verbindung fehlgeschlagen: '+(e.message||'Unbekannt'),'te');
+    sbClient=null;
+  }
+  btn.disabled=false; btn.innerHTML='<i class="fa-solid fa-cloud-arrow-up"></i> Verbinden';
+}
 
 // ─── AUTH ────────────────────────────────────────────────────────────
 async function doAuth() {
@@ -1097,7 +1446,7 @@ async function loadHist() {
         data.t.forEach((ts,i)=>{ const df=Math.abs(ts-tgt); if(df<md){md=df;ci=i;} });
         result={price:data.c[ci],date:new Date(data.t[ci]*1000)};
       }
-    } catch(e) { if(e.message==='BAD_KEY'){showSetupScreen();toast('API Key ungültig.','te');} }
+    } catch(e) { if(e.message==='BAD_KEY'){showProfileScreen();pTab(1);toast('API Key ungültig.','te');} }
   }
   if(result) {
     document.getElementById('fBuy').value=result.price.toFixed(4);
@@ -1172,20 +1521,72 @@ async function doRefresh() {
       }).catch(()=>{});
     }
   });
-  if(badKey){toast('API Key ungültig (401).','te');showSetupScreen();}
+  if(badKey){toast('API Key ungültig (401).','te');showProfileScreen();pTab(1);}
   save(); renderGrid(); updateSummary();
   const now=new Date();
   const timeStr = now.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});
   document.getElementById('rtLbl').textContent = timeStr;
-  document.getElementById('updLbl').textContent = '⟳ Stand: ' + now.toLocaleTimeString('de-DE');
+  document.getElementById('updLbl').textContent = '⟳ Stand: ' + now.toLocaleTimeString('de-DE') + ' · nächster in 5 Min.';
   rb.classList.remove('spin'); rb.disabled=false;
 }
 
-function logoClick() { doRefresh(); }
+function logoClick() {
+  const app = document.getElementById('app');
+  if(app.classList.contains('hidden')) { showApp(); return; }
+  doRefresh();
+}
+
+// ─── MOBILE CARD TAP: expand → then open popup ─────────────────────
+const MOBILE_BP = 700;
+function cardTap(id, el) {
+  if(window.innerWidth <= MOBILE_BP && !el.classList.contains('expanded')) {
+    // Collapse any other expanded card
+    document.querySelectorAll('.sc.expanded').forEach(c=>{ if(c!==el) c.classList.remove('expanded'); });
+    el.classList.add('expanded');
+    return;
+  }
+  openPop(id);
+}
 
 function startLoop() {
   if(loopTimer) clearInterval(loopTimer);
-  loopTimer = setInterval(()=>{ if(isMarketHours()) doRefresh(); }, INTV);
+  if(autoRefreshPaused) return;
+  loopTimer = setInterval(()=>{ if(!autoRefreshPaused && isMarketHours()) doRefresh(); }, INTV);
+}
+
+function toggleAutoRefresh() {
+  autoRefreshPaused = !autoRefreshPaused;
+  if(autoRefreshPaused) {
+    if(loopTimer) { clearInterval(loopTimer); loopTimer = null; }
+    toast('Auto-Refresh pausiert','tw');
+  } else {
+    startLoop();
+    toast('Auto-Refresh aktiv (alle 5 Min.)','ts');
+  }
+  updateMarketBadge();
+  updateArSetting();
+}
+
+function updateArSetting() {
+  const btn = document.getElementById('arSettingBtn');
+  if(!btn) return;
+  if(autoRefreshPaused) {
+    btn.style.background='var(--pbg)'; btn.style.color='var(--pos)'; btn.style.border='1px solid var(--pos)';
+    btn.innerHTML='<i class="fa-solid fa-play"></i> Start';
+  } else {
+    btn.style.background='var(--gbg)'; btn.style.color='var(--gld)'; btn.style.border='1px solid var(--gld)';
+    btn.innerHTML='<i class="fa-solid fa-pause"></i> Pause';
+  }
+}
+
+function resetPortfolio() {
+  if(!portfolio.length) return toast('Portfolio ist bereits leer.','tw');
+  const count = portfolio.length;
+  // Use the delete confirmation modal
+  pendingDelId = '__RESET__';
+  document.getElementById('delTitle').textContent = 'Gesamtes Portfolio löschen?';
+  document.getElementById('delMsg').innerHTML = `Alle <strong>${count} Aktien</strong> und deren Käufe werden unwiderruflich gelöscht. Diese Aktion kann nicht rückgängig gemacht werden.`;
+  document.getElementById('delOv').classList.add('open');
 }
 
 // ─── COMPUTED HELPERS ────────────────────────────────────────────────
@@ -1327,44 +1728,49 @@ function cardHTML(s, idx) {
     ? `<div class="ch-buys"><i class="fa-solid fa-layer-group"></i> ${s.purchases.length} Käufe · Ø ${f(avg)} ${cur}</div>`
     : '';
 
-  return `<div class="sc ${hit?'hit':''} ${s.fetchError?'err':''}" style="${animStyle}" data-id="${s.id}" onclick="openPop('${s.id}')" title="Klicken für Kaufdetails">
-    <div class="ch">
-      <div class="ch-l">
-        <div class="ch-sym">${s.symbol}</div>
-        <div class="ch-name" title="${s.name||''}">${s.name||s.symbol}</div>
-        ${dateStr}${buyCountStr}
+  return `<div class="sc ${hit?'hit':''} ${s.fetchError?'err':''}" style="${animStyle}" data-id="${s.id}" onclick="cardTap('${s.id}',this)" title="Klicken für Details">
+    <div class="sc-head">
+      <div class="ch">
+        <div class="ch-l">
+          <div class="ch-sym">${s.symbol}</div>
+          <div class="ch-name" title="${s.name||''}">${s.name||s.symbol}</div>
+          ${dateStr}${buyCountStr}
+        </div>
+        <div class="badges">${badge}</div>
       </div>
-      <div class="badges">${badge}</div>
-    </div>
-    <div class="prow">
-      <div class="pmain" style="color:${pc}">${hp?f(s.price):'—'}</div>
-      <div class="pcur">${cur}</div>${dayH}
-    </div>
-    ${s.fetchError?`<div class="errmsg"><i class="fa-solid fa-circle-exclamation"></i> Kurs nicht abrufbar. WKN ≠ Ticker! DAX-Beispiele: <b>SAP.DE · BMW.DE · SIE.DE</b> &nbsp;|&nbsp; US: <b>AAPL · NOW</b>. <a href="https://finance.yahoo.com/lookup/" target="_blank" style="color:var(--acc)">Ticker nachschlagen</a></div>`:''}
-    <div class="dvd"></div>
-    <div class="pd">
-      <div><div class="pdlbl"><i class="fa-solid fa-tag"></i> Ø Einkauf</div><div class="pdval avg">${fc(avg)}</div></div>
-      <div><div class="pdlbl"><i class="fa-solid fa-bullseye"></i> Zielpreis</div><div class="pdval">${fc(s.targetPrice)}</div></div>
-      <div><div class="pdlbl"><i class="fa-solid fa-coins"></i> Investiert</div><div class="pdval">${fc(inv)}</div></div>
-      <div><div class="pdlbl"><i class="fa-solid fa-hashtag"></i> Stücke gesamt</div><div class="pdval">${f(tot,0)}</div></div>
-    </div>
-    <div class="progw">
-      <div class="proghd"><span class="proglbl">Fortschritt zum Ziel</span><span class="progpct">${hp?f(Math.min(prog,110))+'%':'—'}</span></div>
-      <div class="progtr"><div class="progfill ${prog>=100?'over':''}" style="width:${hp?Math.min(prog,100)+'%':'0%'}"></div></div>
-    </div>
-    <div class="grow">
-      <div class="gi"><div class="gilbl">Gewinn %</div><div class="gival ${hit?'gg':'g'+gc}">${gain!=null?gs+f(gain)+'%':'—'}</div></div>
-      <div class="gi"><div class="gilbl">Gewinn €</div><div class="gival ${hit?'gg':'g'+gc}">${gainV!=null?(gainV>=0?'+':'')+fc(gainV):'—'}</div></div>
-      <div class="gi"><div class="gilbl">Zum Ziel</div><div class="gival ${hit?'gg':''}">${hit?'<i class="fa-solid fa-check"></i>':toTgt!=null?f(toTgt)+'%':'—'}</div></div>
-      <div class="gi"><div class="gilbl">Aktuell</div><div class="gival gs">${posV!=null?fc(posV):'—'}</div></div>
-    </div>
-    <div class="cf">
-      <div class="cft">
-        ${hp&&s.priceSource?`<span class="src-badge ${s.priceSource==='yahoo'?'src-yahoo':'src-finnhub'}"><i class="fa-solid fa-${s.priceSource==='yahoo'?'y':'bolt'}"></i>${s.priceSource==='yahoo'?'Yahoo Finance':'Finnhub'}${s.exchange?' · '+s.exchange:''}</span>`:'<span style="color:var(--mut);font-size:.65rem"><i class="fa-regular fa-clock"></i> Noch nicht geladen</span>'}
+      <div class="prow">
+        <div class="pmain" style="color:${pc}">${hp?f(s.price):'—'}</div>
+        <div class="pcur">${cur}</div>${dayH}
       </div>
-      <div class="cfb" onclick="event.stopPropagation()">
-        <button class="bic bedt" data-id="${s.id}" title="Bearbeiten/Nachkauf"><i class="fa-solid fa-pen-to-square"></i></button>
-        <button class="bic bdel" data-id="${s.id}" title="Entfernen"><i class="fa-solid fa-trash-can"></i></button>
+      <div class="sc-expand-hint"><i class="fa-solid fa-chevron-down"></i></div>
+    </div>
+    <div class="sc-detail">
+      ${s.fetchError?`<div class="errmsg"><i class="fa-solid fa-circle-exclamation"></i> Kurs nicht abrufbar. WKN ≠ Ticker! DAX-Beispiele: <b>SAP.DE · BMW.DE · SIE.DE</b> &nbsp;|&nbsp; US: <b>AAPL · NOW</b>. <a href="https://finance.yahoo.com/lookup/" target="_blank" style="color:var(--acc)">Ticker nachschlagen</a></div>`:''}
+      <div class="dvd"></div>
+      <div class="grow">
+        <div class="gi"><div class="gilbl"><i class="fa-solid fa-tag"></i> Ø Einkauf</div><div class="gival va">${fc(avg)}</div></div>
+        <div class="gi"><div class="gilbl"><i class="fa-solid fa-bullseye"></i> Zielpreis</div><div class="gival">${fc(s.targetPrice)}</div></div>
+        <div class="gi"><div class="gilbl"><i class="fa-solid fa-coins"></i> Investiert</div><div class="gival">${fc(inv)}</div></div>
+        <div class="gi"><div class="gilbl"><i class="fa-solid fa-cubes"></i> Stücke</div><div class="gival">${f(tot,0)}</div></div>
+      </div>
+      <div class="progw">
+        <div class="proghd"><span class="proglbl">Fortschritt zum Ziel</span><span class="progpct">${hp?f(Math.min(prog,110))+'%':'—'}</span></div>
+        <div class="progtr"><div class="progfill ${prog>=100?'over':''}" style="width:${hp?Math.min(prog,100)+'%':'0%'}"></div></div>
+      </div>
+      <div class="grow">
+        <div class="gi"><div class="gilbl"><i class="fa-solid fa-chart-line"></i> Gewinn %</div><div class="gival ${hit?'gg':'g'+gc}">${gain!=null?gs+f(gain)+'%':'—'}</div></div>
+        <div class="gi"><div class="gilbl"><i class="fa-solid fa-sack-dollar"></i> Gewinn</div><div class="gival ${hit?'gg':'g'+gc}">${gainV!=null?(gainV>=0?'+':'')+fc(gainV):'—'}</div></div>
+        <div class="gi"><div class="gilbl"><i class="fa-solid fa-flag-checkered"></i> Zum Ziel</div><div class="gival ${hit?'gg':''}">${hit?'<i class="fa-solid fa-check"></i> Erreicht':toTgt!=null?f(toTgt)+'%':'—'}</div></div>
+        <div class="gi"><div class="gilbl"><i class="fa-solid fa-wallet"></i> Aktueller Wert</div><div class="gival gs">${posV!=null?fc(posV):'—'}</div></div>
+      </div>
+      <div class="cf">
+        <div class="cft">
+          ${hp&&s.priceSource?`<span class="src-badge ${s.priceSource==='yahoo'?'src-yahoo':'src-finnhub'}"><i class="fa-solid fa-${s.priceSource==='yahoo'?'y':'bolt'}"></i>${s.priceSource==='yahoo'?'Yahoo Finance':'Finnhub'}${s.exchange?' · '+s.exchange:''}</span>`:'<span style="color:var(--mut);font-size:.65rem"><i class="fa-regular fa-clock"></i> Noch nicht geladen</span>'}
+        </div>
+        <div class="cfb" onclick="event.stopPropagation()">
+          <button class="bic bedt" data-id="${s.id}" title="Nachkauf"><i class="fa-solid fa-cart-plus"></i></button>
+          <button class="bic bdel" data-id="${s.id}" title="Entfernen"><i class="fa-solid fa-trash-can"></i></button>
+        </div>
       </div>
     </div>
   </div>`;
@@ -1450,7 +1856,11 @@ function openEditTarget(id) {
   document.getElementById('fTime').value=latest.buyTime||'';
   document.getElementById('ov').classList.add('open');
 }
-function closeModal() { document.getElementById('ov').classList.remove('open'); editId=null; isRebuy=false; const sym=document.getElementById('fSym'); sym.readOnly=false; sym.style.opacity=''; }
+function closeModal() {
+  document.getElementById('ov').classList.remove('open');
+  editId=null; isRebuy=false;
+  const sym=document.getElementById('fSym'); sym.readOnly=false; sym.style.opacity='';
+}
 
 async function submitStock() {
   const sym=document.getElementById('fSym').value.trim().toUpperCase();
@@ -1504,14 +1914,47 @@ async function submitStock() {
   firstRender=false;
 }
 
+let pendingDelId = null;
 function delStock(id){
   const s=portfolio.find(x=>x.id===id);
-  if(!s||!confirm(`„${s.symbol}" und alle ${s.purchases.length} Kauf/Käufe entfernen?`))return;
-  portfolio=portfolio.filter(x=>x.id!==id); notified.delete(id);
-  if(sbClient&&sbUser) delSb(id);
-  save(); renderGrid(); updateSummary();
-  toast(`${s.symbol} entfernt.`,'ti');
+  if(!s) return;
+  pendingDelId = id;
+  document.getElementById('delTitle').textContent = `„${s.symbol}" entfernen?`;
+  document.getElementById('delMsg').innerHTML = `<strong>${s.symbol}${s.name&&s.name!==s.symbol?' — '+s.name:''}</strong> und alle <strong>${s.purchases.length} Kauf/Käufe</strong> werden unwiderruflich gelöscht.`;
+  document.getElementById('delOv').classList.add('open');
 }
+function closeDelModal(){ document.getElementById('delOv').classList.remove('open'); pendingDelId=null; }
+function confirmDel(){
+  if(!pendingDelId) return;
+  if(pendingDelId === '__RESET__') {
+    portfolio = []; notified.clear();
+    save(); renderGrid(); updateSummary();
+    toast('Portfolio zurückgesetzt.','ti');
+    closeDelModal();
+    return;
+  }
+  const s=portfolio.find(x=>x.id===pendingDelId);
+  portfolio=portfolio.filter(x=>x.id!==pendingDelId); notified.delete(pendingDelId);
+  if(sbClient&&sbUser) delSb(pendingDelId);
+  save(); renderGrid(); updateSummary();
+  toast(`${s?s.symbol:'Aktie'} entfernt.`,'ti');
+  closeDelModal();
+}
+
+// ─── CUSTOM SORT DROPDOWN ───────────────────────────────────────────
+function toggleSortMenu(){
+  document.getElementById('fsSortWrap').classList.toggle('open');
+}
+function pickSort(val, el){
+  document.getElementById('fsSortLabel').textContent = el.textContent;
+  document.querySelectorAll('.fs-sort-opt').forEach(o=>o.classList.toggle('active',o.dataset.val===val));
+  document.getElementById('fsSortWrap').classList.remove('open');
+  setSort(val);
+}
+document.addEventListener('click', e=>{
+  const wrap = document.getElementById('fsSortWrap');
+  if(wrap && !wrap.contains(e.target)) wrap.classList.remove('open');
+});
 
 // notifications removed
 
@@ -1872,6 +2315,5 @@ init().then(()=>{ firstRender=false; });
     <div class="pop-body" id="popBody"></div>
   </div>
 </div>
-
 </body>
 </html>
