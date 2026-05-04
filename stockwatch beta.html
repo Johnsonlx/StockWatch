@@ -355,16 +355,35 @@ footer{position:relative;z-index:1;background:var(--sur);border-top:1px solid va
 .fs-chip.active.gld{background:rgba(234,179,8,.1);border-color:var(--gld);color:var(--gld)}
 .fs-chip.active.err{background:rgba(239,68,68,.08);border-color:var(--neg);color:var(--neg)}
 
-/* Custom Sort Wrapper – replaces native select on desktop */
+/* Custom Sort Dropdown */
 .fs-sort-wrap{position:relative;display:inline-flex;align-items:center;flex-shrink:0}
-.fs-sort-wrap::after{content:'078';font-family:'Font Awesome 6 Free';font-weight:900;font-size:.6rem;color:var(--acc);position:absolute;right:10px;pointer-events:none;top:50%;transform:translateY(-50%)}
-.fs-sort-select{appearance:none;-webkit-appearance:none;font-size:.8rem;font-weight:600;
+.fs-sort-btn{display:flex;align-items:center;gap:7px;font-size:.8rem;font-weight:600;
   background:var(--adim);border:1px solid var(--acc);color:var(--tx);
-  border-radius:9px;padding:6px 30px 6px 12px;cursor:pointer;font-family:inherit;
-  transition:all .15s;outline:none;min-width:140px;line-height:1}
-.fs-sort-select:hover{box-shadow:0 0 0 2px color-mix(in srgb,var(--acc) 25%,transparent)}
-.fs-sort-select:focus{box-shadow:0 0 0 2px color-mix(in srgb,var(--acc) 35%,transparent)}
-.fs-sort-select option{background:var(--bg);color:var(--tx);font-size:.82rem}
+  border-radius:9px;padding:7px 12px;cursor:pointer;font-family:inherit;
+  transition:all .15s;outline:none;min-width:140px;line-height:1;white-space:nowrap;user-select:none}
+.fs-sort-btn i.chevron{font-size:.55rem;color:var(--acc);margin-left:auto;transition:transform .2s}
+.fs-sort-btn:hover{box-shadow:0 0 0 2px var(--aglow)}
+.fs-sort-wrap.open .fs-sort-btn{box-shadow:0 0 0 2px var(--aglow);border-color:var(--acc)}
+.fs-sort-wrap.open .fs-sort-btn i.chevron{transform:rotate(180deg)}
+.fs-sort-menu{position:absolute;top:calc(100% + 6px);left:0;min-width:100%;background:var(--sur);border:1px solid var(--cb);border-radius:11px;box-shadow:0 12px 32px var(--shd);z-index:999;overflow:hidden;opacity:0;visibility:hidden;transform:translateY(-6px);transition:all .18s ease}
+.fs-sort-wrap.open .fs-sort-menu{opacity:1;visibility:visible;transform:translateY(0)}
+.fs-sort-opt{display:flex;align-items:center;gap:8px;padding:10px 14px;font-size:.8rem;font-weight:600;color:var(--tx);cursor:pointer;transition:background .1s;white-space:nowrap}
+.fs-sort-opt:hover{background:var(--adim)}
+.fs-sort-opt.active{color:var(--acc);background:var(--adim)}
+.fs-sort-opt.active::before{content:'';width:4px;height:4px;border-radius:50%;background:var(--acc);flex-shrink:0}
+.fs-sort-opt:not(:last-child){border-bottom:1px solid var(--cb)}
+
+/* Delete confirmation modal */
+.del-ov{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;opacity:0;visibility:hidden;transition:all .2s}
+.del-ov.open{opacity:1;visibility:visible}
+.del-box{background:var(--sur);border:1px solid var(--cb);border-radius:18px;padding:28px 24px;max-width:380px;width:100%;box-shadow:0 20px 50px var(--shd);text-align:center;transform:scale(.92);transition:transform .2s}
+.del-ov.open .del-box{transform:scale(1)}
+.del-ico{width:52px;height:52px;border-radius:50%;background:var(--nbg);display:flex;align-items:center;justify-content:center;margin:0 auto 16px;font-size:1.3rem;color:var(--neg)}
+.del-title{font-size:1.05rem;font-weight:800;color:var(--tx);margin-bottom:8px}
+.del-msg{font-size:.84rem;color:var(--sub);line-height:1.5;margin-bottom:22px}
+.del-msg strong{color:var(--tx)}
+.del-btns{display:flex;gap:10px}
+.del-btns .btn{flex:1}
 
 .fs-dir-btn{width:38px;height:38px;border:1px solid var(--cb);background:transparent;color:var(--sub);border-radius:9px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:.8rem;transition:all .15s;flex-shrink:0}
 .fs-dir-btn:hover{border-color:var(--acc);color:var(--acc);background:var(--adim)}
@@ -409,7 +428,7 @@ footer{position:relative;z-index:1;background:var(--sur);border-top:1px solid va
   .fsbar{padding:10px 12px;gap:7px}
   .fsbar-label{font-size:.65rem}
   .fs-chip{font-size:.74rem;padding:7px 11px;min-height:36px}
-  .fs-sort-select{font-size:.78rem;min-width:130px;padding:8px 28px 8px 11px;min-height:38px}
+  .fs-sort-btn{font-size:.78rem;min-width:130px;padding:8px 12px;min-height:38px}
   .fs-dir-btn{width:38px;height:38px}
   .fsbar-sep{display:none}
   .fs-count{margin-left:0;font-size:.7rem}
@@ -679,21 +698,40 @@ create policy "own" on public.sw_portfolio
     <button class="fs-chip"        id="fc-error"  onclick="setFilter('error')" ><i class="fa-solid fa-circle-exclamation"></i> Kein Kurs</button>
     <div class="fsbar-sep"></div>
     <span class="fsbar-label"><i class="fa-solid fa-arrow-up-wide-short"></i> Sortierung</span>
-    <div class="fs-sort-wrap"><select class="fs-sort-select" id="fsSortSel" onchange="setSort(this.value)">
-      <option value="added">Hinzugefügt</option>
-      <option value="name">Symbol A–Z</option>
-      <option value="gain">G/V %</option>
-      <option value="gainval">G/V Betrag</option>
-      <option value="invested">Investiert</option>
-      <option value="price">Kurs</option>
-      <option value="target">Zielpreis</option>
-    </select></div>
+    <div class="fs-sort-wrap" id="fsSortWrap">
+      <button class="fs-sort-btn" onclick="toggleSortMenu()">
+        <span id="fsSortLabel">Hinzugefügt</span>
+        <i class="fa-solid fa-chevron-down chevron"></i>
+      </button>
+      <div class="fs-sort-menu" id="fsSortMenu">
+        <div class="fs-sort-opt active" data-val="added" onclick="pickSort('added',this)">Hinzugefügt</div>
+        <div class="fs-sort-opt" data-val="name" onclick="pickSort('name',this)">Symbol A–Z</div>
+        <div class="fs-sort-opt" data-val="gain" onclick="pickSort('gain',this)">G/V %</div>
+        <div class="fs-sort-opt" data-val="gainval" onclick="pickSort('gainval',this)">G/V Betrag</div>
+        <div class="fs-sort-opt" data-val="invested" onclick="pickSort('invested',this)">Investiert</div>
+        <div class="fs-sort-opt" data-val="price" onclick="pickSort('price',this)">Kurs</div>
+        <div class="fs-sort-opt" data-val="target" onclick="pickSort('target',this)">Zielpreis</div>
+      </div>
+    </div>
     <button class="fs-dir-btn active" id="fsDirBtn" onclick="toggleDir()" title="Reihenfolge umkehren">
       <i class="fa-solid fa-arrow-down-short-wide" id="fsDirIcon"></i>
     </button>
     <span class="fs-count" id="fsCount"></span>
   </div>
   <div id="grid"></div>
+</div>
+
+<!-- ══════════════ DELETE CONFIRMATION ═══════════════════════════════ -->
+<div class="del-ov" id="delOv" onclick="if(event.target===this)closeDelModal()">
+  <div class="del-box">
+    <div class="del-ico"><i class="fa-solid fa-trash-can"></i></div>
+    <div class="del-title" id="delTitle">Aktie entfernen?</div>
+    <div class="del-msg" id="delMsg"></div>
+    <div class="del-btns">
+      <button class="btn btn-ghost btn-sm" onclick="closeDelModal()"><i class="fa-solid fa-xmark"></i> Abbrechen</button>
+      <button class="btn btn-sm" id="delConfirmBtn" style="background:var(--neg);color:#fff" onclick="confirmDel()"><i class="fa-solid fa-trash-can"></i> Entfernen</button>
+    </div>
+  </div>
 </div>
 
 <!-- ══════════════ FOOTER ═════════════════════════════════════════════ -->
@@ -1481,7 +1519,7 @@ function cardHTML(s, idx) {
         ${hp&&s.priceSource?`<span class="src-badge ${s.priceSource==='yahoo'?'src-yahoo':'src-finnhub'}"><i class="fa-solid fa-${s.priceSource==='yahoo'?'y':'bolt'}"></i>${s.priceSource==='yahoo'?'Yahoo Finance':'Finnhub'}${s.exchange?' · '+s.exchange:''}</span>`:'<span style="color:var(--mut);font-size:.65rem"><i class="fa-regular fa-clock"></i> Noch nicht geladen</span>'}
       </div>
       <div class="cfb" onclick="event.stopPropagation()">
-        <button class="bic bedt" data-id="${s.id}" title="Bearbeiten/Nachkauf"><i class="fa-solid fa-pen-to-square"></i></button>
+        <button class="bic bedt" data-id="${s.id}" title="Nachkauf"><i class="fa-solid fa-cart-plus"></i></button>
         <button class="bic bdel" data-id="${s.id}" title="Entfernen"><i class="fa-solid fa-trash-can"></i></button>
       </div>
     </div>
@@ -1626,14 +1664,40 @@ async function submitStock() {
   firstRender=false;
 }
 
+let pendingDelId = null;
 function delStock(id){
   const s=portfolio.find(x=>x.id===id);
-  if(!s||!confirm(`„${s.symbol}" und alle ${s.purchases.length} Kauf/Käufe entfernen?`))return;
-  portfolio=portfolio.filter(x=>x.id!==id); notified.delete(id);
-  if(sbClient&&sbUser) delSb(id);
-  save(); renderGrid(); updateSummary();
-  toast(`${s.symbol} entfernt.`,'ti');
+  if(!s) return;
+  pendingDelId = id;
+  document.getElementById('delTitle').textContent = `„${s.symbol}" entfernen?`;
+  document.getElementById('delMsg').innerHTML = `<strong>${s.symbol}${s.name&&s.name!==s.symbol?' — '+s.name:''}</strong> und alle <strong>${s.purchases.length} Kauf/Käufe</strong> werden unwiderruflich gelöscht.`;
+  document.getElementById('delOv').classList.add('open');
 }
+function closeDelModal(){ document.getElementById('delOv').classList.remove('open'); pendingDelId=null; }
+function confirmDel(){
+  if(!pendingDelId) return;
+  const s=portfolio.find(x=>x.id===pendingDelId);
+  portfolio=portfolio.filter(x=>x.id!==pendingDelId); notified.delete(pendingDelId);
+  if(sbClient&&sbUser) delSb(pendingDelId);
+  save(); renderGrid(); updateSummary();
+  toast(`${s?s.symbol:'Aktie'} entfernt.`,'ti');
+  closeDelModal();
+}
+
+// ─── CUSTOM SORT DROPDOWN ───────────────────────────────────────────
+function toggleSortMenu(){
+  document.getElementById('fsSortWrap').classList.toggle('open');
+}
+function pickSort(val, el){
+  document.getElementById('fsSortLabel').textContent = el.textContent;
+  document.querySelectorAll('.fs-sort-opt').forEach(o=>o.classList.toggle('active',o.dataset.val===val));
+  document.getElementById('fsSortWrap').classList.remove('open');
+  setSort(val);
+}
+document.addEventListener('click', e=>{
+  const wrap = document.getElementById('fsSortWrap');
+  if(wrap && !wrap.contains(e.target)) wrap.classList.remove('open');
+});
 
 // notifications removed
 
