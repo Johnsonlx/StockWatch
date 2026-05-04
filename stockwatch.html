@@ -904,6 +904,7 @@ create policy "own" on public.sw_portfolio
     <div class="footer-left">
       <div class="footer-logo"><div class="logo-ico"><i class="fa-solid fa-chart-line"></i></div>Stock<span>Watch</span></div>
       <div class="footer-sub">Live-Kurse alle 5 Min. via Finnhub &amp; Yahoo<br>Cloud-Sync via Supabase (optional)</div>
+      <a href="stockwatch_trades.html" style="display:inline-flex;align-items:center;gap:6px;margin-top:10px;padding:8px 16px;border-radius:9px;background:var(--adim);border:1px solid var(--acc);color:var(--acc);font-size:.8rem;font-weight:600;text-decoration:none;transition:all .15s"><i class="fa-solid fa-arrow-right-arrow-left"></i> Trades-Dashboard öffnen</a>
     </div>
     <div class="footer-center">
       <div class="footer-market"><i class="fa-solid fa-circle" id="fMktDot" style="color:var(--mut)"></i><span id="fMktTxt">—</span></div>
@@ -1408,7 +1409,7 @@ function save() {
 // ─── FINNHUB API ─────────────────────────────────────────────────────
 async function fh(path) {
   const sep=path.includes('?')?'&':'?';
-  const r=await fetch(`${FH}${path}${sep}token=${apiKey}`,{signal:AbortSignal.timeout(10000)});
+  const r=await fetch(`${FH}${path}${sep}token=${apiKey}`,{signal:AbortSignal.timeout(5000)});
   if(r.status===401) throw new Error('BAD_KEY');
   if(r.status===403) throw new Error('PLAN_LIMIT');
   if(!r.ok) throw new Error('HTTP_'+r.status);
@@ -1420,80 +1421,57 @@ const fhC = (s,f,t) => fh(`/stock/candle?symbol=${encodeURIComponent(s)}&resolut
 
 // ─── CORS PROXY HELPER ──────────────────────────────────────────────
 async function fetchViaProxy(url, timeout=5000) {
-  const strategies = [
+  const strats = [
     [`https://api.allorigins.win/get?url=${encodeURIComponent(url)}`, true],
     [`https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`, false],
     [`https://corsproxy.io/?${encodeURIComponent(url)}`, false],
   ];
-  for (const [proxyUrl, unwrap] of strategies) {
+  for (const [px, unwrap] of strats) {
     try {
-      const r = await fetch(proxyUrl, {signal: AbortSignal.timeout(timeout)});
+      const r = await fetch(px, {signal: AbortSignal.timeout(timeout)});
       if (!r.ok) continue;
-      let data;
+      let raw;
       if (unwrap) {
-        const wrapper = await r.json();
-        if (!wrapper?.contents) continue;
-        const c = wrapper.contents.trim();
-        if (c.startsWith('<!') || c.startsWith('<html') || c.includes('consent.yahoo')) continue;
-        try { data = JSON.parse(c); } catch(_) { continue; }
+        const w = await r.json();
+        raw = w?.contents;
+        if (!raw) continue;
       } else {
-        const text = await r.text();
-        if (text.startsWith('<!') || text.startsWith('<html') || text.includes('consent.yahoo')) continue;
-        try { data = JSON.parse(text); } catch(_) { continue; }
+        raw = await r.text();
       }
-      if (data && typeof data === 'object') return data;
-    } catch(_) { continue; }
+      if (!raw || raw.includes('consent.yahoo') || raw.startsWith('<!') || raw.startsWith('<html')) continue;
+      try { const d = JSON.parse(raw); if (d && typeof d==='object') return d; } catch(_){}
+    } catch(_){}
   }
   return null;
 }
 
-// Yahoo Finance URL builder — adds region=US to bypass GDPR consent
-function yfChartUrl(sym, extra='interval=1d&range=1d') {
-  return `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(sym)}?${extra}&region=US&lang=en-US&corsDomain=finance.yahoo.com`;
-}
-
-// ─── YAHOO FINANCE LIVE QUOTE ───────────────────────────────────────
+// ─── YAHOO LIVE QUOTE (GDPR-bypassed) ──────────────────────────────
 async function yahooLiveQuote(sym) {
-  // Try query1 and query2
-  for (const host of ['query1','query2']) {
-    const url = `https://${host}.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(sym)}?interval=1d&range=1d&region=US&lang=en-US&corsDomain=finance.yahoo.com`;
-    const data = await fetchViaProxy(url);
-    if (!data) continue;
-    const meta = data?.chart?.result?.[0]?.meta;
-    if (!meta) continue;
-    const price = meta.regularMarketPrice || meta.previousClose;
-    if (!price) continue;
-    const prevClose = meta.chartPreviousClose || meta.previousClose || price;
-    return { c: price, pc: prevClose, d: price-prevClose, dp: prevClose?(price-prevClose)/prevClose*100:0, currency: meta.currency||'', exchange: meta.exchangeName||meta.fullExchangeName||'', _src: 'yahoo' };
+  for (const h of ['query1','query2']) {
+    const u = `https://${h}.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(sym)}?interval=1d&range=1d&region=US&lang=en-US&corsDomain=finance.yahoo.com`;
+    const d = await fetchViaProxy(u);
+    const m = d?.chart?.result?.[0]?.meta;
+    if (!m) continue;
+    const p = m.regularMarketPrice || m.previousClose;
+    if (!p) continue;
+    const pc = m.chartPreviousClose || m.previousClose || p;
+    return {c:p,pc,d:p-pc,dp:pc?(p-pc)/pc*100:0,currency:m.currency||'',exchange:m.exchangeName||m.fullExchangeName||'',_src:'yahoo'};
   }
   return null;
 }
 
-// Fetch raw text via CORS proxy
-async function fetchTextViaProxy(url, timeout=5000) {
-  try {
-    const r = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(url)}`, {signal: AbortSignal.timeout(timeout)});
-    if (!r.ok) return null;
-    const wrapper = await r.json();
-    return wrapper?.contents || null;
-  } catch(_) { return null; }
-}
-
-// ─── YAHOO HISTORICAL ────────────────────────────────────────────────
+// ─── YAHOO HISTORICAL (GDPR-bypassed) ──────────────────────────────
 async function fetchYahooHist(sym, dateStr) {
-  const d=new Date(dateStr+'T12:00:00Z');
-  const from=Math.floor(d.getTime()/1000)-259200;
-  const to=Math.floor(d.getTime()/1000)+259200;
-  for (const host of ['query1','query2']) {
-    const url = `https://${host}.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(sym)}?interval=1d&period1=${from}&period2=${to}&region=US&lang=en-US&corsDomain=finance.yahoo.com`;
-    const data = await fetchViaProxy(url, 6000);
-    if (!data) continue;
+  const dd=new Date(dateStr+'T12:00:00Z');
+  const from=Math.floor(dd.getTime()/1000)-259200, to=Math.floor(dd.getTime()/1000)+259200;
+  for (const h of ['query1','query2']) {
+    const u=`https://${h}.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(sym)}?interval=1d&period1=${from}&period2=${to}&region=US&lang=en-US&corsDomain=finance.yahoo.com`;
+    const data=await fetchViaProxy(u,6000);
     const res=data?.chart?.result?.[0];
     if(!res) continue;
     const closes=res.indicators?.quote?.[0]?.close, times=res.timestamp;
     if(!closes||!times) continue;
-    let ci=0,md=Infinity;
-    const tgt=d.getTime()/1000;
+    let ci=0,md=Infinity; const tgt=dd.getTime()/1000;
     times.forEach((ts,i)=>{ if(closes[i]==null)return; const df=Math.abs(ts-tgt); if(df<md){md=df;ci=i;} });
     if(closes[ci]!=null) return {price:closes[ci], date:new Date(times[ci]*1000)};
   }
@@ -1739,11 +1717,64 @@ function executeSell() {
     realizedPL: (price - avgBuyPrice(s)) * shares
   };
   s.sales.push(sale);
-  save(); renderGrid(); updateSummary();
-  if(sbClient&&sbUser) pushSb(s);
-  closeSellModal();
+  // Archive trade to trade log
+  archiveTrade(s, sale, 'sell');
   const pl = sale.realizedPL;
-  toast(`${s.symbol}: ${shares} Stücke verkauft · ${pl>=0?'+':''}${pl.toFixed(2)} ${s.currency||''}`, pl>=0?'ts':'te');
+  const sym = s.symbol;
+  const cur = s.currency||'';
+  // If fully sold → archive entire stock and remove from portfolio
+  if(activeShares(s) <= 0) {
+    archiveClosedPosition(s);
+    portfolio = portfolio.filter(x=>x.id!==s.id);
+    if(sbClient&&sbUser) delSb(s.id);
+    closeSellModal(); closePop();
+    toast(`${sym}: Vollständig verkauft · ${pl>=0?'+':''}${pl.toFixed(2)} ${cur} — aus Portfolio entfernt.`, pl>=0?'ts':'te');
+  } else {
+    if(sbClient&&sbUser) pushSb(s);
+    closeSellModal();
+    closePop(); openPop(s.id);
+    toast(`${sym}: ${shares} Stücke verkauft · ${pl>=0?'+':''}${pl.toFixed(2)} ${cur}`, pl>=0?'ts':'te');
+  }
+  save(); renderGrid(); updateSummary();
+}
+
+// ─── TRADE LOG (localStorage: sw_trades) ────────────────────────────
+function getTradeLog() { return JSON.parse(localStorage.getItem('sw_trades')||'[]'); }
+function saveTradeLog(log) { localStorage.setItem('sw_trades', JSON.stringify(log)); }
+
+function archiveTrade(stock, trade, type) {
+  const log = getTradeLog();
+  log.push({
+    id: trade.id, type,
+    symbol: stock.symbol, name: stock.name||stock.symbol,
+    currency: stock.currency||'',
+    shares: trade.shares,
+    price: type==='sell' ? trade.sellPrice : trade.buyPrice,
+    avgBuyPrice: trade.avgBuyPrice || avgBuyPrice(stock),
+    date: type==='sell' ? trade.sellDate : trade.buyDate,
+    time: type==='sell' ? trade.sellTime : trade.buyTime,
+    realizedPL: trade.realizedPL || 0,
+    timestamp: Date.now()
+  });
+  saveTradeLog(log);
+}
+
+function archiveClosedPosition(stock) {
+  const log = getTradeLog();
+  log.push({
+    id: 'close_'+stock.id, type: 'position_closed',
+    symbol: stock.symbol, name: stock.name||stock.symbol,
+    currency: stock.currency||'',
+    totalBought: totalShares(stock),
+    totalInvested: investedVal(stock),
+    totalRealized: realizedPL(stock),
+    purchases: stock.purchases,
+    sales: stock.sales,
+    targetPrice: stock.targetPrice,
+    targetReached: stock.price && stock.price >= stock.targetPrice,
+    timestamp: Date.now()
+  });
+  saveTradeLog(log);
 }
 
 // Undo sale (restore shares)
@@ -1972,10 +2003,15 @@ function updateSummary() {
   const cur=hasPrices.reduce((a,s)=>a+s.price*activeShares(s),0);
   const invF=hasPrices.reduce((a,s)=>a+activeInvested(s),0);
   const gain=cur-invF;
-  // Ziele erreicht: nur aktive Positionen (nicht vollständig verkauft) die Ziel erreichen
   const tgts=portfolio.filter(s=>s.price&&s.price>=s.targetPrice&&activeShares(s)>0).length;
-  const rpl=totalRealizedPL();
-  const trades=tradeCount();
+  // Realisiert G/V: aktive Portfolio-Sales + geschlossene Positionen aus Trade-Log
+  const activeRpl=totalRealizedPL();
+  const closedRpl=getTradeLog().filter(t=>t.type==='position_closed').reduce((a,t)=>a+(t.totalRealized||0),0);
+  const rpl=activeRpl+closedRpl;
+  // Trades: aktive + alle aus Trade-Log
+  const activeTrades=tradeCount();
+  const logTrades=getTradeLog().filter(t=>t.type==='sell'||t.type==='buy').length;
+  const trades=activeTrades + logTrades;
   const f2=n=>n.toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2});
   document.getElementById('sN').textContent=n;
   document.getElementById('sI').textContent=f2(inv)+' €';
@@ -1986,7 +2022,7 @@ function updateSummary() {
   if(cur>0){ge.textContent=(gain>=0?'+':'')+f2(gain)+' €';ge.className='scval '+(gain>=0?'vp':'vn');}
   else{ge.textContent='—';ge.className='scval vt';}
   const re=document.getElementById('sR');
-  if(rpl!==0||portfolio.some(s=>(s.sales||[]).length)){re.textContent=(rpl>=0?'+':'')+f2(rpl)+' €';re.className='scval '+(rpl>=0?'vp':'vn');}
+  if(rpl!==0||getTradeLog().length||portfolio.some(s=>(s.sales||[]).length)){re.textContent=(rpl>=0?'+':'')+f2(rpl)+' €';re.className='scval '+(rpl>=0?'vp':'vn');}
   else{re.textContent='—';re.className='scval vt';}
 }
 
