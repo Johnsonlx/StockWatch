@@ -577,7 +577,7 @@ button[id^="purLiveBtn_"]:hover{background:var(--adim);color:var(--acc);box-shad
   </div>
   <div class="hdr-gap"></div>
   <div class="hdr-r">
-    <div class="pdot" id="pdot" title="Auto-Refresh an/aus — Klicken zum Umschalten" onclick="toggleAutoRefresh()" style="cursor:pointer"></div>
+    <div class="pdot" id="pdot" title="Auto-Refresh (alle 5 Min.) — Klicken zum Umschalten" onclick="toggleAutoRefresh()" style="cursor:pointer"></div>
     <span class="rt-time" id="rtLbl">—</span>
     <div class="mkt-badge closed" id="mktBadge"><i class="fa-solid fa-circle"></i><span id="mktLbl">Markt</span></div>
     <div class="sync-badge" id="syncBadge"><div class="sync-dot off" id="syncDot"></div><span id="syncLbl">Lokal</span></div>
@@ -783,7 +783,7 @@ create policy "own" on public.sw_portfolio
   <div class="footer-inner">
     <div class="footer-left">
       <div class="footer-logo"><div class="logo-ico"><i class="fa-solid fa-chart-line"></i></div>Stock<span>Watch</span></div>
-      <div class="footer-sub">Live-Kurse via Finnhub · Lokale Speicherung<br>Cloud-Sync via Supabase (optional)</div>
+      <div class="footer-sub">Live-Kurse alle 5 Min. via Finnhub &amp; Yahoo<br>Cloud-Sync via Supabase (optional)</div>
     </div>
     <div class="footer-center">
       <div class="footer-market"><i class="fa-solid fa-circle" id="fMktDot" style="color:var(--mut)"></i><span id="fMktTxt">—</span></div>
@@ -852,7 +852,7 @@ create policy "own" on public.sw_portfolio
 <script>
 // ─── CONSTANTS ───────────────────────────────────────────────────────
 const FH = 'https://finnhub.io/api/v1';
-const INTV = 60000;
+const INTV = 300000; // 5 Minuten
 const MARKET_START = 8, MARKET_END = 22; // local hours
 
 // ─── STATE ──────────────────────────────────────────────────────────
@@ -934,8 +934,8 @@ function updateMarketBadge() {
     fTxt.textContent = open ? 'Markt offen — Auto-Refresh pausiert' : 'Markt geschlossen — Auto-Refresh pausiert';
   } else {
     dot.className = 'pdot ' + (open?'':'off');
-    dot.title = 'Auto-Refresh aktiv — Klicken zum Pausieren';
-    fTxt.textContent = open ? 'Markt offen — Auto-Refresh aktiv' : 'Markt geschlossen — kein Auto-Refresh';
+    dot.title = 'Kurse alle 5 Min. — Klicken zum Pausieren';
+    fTxt.textContent = open ? 'Markt offen — Kurse alle 5 Min.' : 'Markt geschlossen — kein Auto-Refresh';
   }
 }
 setInterval(updateMarketBadge, 30000);
@@ -1364,7 +1364,7 @@ async function doRefresh() {
   const now=new Date();
   const timeStr = now.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});
   document.getElementById('rtLbl').textContent = timeStr;
-  document.getElementById('updLbl').textContent = '⟳ Stand: ' + now.toLocaleTimeString('de-DE');
+  document.getElementById('updLbl').textContent = '⟳ Stand: ' + now.toLocaleTimeString('de-DE') + ' · nächster in 5 Min.';
   rb.classList.remove('spin'); rb.disabled=false;
 }
 
@@ -1395,7 +1395,7 @@ function toggleAutoRefresh() {
     toast('Auto-Refresh pausiert','tw');
   } else {
     startLoop();
-    toast('Auto-Refresh aktiviert','ts');
+    toast('Auto-Refresh aktiv (alle 5 Min.)','ts');
   }
   updateMarketBadge();
 }
