@@ -1373,35 +1373,49 @@ const fhQ = s => fh(`/quote?symbol=${encodeURIComponent(s)}`);
 const fhP = s => fh(`/stock/profile2?symbol=${encodeURIComponent(s)}`);
 const fhC = (s,f,t) => fh(`/stock/candle?symbol=${encodeURIComponent(s)}&resolution=D&from=${f}&to=${t}`);
 
+// ─── CORS PROXY HELPER ──────────────────────────────────────────────
+async function fetchViaProxy(url, timeout=8000) {
+  // Strategy 1: Direct (works in some environments)
+  const strategies = [
+    url,
+    `https://corsproxy.io/?${encodeURIComponent(url)}`,
+    `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+    `https://corsproxy.org/?${encodeURIComponent(url)}`,
+    `https://thingproxy.freeboard.io/fetch/${url}`,
+    `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`
+  ];
+  for (const proxyUrl of strategies) {
+    try {
+      const r = await fetch(proxyUrl, {signal: AbortSignal.timeout(timeout)});
+      if (!r.ok) continue;
+      const ct = r.headers.get('content-type')||'';
+      if (ct.includes('text/html') && !ct.includes('json')) continue; // got error page, skip
+      const data = await r.json();
+      if (data?.chart?.result) return data; // valid Yahoo response
+    } catch(_) { continue; }
+  }
+  return null;
+}
+
 // ─── YAHOO FINANCE LIVE QUOTE (Fallback für .DE und andere nicht-US Symbole) ──
 async function yahooLiveQuote(sym) {
-  const urls = [
+  const endpoints = [
     `https://query2.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(sym)}?interval=1m&range=1d`,
     `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(sym)}?interval=1m&range=1d`
   ];
-  const proxies = [
-    url => `https://corsproxy.io/?${encodeURIComponent(url)}`,
-    url => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
-    url => `https://thingproxy.freeboard.io/fetch/${url}`
-  ];
-  for (const yfUrl of urls) {
-    for (const mkProxy of proxies) {
-      try {
-        const r = await fetch(mkProxy(yfUrl), {signal: AbortSignal.timeout(8000)});
-        if (!r.ok) continue;
-        const data = await r.json();
-        const meta = data?.chart?.result?.[0]?.meta;
-        if (!meta) continue;
-        const price = meta.regularMarketPrice || meta.previousClose;
-        if (!price) continue;
-        const prevClose = meta.chartPreviousClose || meta.previousClose || price;
-        const dayChange = price - prevClose;
-        const dayPct = prevClose ? (dayChange / prevClose * 100) : 0;
-        const currency = meta.currency || '';
-        const exchange = meta.exchangeName || meta.fullExchangeName || '';
-        return { c: price, pc: prevClose, d: dayChange, dp: dayPct, currency, exchange, _src: 'yahoo' };
-      } catch(_) { continue; }
-    }
+  for (const yfUrl of endpoints) {
+    const data = await fetchViaProxy(yfUrl);
+    if (!data) continue;
+    const meta = data?.chart?.result?.[0]?.meta;
+    if (!meta) continue;
+    const price = meta.regularMarketPrice || meta.previousClose;
+    if (!price) continue;
+    const prevClose = meta.chartPreviousClose || meta.previousClose || price;
+    const dayChange = price - prevClose;
+    const dayPct = prevClose ? (dayChange / prevClose * 100) : 0;
+    const currency = meta.currency || '';
+    const exchange = meta.exchangeName || meta.fullExchangeName || '';
+    return { c: price, pc: prevClose, d: dayChange, dp: dayPct, currency, exchange, _src: 'yahoo' };
   }
   return null;
 }
@@ -1411,31 +1425,21 @@ async function fetchYahooHist(sym, dateStr) {
   const d=new Date(dateStr+'T12:00:00Z');
   const from=Math.floor(d.getTime()/1000)-259200;
   const to=Math.floor(d.getTime()/1000)+259200;
-  const urls = [
+  const endpoints = [
     `https://query2.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(sym)}?interval=1d&period1=${from}&period2=${to}`,
     `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(sym)}?interval=1d&period1=${from}&period2=${to}`
   ];
-  const proxies = [
-    url => `https://corsproxy.io/?${encodeURIComponent(url)}`,
-    url => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
-    url => `https://thingproxy.freeboard.io/fetch/${url}`
-  ];
-  for (const yfUrl of urls) {
-    for (const mkProxy of proxies) {
-      try {
-        const r=await fetch(mkProxy(yfUrl),{signal:AbortSignal.timeout(9000)});
-        if(!r.ok) continue;
-        const data=await r.json();
-        const res=data?.chart?.result?.[0];
-        if(!res) continue;
-        const closes=res.indicators?.quote?.[0]?.close, times=res.timestamp;
-        if(!closes||!times) continue;
-        let ci=0,md=Infinity;
-        const tgt=d.getTime()/1000;
-        times.forEach((ts,i)=>{ if(closes[i]==null)return; const df=Math.abs(ts-tgt); if(df<md){md=df;ci=i;} });
-        if(closes[ci]!=null) return {price:closes[ci], date:new Date(times[ci]*1000)};
-      } catch(_){ continue; }
-    }
+  for (const yfUrl of endpoints) {
+    const data = await fetchViaProxy(yfUrl, 9000);
+    if (!data) continue;
+    const res=data?.chart?.result?.[0];
+    if(!res) continue;
+    const closes=res.indicators?.quote?.[0]?.close, times=res.timestamp;
+    if(!closes||!times) continue;
+    let ci=0,md=Infinity;
+    const tgt=d.getTime()/1000;
+    times.forEach((ts,i)=>{ if(closes[i]==null)return; const df=Math.abs(ts-tgt); if(df<md){md=df;ci=i;} });
+    if(closes[ci]!=null) return {price:closes[ci], date:new Date(times[ci]*1000)};
   }
   return null;
 }
@@ -1449,8 +1453,12 @@ async function loadHist() {
   const hint=document.getElementById('histHint');
   btn.disabled=true; btn.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i>';
   hint.style.color=''; hint.textContent='Suche historischen Kurs…';
-  let result = await fetchYahooHist(sym,date);
-  if(!result) {
+
+  let result = null;
+
+  // 1) Finnhub Candle FIRST (no CORS issues, user has API key)
+  if(apiKey) {
+    hint.textContent='Finnhub wird abgefragt…';
     try {
       const d=new Date(date+'T12:00:00Z');
       const from=Math.floor(d.getTime()/1000)-259200, to=Math.floor(d.getTime()/1000)+259200;
@@ -1462,6 +1470,13 @@ async function loadHist() {
       }
     } catch(e) { if(e.message==='BAD_KEY'){showProfileScreen();pTab(1);toast('API Key ungültig.','te');} }
   }
+
+  // 2) Yahoo Finance Fallback (via CORS proxies)
+  if(!result) {
+    hint.textContent='Yahoo Finance wird abgefragt…';
+    result = await fetchYahooHist(sym,date);
+  }
+
   if(result) {
     document.getElementById('fBuy').value=result.price.toFixed(4);
     hint.style.color='var(--pos)';
@@ -2146,18 +2161,22 @@ async function fetchPurLivePrice(stockId, purId) {
         result = { price: q.c>0 ? q.c : q.pc };
       }
     } else {
-      // Historisches Datum → Yahoo Hist, dann Finnhub Candle als Fallback
-      result = await fetchYahooHist(sym, date);
+      // Historisches Datum → Finnhub Candle FIRST, dann Yahoo als Fallback
+      if(apiKey) {
+        try {
+          const d = new Date(date+'T12:00:00Z');
+          const from = Math.floor(d.getTime()/1000)-259200;
+          const to   = Math.floor(d.getTime()/1000)+259200;
+          const data = await fhC(sym, from, to);
+          if(data.s==='ok' && data.c?.length) {
+            let ci=0, md=Infinity; const tgt=d.getTime()/1000;
+            data.t.forEach((ts,i)=>{ const df=Math.abs(ts-tgt); if(df<md){md=df;ci=i;} });
+            result = { price: data.c[ci] };
+          }
+        } catch(_){}
+      }
       if(!result) {
-        const d = new Date(date+'T12:00:00Z');
-        const from = Math.floor(d.getTime()/1000)-259200;
-        const to   = Math.floor(d.getTime()/1000)+259200;
-        const data = await fhC(sym, from, to);
-        if(data.s==='ok' && data.c?.length) {
-          let ci=0, md=Infinity; const tgt=d.getTime()/1000;
-          data.t.forEach((ts,i)=>{ const df=Math.abs(ts-tgt); if(df<md){md=df;ci=i;} });
-          result = { price: data.c[ci] };
-        }
+        result = await fetchYahooHist(sym, date);
       }
     }
   } catch(e) {
