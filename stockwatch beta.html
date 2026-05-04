@@ -219,6 +219,7 @@ header{position:fixed;top:0;left:0;right:0;z-index:300;background:var(--hdr);bac
 .sc::before{content:'';position:absolute;inset:0;border-radius:16px;background:linear-gradient(135deg,var(--adim) 0%,transparent 55%);pointer-events:none}
 .sc:hover{transform:translateY(-3px);border-color:var(--acc);box-shadow:0 12px 36px var(--shd)}
 .sc.hit{border-color:var(--gbr);background:var(--gbg)}
+.sc.sold{opacity:.6;border-style:dashed}
 .sc.err{border-color:var(--nbr)}
 
 .ch{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px;gap:8px}
@@ -1339,12 +1340,24 @@ async function loadFromSb() {
     const {data,error}=await sbClient.from('sw_portfolio').select('*').eq('user_id',sbUser.id);
     if(error) throw error;
     // Always replace local with cloud (cloud is truth)
-    portfolio=(data||[]).map(r=>({
-      id:r.id, symbol:r.symbol, targetPrice:parseFloat(r.target_price)||0,
-      name:r.name||r.symbol, currency:r.currency||'',
-      purchases:Array.isArray(r.purchases)?r.purchases:[],
-      price:null, fetchError:false, lastUpd:null, nameFetched:!!(r.name&&r.name!==r.symbol)
-    }));
+    portfolio=(data||[]).map(r=>{
+      // Backward compatible: purchases can be array (old) or {buys,sales} (new)
+      const rawP = r.purchases;
+      let buys, sells;
+      if (Array.isArray(rawP)) {
+        buys = rawP; sells = [];
+      } else if (rawP && rawP.buys) {
+        buys = rawP.buys || []; sells = rawP.sales || [];
+      } else {
+        buys = []; sells = [];
+      }
+      return {
+        id:r.id, symbol:r.symbol, targetPrice:parseFloat(r.target_price)||0,
+        name:r.name||r.symbol, currency:r.currency||'',
+        purchases: buys, sales: sells,
+        price:null, fetchError:false, lastUpd:null, nameFetched:!!(r.name&&r.name!==r.symbol)
+      };
+    });
     save();
     toast('Portfolio geladen: '+portfolio.length+' Positionen','ts',2500);
   } catch(e) { toast('Sync-Ladefehler: '+e.message,'te'); }
@@ -1373,7 +1386,7 @@ async function pushSb(s) {
       target_price: s.targetPrice,
       name: s.name||s.symbol,
       currency: s.currency||'',
-      purchases: s.purchases||[]
+      purchases: { buys: s.purchases||[], sales: s.sales||[] }
     };
     const {error}=await sbClient.from('sw_portfolio').upsert(row,{onConflict:'id'});
     if(error) throw error;
@@ -1874,7 +1887,9 @@ function cardHTML(s, idx) {
   const del = firstRender ? Math.min(idx*60,400) : 0;
   const animStyle = `animation-delay:${del}ms`;
 
+  const fullySold = tot <= 0 && totalShares(s) > 0;
   const badge=hit?`<span class="bg bg-g"><i class="fa-solid fa-bullseye"></i> Ziel erreicht!</span>`
+    :fullySold?`<span class="bg bg-s" style="background:var(--gbg);border-color:var(--gbr);color:var(--gld)"><i class="fa-solid fa-hand-holding-dollar"></i> Verkauft</span>`
     :gain!=null?`<span class="bg bg-${gc}"><i class="fa-solid fa-arrow-trend-${gain>=0?'up':'down'}"></i> ${gs}${f(gain)}%</span>`
     :s.fetchError?`<span class="bg bg-n"><i class="fa-solid fa-triangle-exclamation"></i> Fehler</span>`
     :`<span class="bg bg-s"><i class="fa-solid fa-spinner fa-spin"></i> Lädt</span>`;
@@ -1888,11 +1903,10 @@ function cardHTML(s, idx) {
     const dd=new Date(latestPurchase.buyDate+'T12:00:00');
     dateStr=`<div class="ch-date"><i class="fa-solid fa-calendar-check"></i> ${dd.toLocaleDateString('de-DE')}${latestPurchase.buyTime?' &nbsp;<i class="fa-regular fa-clock"></i> '+latestPurchase.buyTime:''}</div>`;
   }
-  const buyCountStr = s.purchases.length>1
-    ? `<div class="ch-buys"><i class="fa-solid fa-layer-group"></i> ${s.purchases.length} Käufe · Ø ${f(avg)} ${cur}</div>`
-    : '';
+  const sellCount = (s.sales||[]).length;
+  const buyCountStr = `<div class="ch-buys"><i class="fa-solid fa-arrow-right-arrow-left"></i> ${s.purchases.length+sellCount} Trades (${s.purchases.length}K${sellCount?' / '+sellCount+'V':''}) · Ø ${f(avg)} ${cur}</div>`;
 
-  return `<div class="sc ${hit?'hit':''} ${s.fetchError?'err':''}" style="${animStyle}" data-id="${s.id}" onclick="cardTap('${s.id}',this)" title="Klicken für Details">
+  return `<div class="sc ${hit?'hit':''} ${s.fetchError?'err':''} ${fullySold?'sold':''}" style="${animStyle}" data-id="${s.id}" onclick="cardTap('${s.id}',this)" title="Klicken für Details">
     <div class="sc-head">
       <div class="ch">
         <div class="ch-l">
