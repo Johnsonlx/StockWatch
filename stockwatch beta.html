@@ -577,7 +577,7 @@ button[id^="purLiveBtn_"]:hover{background:var(--adim);color:var(--acc);box-shad
 
 <!-- ══════════════ HEADER (always visible) ══════════════════════════ -->
 <header>
-  <div class="logo" onclick="logoClick()" title="Klicken = Refresh">
+  <div class="logo" onclick="logoClick()" title="Zurück zum Portfolio / Refresh">
     <div class="logo-ico"><i class="fa-solid fa-chart-line"></i></div>
     Stock<span>Watch</span>
   </div>
@@ -598,8 +598,7 @@ button[id^="purLiveBtn_"]:hover{background:var(--adim);color:var(--acc);box-shad
       <button class="tbtn"    id="tEarth" onclick="setTheme('earth')"    title="Earth"><i class="fa-solid fa-seedling"></i></button>
     </div>
 
-    <button class="hbtn hidden" id="userBtn" onclick="showSyncScreen()"><i class="fa-solid fa-user"></i><span id="userLbl">Konto</span></button>
-    <button class="hbtn hidden" id="setupBtn" onclick="showSetupScreen()"><i class="fa-solid fa-gear"></i></button>
+    <button class="hbtn hidden" id="userBtn" onclick="showProfileScreen()"><i class="fa-solid fa-user-gear"></i><span id="userLbl">Profil</span></button>
   </div>
 </header>
 
@@ -692,63 +691,120 @@ create policy "own" on public.sw_portfolio
   </div>
 </div>
 
-<!-- ══════════════ SYNC/ACCOUNT SCREEN ══════════════════════════════ -->
+<!-- ══════════════ PROFIL (merged settings) ═══════════════════════════ -->
 <div class="screen hidden" id="syncScreen">
   <div class="screen-inner">
     <div class="sbox">
-      <div class="stitle"><i class="fa-solid fa-cloud"></i> Konto &amp; Sync</div>
-      <div id="syncInfo" style="margin-bottom:14px"></div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap">
-        <button class="btn btn-ghost btn-sm" onclick="doLogout()"><i class="fa-solid fa-right-from-bracket"></i> Abmelden</button>
-        <button class="btn btn-ghost btn-sm" onclick="showSetupScreen()"><i class="fa-solid fa-gear"></i> API / Einstellungen</button>
-        <button class="btn btn-ghost btn-sm" onclick="closeSyncScreen()"><i class="fa-solid fa-xmark"></i> Schließen</button>
+      <div class="stitle"><i class="fa-solid fa-user-gear"></i> Profil &amp; Einstellungen</div>
+      <div class="ssub" style="margin-bottom:16px">Konto, API, Design und weitere Optionen.</div>
+      <div class="stabs">
+        <button class="stab on" onclick="pTab(0)"><i class="fa-solid fa-sliders"></i> Allgemein</button>
+        <button class="stab"    onclick="pTab(1)"><i class="fa-solid fa-key"></i> API &amp; Sync</button>
       </div>
-    </div>
-    <div class="sbox" style="margin-top:14px">
-      <div class="stitle" style="font-size:.95rem;margin-bottom:14px"><i class="fa-solid fa-file-export"></i> Export / Import</div>
-      <p style="font-size:.82rem;color:var(--sub);margin-bottom:14px;line-height:1.6">Portfolio als JSON-Datei sichern oder auf einem anderen Gerät importieren.</p>
-      <div style="display:flex;gap:8px;flex-wrap:wrap">
-        <button class="btn btn-acc btn-sm" onclick="exportJSON()"><i class="fa-solid fa-download"></i> Exportieren</button>
-        <button class="btn btn-ghost btn-sm" onclick="document.getElementById('importFile').click()"><i class="fa-solid fa-upload"></i> Importieren</button>
-      </div>
-      <input type="file" id="importFile" accept=".json" style="display:none" onchange="importJSON(event)">
-    </div>
-    <div class="sbox" style="margin-top:14px">
-      <div class="stitle" style="font-size:.95rem;margin-bottom:8px"><i class="fa-solid fa-palette"></i> Design</div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px">
-        <button class="btn btn-ghost btn-sm" onclick="setTheme('dark')"><i class="fa-solid fa-moon"></i> Midnight</button>
-        <button class="btn btn-ghost btn-sm" onclick="setTheme('ocean')"><i class="fa-solid fa-water"></i> Ocean</button>
-        <button class="btn btn-ghost btn-sm" onclick="setTheme('lavender')"><i class="fa-solid fa-star"></i> Lavender</button>
-        <button class="btn btn-ghost btn-sm" onclick="setTheme('mint')"><i class="fa-solid fa-droplet"></i> Mint</button>
-        <button class="btn btn-ghost btn-sm" onclick="setTheme('earth')"><i class="fa-solid fa-seedling"></i> Earth</button>
-      </div>
-    </div>
-    <div class="sbox" style="margin-top:14px">
-      <div class="stitle" style="font-size:.95rem;margin-bottom:12px"><i class="fa-solid fa-sliders"></i> Einstellungen</div>
-      <div style="display:flex;flex-direction:column;gap:14px">
-        <!-- Auto-Refresh Toggle -->
-        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px">
+
+      <!-- Tab 0: Allgemein -->
+      <div class="spanel on" id="pp0">
+        <!-- Konto-Info -->
+        <div id="syncInfo" style="margin-bottom:16px"></div>
+
+        <!-- Design -->
+        <div style="margin-bottom:18px">
+          <div style="font-size:.84rem;font-weight:700;color:var(--tx);margin-bottom:10px"><i class="fa-solid fa-palette" style="color:var(--acc);margin-right:5px"></i>Design</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn btn-ghost btn-sm" onclick="setTheme('dark')"><i class="fa-solid fa-moon"></i> Midnight</button>
+            <button class="btn btn-ghost btn-sm" onclick="setTheme('ocean')"><i class="fa-solid fa-water"></i> Ocean</button>
+            <button class="btn btn-ghost btn-sm" onclick="setTheme('lavender')"><i class="fa-solid fa-star"></i> Lavender</button>
+            <button class="btn btn-ghost btn-sm" onclick="setTheme('mint')"><i class="fa-solid fa-droplet"></i> Mint</button>
+            <button class="btn btn-ghost btn-sm" onclick="setTheme('earth')"><i class="fa-solid fa-seedling"></i> Earth</button>
+          </div>
+        </div>
+
+        <!-- Auto-Refresh -->
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 0;border-top:1px solid var(--cb)">
           <div>
             <div style="font-size:.84rem;font-weight:700;color:var(--tx)"><i class="fa-solid fa-rotate" style="color:var(--acc);margin-right:5px"></i>Auto-Refresh</div>
-            <div style="font-size:.72rem;color:var(--sub);margin-top:3px">Kurse werden alle 5 Minuten automatisch aktualisiert</div>
+            <div style="font-size:.72rem;color:var(--sub);margin-top:3px">Kurse alle 5 Minuten automatisch aktualisieren</div>
           </div>
           <button class="btn btn-sm" id="arSettingBtn" onclick="toggleAutoRefresh();updateArSetting()" style="min-width:80px"></button>
         </div>
-        <!-- Portfolio Reset -->
-        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding-top:14px;border-top:1px solid var(--cb)">
-          <div>
-            <div style="font-size:.84rem;font-weight:700;color:var(--tx)"><i class="fa-solid fa-trash-can" style="color:var(--neg);margin-right:5px"></i>Portfolio zurücksetzen</div>
-            <div style="font-size:.72rem;color:var(--sub);margin-top:3px">Alle Aktien und Käufe unwiderruflich löschen</div>
+
+        <!-- Export / Import -->
+        <div style="padding:14px 0;border-top:1px solid var(--cb)">
+          <div style="font-size:.84rem;font-weight:700;color:var(--tx);margin-bottom:10px"><i class="fa-solid fa-file-export" style="color:var(--acc);margin-right:5px"></i>Export / Import</div>
+          <p style="font-size:.78rem;color:var(--sub);margin-bottom:10px;line-height:1.5">Portfolio als JSON sichern oder importieren.</p>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn btn-acc btn-sm" onclick="exportJSON()"><i class="fa-solid fa-download"></i> Exportieren</button>
+            <button class="btn btn-ghost btn-sm" onclick="document.getElementById('importFile').click()"><i class="fa-solid fa-upload"></i> Importieren</button>
           </div>
-          <button class="btn btn-sm" style="background:var(--nbg);color:var(--neg);min-width:80px;border:1px solid var(--neg)" onclick="resetPortfolio()"><i class="fa-solid fa-trash-can"></i> Reset</button>
+          <input type="file" id="importFile" accept=".json" style="display:none" onchange="importJSON(event)">
         </div>
-        <!-- API Key Reset -->
-        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding-top:14px;border-top:1px solid var(--cb)">
-          <div>
-            <div style="font-size:.84rem;font-weight:700;color:var(--tx)"><i class="fa-solid fa-key" style="color:var(--acc);margin-right:5px"></i>API Key ändern</div>
-            <div style="font-size:.72rem;color:var(--sub);margin-top:3px">Finnhub API Key neu einrichten</div>
+
+        <!-- Danger Zone -->
+        <div style="padding:14px 0;border-top:1px solid var(--cb)">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:12px">
+            <div>
+              <div style="font-size:.84rem;font-weight:700;color:var(--tx)"><i class="fa-solid fa-trash-can" style="color:var(--neg);margin-right:5px"></i>Portfolio zurücksetzen</div>
+              <div style="font-size:.72rem;color:var(--sub);margin-top:3px">Alle Aktien unwiderruflich löschen</div>
+            </div>
+            <button class="btn btn-sm" style="background:var(--nbg);color:var(--neg);min-width:80px;border:1px solid var(--neg)" onclick="resetPortfolio()"><i class="fa-solid fa-trash-can"></i> Reset</button>
           </div>
-          <button class="btn btn-ghost btn-sm" style="min-width:80px" onclick="showSetupScreen()"><i class="fa-solid fa-pen"></i> Ändern</button>
+        </div>
+
+        <!-- Zurück -->
+        <div style="padding-top:14px;border-top:1px solid var(--cb);display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn btn-acc btn-sm" onclick="showApp()" style="flex:1"><i class="fa-solid fa-arrow-left"></i> Zurück zum Portfolio</button>
+          <button class="btn btn-ghost btn-sm" onclick="doLogout()" id="profLogoutBtn" style="flex:0"><i class="fa-solid fa-right-from-bracket"></i> Abmelden</button>
+        </div>
+      </div>
+
+      <!-- Tab 1: API & Sync -->
+      <div class="spanel" id="pp1">
+        <!-- Finnhub API Key -->
+        <div style="margin-bottom:20px">
+          <div style="font-size:.84rem;font-weight:700;color:var(--tx);margin-bottom:10px"><i class="fa-solid fa-key" style="color:var(--acc);margin-right:5px"></i>Finnhub API Key</div>
+          <div class="steps">
+            <div class="step"><div class="snum">1</div><div class="stxt">Registrieren auf <a href="https://finnhub.io/register" target="_blank">finnhub.io/register</a> — kostenlos.</div></div>
+            <div class="step"><div class="snum">2</div><div class="stxt"><strong>API Key</strong> kopieren (60 Abfragen/Min. im Free-Plan).</div></div>
+          </div>
+          <div class="srow">
+            <input class="si" id="pKey" type="text" placeholder="Ihr Finnhub API Key…">
+            <button class="btn btn-acc btn-sm" id="pBtnKey" onclick="saveKeyP()"><i class="fa-solid fa-check"></i> OK</button>
+          </div>
+          <p style="font-size:.72rem;color:var(--mut);margin-top:9px"><i class="fa-solid fa-circle-info"></i> DAX: <span class="mono" style="color:var(--acc)">SAP.DE · BMW.DE · SIE.DE · BAS.DE · ALV.DE · DTE.DE</span></p>
+        </div>
+
+        <!-- Supabase Sync -->
+        <div style="padding-top:16px;border-top:1px solid var(--cb)">
+          <div style="font-size:.84rem;font-weight:700;color:var(--tx);margin-bottom:10px"><i class="fa-solid fa-cloud" style="color:var(--acc);margin-right:5px"></i>Cloud-Sync (optional)</div>
+          <p style="font-size:.78rem;color:var(--sub);margin-bottom:14px;line-height:1.5">Mit Supabase auf mehreren Geräten synchronisieren.</p>
+          <div class="steps">
+            <div class="step"><div class="snum">1</div><div class="stxt">Projekt auf <a href="https://supabase.com" target="_blank">supabase.com</a> erstellen</div></div>
+            <div class="step"><div class="snum">2</div><div class="stxt">In <strong>Authentication → Settings</strong>: „Confirm email" <strong>deaktivieren</strong></div></div>
+            <div class="step"><div class="snum">3</div><div class="stxt">In <strong>Database → Replication</strong>: Tabelle <code>sw_portfolio</code> aktivieren</div></div>
+            <div class="step"><div class="snum">4</div><div class="stxt">Im <strong>SQL Editor</strong> ausführen:</div></div>
+          </div>
+          <div class="sql">create table public.sw_portfolio (
+  id text primary key,
+  user_id uuid not null references auth.users on delete cascade,
+  symbol text not null, target_price float8 not null,
+  name text default '', currency text default '',
+  purchases jsonb not null default '[]'::jsonb,
+  created_at timestamptz default now()
+);
+alter table public.sw_portfolio enable row level security;
+create policy "own" on public.sw_portfolio
+  for all using (auth.uid() = user_id)
+  with check (auth.uid() = user_id);</div>
+          <button class="btn btn-ghost btn-sm" onclick="copySql()" style="margin-bottom:14px"><i class="fa-regular fa-copy"></i> SQL kopieren</button>
+          <div class="steps">
+            <div class="step"><div class="snum">5</div><div class="stxt">In <strong>Settings → API</strong>: URL + Key einfügen:</div></div>
+          </div>
+          <div class="fg"><input class="si" id="pUrl" type="text" placeholder="https://xxxx.supabase.co"></div>
+          <div class="srow">
+            <input class="si" id="pSb" type="text" placeholder="anon / public key…">
+            <button class="btn btn-acc btn-sm" id="pBtnSb" onclick="saveSbP()"><i class="fa-solid fa-cloud-arrow-up"></i> Verbinden</button>
+          </div>
+          <button class="btn btn-ghost btn-sm" onclick="skipSb();showApp()" style="margin-top:10px"><i class="fa-solid fa-arrow-right"></i> Überspringen — nur lokal</button>
         </div>
       </div>
     </div>
@@ -1039,20 +1095,33 @@ function showAuthScreen() {
   document.getElementById('app').classList.add('hidden');
   document.getElementById('mainFooter').classList.add('hidden');
 }
-function showSyncScreen() {
+function showProfileScreen() {
   hideAllScreens();
   document.getElementById('syncScreen').classList.remove('hidden');
   document.getElementById('app').classList.add('hidden');
   document.getElementById('mainFooter').classList.add('hidden');
   updateSyncInfo();
   updateArSetting();
+  // Pre-fill API & Sync fields
+  if(apiKey) document.getElementById('pKey').value = apiKey;
+  const su=localStorage.getItem('sw_sb_url'), sk=localStorage.getItem('sw_sb_key');
+  if(su) document.getElementById('pUrl').value=su;
+  if(sk) document.getElementById('pSb').value=sk;
+  // Show/hide logout button
+  const lb = document.getElementById('profLogoutBtn');
+  if(lb) lb.style.display = sbUser ? '' : 'none';
 }
+function showSyncScreen() { showProfileScreen(); }
 function closeSyncScreen() { showApp(); }
+function pTab(i) {
+  document.querySelectorAll('#syncScreen .stab').forEach((t,j)=>t.classList.toggle('on',j===i));
+  ['pp0','pp1'].forEach((id,j)=>document.getElementById(id)?.classList.toggle('on',j===i));
+}
 function showApp() {
   hideAllScreens();
   document.getElementById('app').classList.remove('hidden');
   document.getElementById('mainFooter').classList.remove('hidden');
-  document.getElementById('setupBtn').classList.remove('hidden');
+  document.getElementById('userBtn').classList.remove('hidden');
   document.getElementById('fDate').valueAsDate = new Date();
   updateSyncBadge();
   renderGrid();
@@ -1123,6 +1192,43 @@ async function saveSb() {
   btn.disabled=false; btn.innerHTML='<i class="fa-solid fa-cloud-arrow-up"></i> Verbinden';
 }
 function skipSb() { sbClient=null; sbUser=null; localStorage.removeItem('sw_sb_url'); localStorage.removeItem('sw_sb_key'); showApp(); }
+
+// Profile-screen save wrappers (use pKey/pUrl/pSb inputs)
+async function saveKeyP() {
+  const k = document.getElementById('pKey').value.trim();
+  if (!k||k.length<8) return toast('Bitte gültigen API Key eingeben.','te');
+  const btn = document.getElementById('pBtnKey');
+  btn.disabled=true; btn.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i>';
+  try {
+    const r = await fetch(`${FH}/quote?symbol=AAPL&token=${k}`,{signal:AbortSignal.timeout(9000)});
+    if (r.status===401) throw new Error('BAD_KEY');
+    const d = await r.json();
+    if (!d||d.c==null) throw new Error('NO_DATA');
+    apiKey=k; localStorage.setItem('sw_key',k);
+    toast('API Key gespeichert ✓','ts');
+  } catch(e) {
+    toast(e.message==='BAD_KEY'?'API Key ungültig.':'Verbindungsfehler — Internet prüfen.','te');
+  }
+  btn.disabled=false; btn.innerHTML='<i class="fa-solid fa-check"></i> OK';
+}
+async function saveSbP() {
+  const url=document.getElementById('pUrl').value.trim();
+  const key=document.getElementById('pSb').value.trim();
+  if (!url||!key) return toast('URL und Key eingeben.','te');
+  const btn=document.getElementById('pBtnSb');
+  btn.disabled=true; btn.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i>';
+  try {
+    sbClient = window.supabase.createClient(url, key);
+    await sbClient.auth.getSession();
+    localStorage.setItem('sw_sb_url',url); localStorage.setItem('sw_sb_key',key);
+    toast('Supabase verbunden! Bitte anmelden.','ts');
+    showAuthScreen();
+  } catch(e) {
+    toast('Verbindung fehlgeschlagen: '+(e.message||'Unbekannt'),'te');
+    sbClient=null;
+  }
+  btn.disabled=false; btn.innerHTML='<i class="fa-solid fa-cloud-arrow-up"></i> Verbinden';
+}
 
 // ─── AUTH ────────────────────────────────────────────────────────────
 async function doAuth() {
@@ -1328,7 +1434,7 @@ async function loadHist() {
         data.t.forEach((ts,i)=>{ const df=Math.abs(ts-tgt); if(df<md){md=df;ci=i;} });
         result={price:data.c[ci],date:new Date(data.t[ci]*1000)};
       }
-    } catch(e) { if(e.message==='BAD_KEY'){showSetupScreen();toast('API Key ungültig.','te');} }
+    } catch(e) { if(e.message==='BAD_KEY'){showProfileScreen();pTab(1);toast('API Key ungültig.','te');} }
   }
   if(result) {
     document.getElementById('fBuy').value=result.price.toFixed(4);
@@ -1403,7 +1509,7 @@ async function doRefresh() {
       }).catch(()=>{});
     }
   });
-  if(badKey){toast('API Key ungültig (401).','te');showSetupScreen();}
+  if(badKey){toast('API Key ungültig (401).','te');showProfileScreen();pTab(1);}
   save(); renderGrid(); updateSummary();
   const now=new Date();
   const timeStr = now.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});
@@ -1412,7 +1518,11 @@ async function doRefresh() {
   rb.classList.remove('spin'); rb.disabled=false;
 }
 
-function logoClick() { doRefresh(); }
+function logoClick() {
+  const app = document.getElementById('app');
+  if(app.classList.contains('hidden')) { showApp(); return; }
+  doRefresh();
+}
 
 // ─── MOBILE CARD TAP: expand → then open popup ─────────────────────
 const MOBILE_BP = 700;
