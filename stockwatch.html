@@ -1375,26 +1375,33 @@ const fhC = (s,f,t) => fh(`/stock/candle?symbol=${encodeURIComponent(s)}&resolut
 
 // ─── YAHOO FINANCE LIVE QUOTE (Fallback für .DE und andere nicht-US Symbole) ──
 async function yahooLiveQuote(sym) {
-  const yfUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(sym)}?interval=1m&range=1d`;
-  for (const proxy of [
-    `https://corsproxy.io/?url=${encodeURIComponent(yfUrl)}`,
-    `https://api.allorigins.win/raw?url=${encodeURIComponent(yfUrl)}`
-  ]) {
-    try {
-      const r = await fetch(proxy, {signal: AbortSignal.timeout(10000)});
-      if (!r.ok) continue;
-      const data = await r.json();
-      const meta = data?.chart?.result?.[0]?.meta;
-      if (!meta) continue;
-      const price = meta.regularMarketPrice || meta.previousClose;
-      if (!price) continue;
-      const prevClose = meta.chartPreviousClose || meta.previousClose || price;
-      const dayChange = price - prevClose;
-      const dayPct = prevClose ? (dayChange / prevClose * 100) : 0;
-      const currency = meta.currency || '';
-      const exchange = meta.exchangeName || meta.fullExchangeName || '';
-      return { c: price, pc: prevClose, d: dayChange, dp: dayPct, currency, exchange, _src: 'yahoo' };
-    } catch(_) { continue; }
+  const urls = [
+    `https://query2.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(sym)}?interval=1m&range=1d`,
+    `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(sym)}?interval=1m&range=1d`
+  ];
+  const proxies = [
+    url => `https://corsproxy.io/?${encodeURIComponent(url)}`,
+    url => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+    url => `https://thingproxy.freeboard.io/fetch/${url}`
+  ];
+  for (const yfUrl of urls) {
+    for (const mkProxy of proxies) {
+      try {
+        const r = await fetch(mkProxy(yfUrl), {signal: AbortSignal.timeout(8000)});
+        if (!r.ok) continue;
+        const data = await r.json();
+        const meta = data?.chart?.result?.[0]?.meta;
+        if (!meta) continue;
+        const price = meta.regularMarketPrice || meta.previousClose;
+        if (!price) continue;
+        const prevClose = meta.chartPreviousClose || meta.previousClose || price;
+        const dayChange = price - prevClose;
+        const dayPct = prevClose ? (dayChange / prevClose * 100) : 0;
+        const currency = meta.currency || '';
+        const exchange = meta.exchangeName || meta.fullExchangeName || '';
+        return { c: price, pc: prevClose, d: dayChange, dp: dayPct, currency, exchange, _src: 'yahoo' };
+      } catch(_) { continue; }
+    }
   }
   return null;
 }
@@ -1404,24 +1411,31 @@ async function fetchYahooHist(sym, dateStr) {
   const d=new Date(dateStr+'T12:00:00Z');
   const from=Math.floor(d.getTime()/1000)-259200;
   const to=Math.floor(d.getTime()/1000)+259200;
-  const yfUrl=`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(sym)}?interval=1d&period1=${from}&period2=${to}`;
-  for (const px of [
-    `https://corsproxy.io/?url=${encodeURIComponent(yfUrl)}`,
-    `https://api.allorigins.win/raw?url=${encodeURIComponent(yfUrl)}`
-  ]) {
-    try {
-      const r=await fetch(px,{signal:AbortSignal.timeout(9000)});
-      if(!r.ok) continue;
-      const data=await r.json();
-      const res=data?.chart?.result?.[0];
-      if(!res) continue;
-      const closes=res.indicators?.quote?.[0]?.close, times=res.timestamp;
-      if(!closes||!times) continue;
-      let ci=0,md=Infinity;
-      const tgt=d.getTime()/1000;
-      times.forEach((ts,i)=>{ if(closes[i]==null)return; const df=Math.abs(ts-tgt); if(df<md){md=df;ci=i;} });
-      if(closes[ci]!=null) return {price:closes[ci], date:new Date(times[ci]*1000)};
-    } catch(_){ continue; }
+  const urls = [
+    `https://query2.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(sym)}?interval=1d&period1=${from}&period2=${to}`,
+    `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(sym)}?interval=1d&period1=${from}&period2=${to}`
+  ];
+  const proxies = [
+    url => `https://corsproxy.io/?${encodeURIComponent(url)}`,
+    url => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+    url => `https://thingproxy.freeboard.io/fetch/${url}`
+  ];
+  for (const yfUrl of urls) {
+    for (const mkProxy of proxies) {
+      try {
+        const r=await fetch(mkProxy(yfUrl),{signal:AbortSignal.timeout(9000)});
+        if(!r.ok) continue;
+        const data=await r.json();
+        const res=data?.chart?.result?.[0];
+        if(!res) continue;
+        const closes=res.indicators?.quote?.[0]?.close, times=res.timestamp;
+        if(!closes||!times) continue;
+        let ci=0,md=Infinity;
+        const tgt=d.getTime()/1000;
+        times.forEach((ts,i)=>{ if(closes[i]==null)return; const df=Math.abs(ts-tgt); if(df<md){md=df;ci=i;} });
+        if(closes[ci]!=null) return {price:closes[ci], date:new Date(times[ci]*1000)};
+      } catch(_){ continue; }
+    }
   }
   return null;
 }
