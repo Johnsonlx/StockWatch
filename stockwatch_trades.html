@@ -44,15 +44,20 @@ header{position:fixed;top:0;left:0;right:0;z-index:300;background:var(--hdr);bac
 .hbtn{display:flex;align-items:center;gap:6px;padding:4px 10px;border-radius:8px;border:1px solid var(--cb);background:var(--sur);font-size:.78rem;font-weight:600;color:var(--sub);cursor:pointer;transition:all .15s;flex-shrink:0;font-family:inherit}
 .hbtn:hover{border-color:var(--acc);color:var(--acc)}
 
-/* Settings dropdown */
-.sett-drop{position:fixed;top:62px;right:16px;z-index:298;background:var(--sur);border:1px solid var(--cb);border-radius:14px;padding:14px;box-shadow:0 12px 32px var(--shd);min-width:200px;opacity:0;visibility:hidden;transform:translateY(-6px);transition:all .18s}
-.sett-drop.open{opacity:1;visibility:visible;transform:translateY(0)}
-.sd-title{font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--sub);margin-bottom:10px}
-.sd-themes{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:12px}
-.sd-th{padding:5px 10px;border-radius:7px;font-size:.72rem;font-weight:600;border:1px solid var(--cb);background:transparent;color:var(--sub);cursor:pointer;transition:all .15s;font-family:inherit;display:flex;align-items:center;gap:4px}
-.sd-th:hover{border-color:var(--acc);color:var(--acc)}
-.sd-link{display:flex;align-items:center;gap:7px;padding:8px 10px;border-radius:8px;font-size:.78rem;font-weight:600;color:var(--sub);transition:all .15s;border:none;background:none;cursor:pointer;width:100%;font-family:inherit;text-align:left;margin-top:4px;border-top:1px solid var(--cb);padding-top:10px}
-.sd-link:hover{color:var(--acc);background:var(--adim)}
+/* Settings panel */
+.sett-panel{position:fixed;top:60px;left:0;right:0;z-index:298;background:var(--sur);border-bottom:1px solid var(--cb);box-shadow:0 12px 32px var(--shd);max-height:0;overflow:hidden;transition:max-height .25s ease,opacity .2s;opacity:0}
+.sett-panel.open{max-height:300px;opacity:1}
+.sett-inner{max-width:1400px;margin:0 auto;padding:16px 18px;display:flex;align-items:flex-start;gap:24px;flex-wrap:wrap}
+.sett-section{display:flex;flex-direction:column;gap:8px}
+.sett-lbl{font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--sub)}
+.sett-themes{display:flex;gap:5px;flex-wrap:wrap}
+.sett-th{padding:6px 12px;border-radius:8px;font-size:.76rem;font-weight:600;border:1px solid var(--cb);background:transparent;color:var(--sub);cursor:pointer;transition:all .15s;font-family:inherit;display:flex;align-items:center;gap:5px}
+.sett-th:hover{border-color:var(--acc);color:var(--acc)}
+.sett-actions{display:flex;gap:6px;flex-wrap:wrap}
+.sett-btn{display:flex;align-items:center;gap:6px;padding:7px 14px;border-radius:8px;font-size:.78rem;font-weight:600;color:var(--sub);transition:all .15s;border:1px solid var(--cb);background:transparent;cursor:pointer;font-family:inherit}
+.sett-btn:hover{border-color:var(--acc);color:var(--acc);background:var(--adim)}
+.sett-close{margin-left:auto;padding:7px 14px;border-radius:8px;font-size:.78rem;font-weight:600;border:1px solid var(--cb);background:transparent;color:var(--sub);cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:5px;transition:all .15s;align-self:center}
+.sett-close:hover{border-color:var(--neg);color:var(--neg)}
 
 /* ═══ CONTENT WRAPPER ═══ */
 .wrap{max-width:1400px;margin:0 auto;padding:22px 18px 40px}
@@ -71,7 +76,11 @@ header{position:fixed;top:0;left:0;right:0;z-index:300;background:var(--hdr);bac
 
 /* ═══ SUMMARY CARDS ═══ */
 .sbar{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:22px}
-.scard{background:var(--sur);border:1px solid var(--cb);border-radius:13px;padding:14px 16px;transition:background .3s,border-color .3s}
+.scard{background:var(--sur);border:1px solid var(--cb);border-radius:13px;padding:14px 16px;transition:background .3s,border-color .3s;position:relative;overflow:hidden;animation:fadeUp .5s ease both}
+.scard:nth-child(1){animation-delay:.05s}.scard:nth-child(2){animation-delay:.10s}
+.scard:nth-child(3){animation-delay:.15s}.scard:nth-child(4){animation-delay:.20s}
+.scard:nth-child(5){animation-delay:.25s}.scard:nth-child(6){animation-delay:.30s}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
 .scico{width:28px;height:28px;border-radius:8px;background:var(--adim);display:flex;align-items:center;justify-content:center;color:var(--acc);font-size:11px;margin-bottom:8px}
 .sclbl{font-size:.68rem;text-transform:uppercase;letter-spacing:.07em;color:var(--sub);font-weight:600;margin-bottom:4px}
 .scval{font-family:'JetBrains Mono',monospace;font-size:1.1rem;font-weight:800}
@@ -122,7 +131,9 @@ footer{background:var(--sur);border-top:1px solid var(--cb);padding:24px 20px}
   .logo{font-size:.95rem;gap:6px}.logo-ico{width:28px;height:28px;font-size:12px}
   .rt-time{font-size:.68rem;padding:3px 7px}
   .hbtn span{display:none}
-  .sett-drop{top:56px;right:8px;left:8px;min-width:auto}
+  .sett-inner{flex-direction:column;gap:14px}
+  .sett-close{margin-left:0;width:100%;justify-content:center}
+  .sett-panel{top:54px}
   .tc-grid{grid-template-columns:1fr 1fr}
   .footer-inner{grid-template-columns:1fr;text-align:center;gap:14px}
   .footer-left{align-items:center}.footer-right{align-items:center}
@@ -153,21 +164,33 @@ footer{background:var(--sur);border-top:1px solid var(--cb);padding:24px 20px}
       <button class="tbtn" id="tMint" onclick="setTheme('mint')" title="Mint"><i class="fa-solid fa-droplet"></i></button>
       <button class="tbtn" id="tEarth" onclick="setTheme('earth')" title="Earth"><i class="fa-solid fa-seedling"></i></button>
     </div>
-    <button class="hbtn" onclick="document.getElementById('settDrop').classList.toggle('open')"><i class="fa-solid fa-user-gear"></i><span>Profil</span></button>
+    <button class="hbtn" id="userBtn" onclick="toggleSettings()"><i class="fa-solid fa-user-gear"></i><span>Profil</span></button>
   </div>
-  <!-- Settings dropdown (same page) -->
-  <div class="sett-drop" id="settDrop">
-    <div class="sd-title"><i class="fa-solid fa-palette"></i> Design</div>
-    <div class="sd-themes">
-      <button class="sd-th" onclick="setTheme('dark')"><i class="fa-solid fa-moon"></i> Midnight</button>
-      <button class="sd-th" onclick="setTheme('ocean')"><i class="fa-solid fa-water"></i> Ocean</button>
-      <button class="sd-th" onclick="setTheme('lavender')"><i class="fa-solid fa-star"></i> Lavender</button>
-      <button class="sd-th" onclick="setTheme('mint')"><i class="fa-solid fa-droplet"></i> Mint</button>
-      <button class="sd-th" onclick="setTheme('earth')"><i class="fa-solid fa-seedling"></i> Earth</button>
+</header>
+
+<!-- Settings Panel (slides down like portfolio profile) -->
+<div class="sett-panel" id="settPanel">
+  <div class="sett-inner">
+    <div class="sett-section">
+      <div class="sett-lbl"><i class="fa-solid fa-palette"></i> Design</div>
+      <div class="sett-themes">
+        <button class="sett-th" onclick="setTheme('dark')"><i class="fa-solid fa-moon"></i> Midnight</button>
+        <button class="sett-th" onclick="setTheme('ocean')"><i class="fa-solid fa-water"></i> Ocean</button>
+        <button class="sett-th" onclick="setTheme('lavender')"><i class="fa-solid fa-star"></i> Lavender</button>
+        <button class="sett-th" onclick="setTheme('mint')"><i class="fa-solid fa-droplet"></i> Mint</button>
+        <button class="sett-th" onclick="setTheme('earth')"><i class="fa-solid fa-seedling"></i> Earth</button>
+      </div>
     </div>
-    <a href="stockwatch_beta.html" class="sd-link"><i class="fa-solid fa-briefcase"></i> Zum Portfolio</a>
-    <button class="sd-link" style="color:var(--neg)" onclick="clearLog()"><i class="fa-solid fa-trash-can"></i> Trade-Log löschen</button>
+    <div class="sett-section">
+      <div class="sett-lbl"><i class="fa-solid fa-sliders"></i> Aktionen</div>
+      <div class="sett-actions">
+        <a href="stockwatch_beta.html" class="sett-btn"><i class="fa-solid fa-briefcase"></i> Zum Portfolio</a>
+        <button class="sett-btn" style="color:var(--neg)" onclick="clearLog()"><i class="fa-solid fa-trash-can"></i> Trade-Log löschen</button>
+      </div>
+    </div>
+    <button class="sett-close" onclick="toggleSettings()"><i class="fa-solid fa-xmark"></i> Schließen</button>
   </div>
+</div>
 </header>
 
 <!-- ══════════════ MAIN APP ═══════════════════════════════════════ -->
@@ -348,9 +371,13 @@ function clearLog(){
 }
 
 // ─── INIT ───────────────────────────────────────────────────────────
+// ─── SETTINGS PANEL ─────────────────────────────────────────────────
+function toggleSettings(){
+  document.getElementById('settPanel').classList.toggle('open');
+}
 document.addEventListener('click',e=>{
-  const d=document.getElementById('settDrop');
-  if(d&&d.classList.contains('open')&&!d.contains(e.target)&&!e.target.closest('.hbtn'))d.classList.remove('open');
+  const p=document.getElementById('settPanel');
+  if(p&&p.classList.contains('open')&&!p.contains(e.target)&&!e.target.closest('#userBtn'))p.classList.remove('open');
 });
 const allTrades=getAllTrades();
 renderSummary(allTrades);
