@@ -1737,22 +1737,35 @@ function executeSell() {
   if(!price||price<=0) return toast('Bitte Verkaufspreis eingeben.','te');
   if(!shares||shares<=0) return toast('Bitte Stückzahl eingeben.','te');
   const avail = activeShares(s);
-  if(shares>avail) return toast(`Nur ${avail} Stücke verfügbar.`,'te');
+  if(shares>avail+0.001) return toast(`Nur ${avail} Stücke verfügbar.`,'te');
   if(!s.sales) s.sales = [];
+
+  // FIFO: track which purchases are affected
+  const adjustments = [];
+  let remaining = shares;
+  const sorted = [...s.purchases].sort((a,b)=>(a.buyDate||'').localeCompare(b.buyDate||''));
+  for(const p of sorted) {
+    if(remaining<=0) break;
+    const purRemaining = purchaseRemaining(s, p.id);
+    if(purRemaining<=0) continue;
+    const take = Math.min(remaining, purRemaining);
+    adjustments.push({purchaseId: p.id, sharesReduced: take, buyPrice: p.buyPrice});
+    remaining -= take;
+  }
+
   const sale = {
     id: Date.now().toString(36)+Math.random().toString(36).slice(2,6),
     shares, sellPrice: price, sellDate: date, sellTime: time||'',
     avgBuyPrice: avgBuyPrice(s),
-    realizedPL: (price - avgBuyPrice(s)) * shares
+    realizedPL: (price - avgBuyPrice(s)) * shares,
+    adjustments // FIFO tracking for undo
   };
   s.sales.push(sale);
-  // Archive trade to trade log
   archiveTrade(s, sale, 'sell');
   const pl = sale.realizedPL;
   const sym = s.symbol;
   const cur = s.currency||'';
-  // If fully sold → archive entire stock and remove from portfolio
-  if(activeShares(s) <= 0) {
+  if(activeShares(s) <= 0.001) {
     archiveClosedPosition(s);
     portfolio = portfolio.filter(x=>x.id!==s.id);
     if(sbClient&&sbUser) delSb(s.id);
@@ -1765,6 +1778,16 @@ function executeSell() {
     toast(`${sym}: ${shares} Stücke verkauft · ${pl>=0?'+':''}${pl.toFixed(2)} ${cur}`, pl>=0?'ts':'te');
   }
   save(); renderGrid(); updateSummary();
+}
+
+// How many shares remain in a specific purchase (after all sales that affected it)
+function purchaseRemaining(stock, purchaseId) {
+  const p = stock.purchases.find(x=>x.id===purchaseId);
+  if(!p) return 0;
+  const sold = (stock.sales||[]).reduce((a,sl)=>{
+    return a + (sl.adjustments||[]).filter(adj=>adj.purchaseId===purchaseId).reduce((b,adj)=>b+adj.sharesReduced,0);
+  },0);
+  return Math.max(0, p.shares - sold);
 }
 
 // ─── TRADE LOG (localStorage: sw_trades) ────────────────────────────
@@ -1806,23 +1829,18 @@ function archiveClosedPosition(stock) {
   saveTradeLog(log);
 }
 
-// Undo sale (restore shares)
+// Undo sale: restore shares to purchases + remove from trade log
 function undoSale(stockId, saleId) {
   const s = portfolio.find(x=>x.id===stockId); if(!s||!s.sales) return;
+  // Remove from trade log
+  const log = getTradeLog().filter(t=>t.id!==saleId);
+  saveTradeLog(log);
+  // Remove sale from stock
   s.sales = s.sales.filter(sl=>sl.id!==saleId);
   save(); renderGrid(); updateSummary();
   if(sbClient&&sbUser) pushSb(s);
   closePop(); openPop(stockId);
-  toast('Verkauf rückgängig gemacht.','ts');
-}
-// Delete sale permanently
-function deleteSale(stockId, saleId) {
-  const s = portfolio.find(x=>x.id===stockId); if(!s||!s.sales) return;
-  s.sales = s.sales.filter(sl=>sl.id!==saleId);
-  save(); renderGrid(); updateSummary();
-  if(sbClient&&sbUser) pushSb(s);
-  closePop(); openPop(stockId);
-  toast('Verkauf entfernt.','ti');
+  toast('Verkauf rückgängig — Stücke wiederhergestellt.','ts');
 }
 // Edit sale
 function toggleSaleEdit(saleId) {
@@ -1835,8 +1853,20 @@ function saveSaleEdit(stockId, saleId) {
   sale.sellDate = document.getElementById('sed_'+saleId)?.value || sale.sellDate;
   sale.sellTime = document.getElementById('set_'+saleId)?.value || '';
   sale.sellPrice = parseFloat(document.getElementById('sep_'+saleId)?.value) || sale.sellPrice;
-  sale.shares = parseFloat(document.getElementById('ses_'+saleId)?.value) || sale.shares;
+  const newShares = parseFloat(document.getElementById('ses_'+saleId)?.value) || sale.shares;
+  sale.shares = newShares;
   sale.realizedPL = (sale.sellPrice - sale.avgBuyPrice) * sale.shares;
+  // Update trade log entry
+  const log = getTradeLog();
+  const logEntry = log.find(t=>t.id===saleId);
+  if(logEntry) {
+    logEntry.price = sale.sellPrice;
+    logEntry.shares = sale.shares;
+    logEntry.date = sale.sellDate;
+    logEntry.time = sale.sellTime;
+    logEntry.realizedPL = sale.realizedPL;
+    saveTradeLog(log);
+  }
   save(); renderGrid(); updateSummary();
   if(sbClient&&sbUser) pushSb(s);
   closePop(); openPop(stockId);
@@ -2296,12 +2326,16 @@ function openPop(id) {
   // Purchase rows
   const sortedP = [...s.purchases].sort((a,b)=>b.buyDate?.localeCompare(a.buyDate||'')||0);
   const purHtml = sortedP.map((p,i)=>{
+    const rem = purchaseRemaining(s, p.id);
+    const sold = p.shares - rem;
+    const hasSold = sold > 0.001;
     const purGain = hp ? (s.price - p.buyPrice)/p.buyPrice*100 : null;
-    const purGainV = hp ? (s.price - p.buyPrice)*p.shares : null;
+    const purGainV = hp ? (s.price - p.buyPrice)*rem : null;
     const gc = purGain==null?'':(purGain>=0?'p':'n');
     const gs2 = purGain!=null&&purGain>=0?'+':'';
     const dStr = p.buyDate ? new Date(p.buyDate+'T12:00:00').toLocaleDateString('de-DE') : '—';
-    return `<div class="pur-item" id="purItem_${p.id}">
+    const soldBadge = hasSold ? `<div style="font-size:.65rem;color:var(--gld);margin-top:3px"><i class="fa-solid fa-hand-holding-dollar"></i> ${f(sold,sold%1===0?0:3)} verkauft</div>` : '';
+    return `<div class="pur-item" id="purItem_${p.id}" ${rem<0.001?'style="opacity:.45;border-style:dashed"':''}>
       <div class="pur-row">
         <div class="pur-field">
           <div class="pur-lbl"><i class="fa-solid fa-tag"></i> Einkaufspreis</div>
@@ -2309,19 +2343,20 @@ function openPop(id) {
           ${purGain!=null?`<div class="pur-gain ${gc}">${gs2}${f(purGain)}%</div>`:''}
         </div>
         <div class="pur-field">
-          <div class="pur-lbl"><i class="fa-solid fa-hashtag"></i> Stücke</div>
-          <div class="pur-val">${f(p.shares,0)}</div>
-          ${purGainV!=null?`<div class="pur-gain ${gc}">${purGainV>=0?'+':''}${fc(purGainV)}</div>`:''}
+          <div class="pur-lbl"><i class="fa-solid fa-cubes"></i> ${hasSold?'Verbleibend':'Stücke'}</div>
+          <div class="pur-val">${f(rem,rem%1===0?0:3)} <span style="font-size:.7rem;color:var(--sub)">${hasSold?'/ '+f(p.shares,p.shares%1===0?0:3):''}</span></div>
+          ${soldBadge}
+          ${purGainV!=null&&rem>0?`<div class="pur-gain ${gc}">${purGainV>=0?'+':''}${fc(purGainV)}</div>`:''}
         </div>
         <div class="pur-field">
           <div class="pur-lbl"><i class="fa-solid fa-calendar"></i> Datum</div>
           <div class="pur-val" style="font-size:.82rem">${dStr}</div>
           <div class="pur-date">${p.buyTime||''}</div>
         </div>
-        <button class="pur-edit-btn" id="peb_${p.id}" onclick="togglePurchaseEdit('${p.id}')" title="Kauf bearbeiten"><i class="fa-solid fa-pen"></i></button>
-        <button class="pur-del-btn" onclick="deletePurchase('${id}','${p.id}')" title="Kauf entfernen"><i class="fa-solid fa-trash-can"></i></button>
+        ${rem>0.001?`<button class="pur-edit-btn" id="peb_${p.id}" onclick="togglePurchaseEdit('${p.id}')" title="Kauf bearbeiten"><i class="fa-solid fa-pen"></i></button>`:''}
+        ${!hasSold?`<button class="pur-del-btn" onclick="deletePurchase('${id}','${p.id}')" title="Kauf entfernen"><i class="fa-solid fa-trash-can"></i></button>`:''}
       </div>
-      <!-- Inline edit row (klappt auf via .editing) -->
+      ${rem>0.001?`<!-- Inline edit row -->
       <div class="pur-edit-row">
         <div>
           <div class="pur-lbl">Datum</div>
@@ -2335,7 +2370,7 @@ function openPop(id) {
           <div class="pur-lbl">Einkaufspreis</div>
           <div style="display:flex;gap:5px;align-items:center">
             <input class="fi" id="pep_${p.id}" type="number" step="0.0001" value="${p.buyPrice}" placeholder="Preis" style="padding:6px 9px;font-size:.82rem;flex:1;min-width:0">
-            <button class="btn btn-ghost btn-sm" id="purLiveBtn_${p.id}" onclick="fetchPurLivePrice('${id}','${p.id}')" title="Kurs für gewähltes Datum abrufen" style="padding:6px 8px;flex-shrink:0;white-space:nowrap">
+            <button class="btn btn-ghost btn-sm" id="purLiveBtn_${p.id}" onclick="fetchPurLivePrice('${id}','${p.id}')" title="Kurs abrufen" style="padding:6px 8px;flex-shrink:0;white-space:nowrap">
               <i class="fa-solid fa-satellite-dish"></i>
             </button>
           </div>
@@ -2347,7 +2382,7 @@ function openPop(id) {
       </div>
       <button class="btn btn-acc btn-sm pur-save-btn" onclick="savePurchaseEdit('${id}','${p.id}')">
         <i class="fa-solid fa-floppy-disk"></i> Kauf ${i+1} speichern
-      </button>
+      </button>`:''}
     </div>`;
   }).join('');
 
@@ -2383,7 +2418,6 @@ function openPop(id) {
         <div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap">
           <button class="btn btn-ghost btn-sm" style="flex:1;font-size:.72rem" onclick="toggleSaleEdit('${sl.id}')"><i class="fa-solid fa-pen"></i> Bearbeiten</button>
           <button class="btn btn-ghost btn-sm" style="flex:1;font-size:.72rem;color:var(--pos);border-color:var(--pos)" onclick="undoSale('${id}','${sl.id}')"><i class="fa-solid fa-rotate-left"></i> Rückgängig</button>
-          <button class="btn btn-ghost btn-sm" style="flex:1;font-size:.72rem;color:var(--neg);border-color:var(--neg)" onclick="deleteSale('${id}','${sl.id}')"><i class="fa-solid fa-trash-can"></i> Entfernen</button>
         </div>
         <div class="pur-edit-row">
           <div><div class="pur-lbl">Datum</div><input class="fi" id="sed_${sl.id}" type="date" value="${sl.sellDate||''}"></div>
