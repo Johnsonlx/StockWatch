@@ -98,7 +98,6 @@ footer{background:var(--sur);border-top:1px solid var(--cb);padding:22px 20px;ma
   <div class="tabs">
     <div class="tab on" onclick="setFilter('all',this)">Alle</div>
     <div class="tab" onclick="setFilter('sell',this)">Verkäufe</div>
-    <div class="tab" onclick="setFilter('close',this)">Geschlossene</div>
     <div class="tab" onclick="setFilter('profit',this)">Gewinne</div>
     <div class="tab" onclick="setFilter('loss',this)">Verluste</div>
   </div>
@@ -123,12 +122,12 @@ function gLog(){return JSON.parse(localStorage.getItem('sw_trades')||'[]');}
 function gActive(){const p=JSON.parse(localStorage.getItem('sw_p')||'[]'),s=[];p.forEach(st=>{(st.sales||[]).forEach(sl=>{s.push({id:sl.id,type:'sell',symbol:st.symbol,name:st.name||st.symbol,currency:st.currency||'',shares:sl.shares,price:sl.sellPrice,avgBuyPrice:sl.avgBuyPrice,date:sl.sellDate,time:sl.sellTime||'',realizedPL:sl.realizedPL||(sl.sellPrice-sl.avgBuyPrice)*sl.shares,timestamp:new Date((sl.sellDate||'2000-01-01')+'T12:00:00').getTime()});});});return s;}
 function gAll(){const l=gLog(),a=gActive(),ids=new Set(l.map(t=>t.id)),m=[...l];a.forEach(x=>{if(!ids.has(x.id))m.push(x);});m.sort((a,b)=>(b.timestamp||0)-(a.timestamp||0));return m;}
 function rSum(t){
-  const sells=t.filter(x=>x.type==='sell'),closed=t.filter(x=>x.type==='position_closed');
-  const pl=sells.reduce((a,x)=>a+(x.realizedPL||0),0)+closed.reduce((a,x)=>a+(x.totalRealized||0),0);
+  const sells=t.filter(x=>x.type==='sell');
+  const pl=sells.reduce((a,x)=>a+(x.realizedPL||0),0);
   const rev=sells.reduce((a,x)=>a+(x.price||0)*(x.shares||0),0);
-  const w=sells.filter(x=>(x.realizedPL||0)>=0).length+closed.filter(x=>(x.totalRealized||0)>=0).length;
-  const l=sells.filter(x=>(x.realizedPL||0)<0).length+closed.filter(x=>(x.totalRealized||0)<0).length;
-  const tot=w+l;const ct=closed.filter(x=>x.targetReached).length;
+  const w=sells.filter(x=>(x.realizedPL||0)>=0).length;
+  const l=sells.filter(x=>(x.realizedPL||0)<0).length;
+  const tot=w+l;
   document.getElementById('summary').innerHTML=`
     <div class="sc"><div class="sl">Realisierter G/V</div><div class="sv ${pl>=0?'p':'n'}">${pl>=0?'+':''}${f2(pl)}</div></div>
     <div class="sc"><div class="sl">Erlöse</div><div class="sv a">${f2(rev)}</div></div>
@@ -136,18 +135,15 @@ function rSum(t){
     <div class="sc"><div class="sl">Gewinner</div><div class="sv p">${w}</div></div>
     <div class="sc"><div class="sl">Verlierer</div><div class="sv n">${l}</div></div>
     <div class="sc"><div class="sl">Trefferquote</div><div class="sv g">${tot?Math.round(w/tot*100)+'%':'—'}</div></div>
-    <div class="sc"><div class="sl">Ziele verkauft</div><div class="sv g">${ct}</div></div>`;
+`;
 }
 function rTrades(t){
   const el=document.getElementById('tradeList');let f=t;
   if(cf==='sell')f=t.filter(x=>x.type==='sell');
-  if(cf==='close')f=t.filter(x=>x.type==='position_closed');
   if(cf==='profit')f=t.filter(x=>(x.realizedPL||x.totalRealized||0)>=0&&x.type!=='buy');
   if(cf==='loss')f=t.filter(x=>(x.realizedPL||x.totalRealized||0)<0&&x.type!=='buy');
   if(!f.length){el.innerHTML='<div class="empty"><i class="fa-solid fa-inbox"></i><p>Keine Trades vorhanden.</p><p style="font-size:.78rem;margin-top:8px;color:var(--mut)">Verkäufe aus dem Portfolio erscheinen hier automatisch.</p></div>';return;}
   el.innerHTML=f.map(x=>{
-    if(x.type==='position_closed'){const pl=x.totalRealized||0;const c=pl>=0?'p':'n';
-      return `<div class="tc" style="border-left:3px solid ${pl>=0?'var(--pos)':'var(--neg)'}"><div class="th"><div><div class="ts">${x.symbol}</div><div class="tn">${x.name} · Position geschlossen</div></div><div class="tb close"><i class="fa-solid fa-flag-checkered"></i> Closed</div></div><div class="tg"><div><div class="tl2">Investiert</div><div class="tv">${f2(x.totalInvested||0)} ${x.currency}</div></div><div><div class="tl2">Stücke</div><div class="tv">${x.totalBought||0}</div></div><div><div class="tl2">Zielpreis</div><div class="tv">${x.targetPrice?f2(x.targetPrice)+' '+x.currency:'—'}</div></div><div><div class="tl2">Ziel erreicht</div><div class="tv" style="color:${x.targetReached?'var(--gld)':'var(--sub)'}">${x.targetReached?'✓ Ja':'Nein'}</div></div></div><div class="tp ${c}"><i class="fa-solid fa-${pl>=0?'arrow-trend-up':'arrow-trend-down'}"></i> ${pl>=0?'+':''}${f2(pl)} ${x.currency}</div><div class="td">${(x.purchases||[]).length} Käufe · ${(x.sales||[]).length} Verkäufe · ${fD(x.timestamp)}</div></div>`;}
     if(x.type==='sell'){const pl=x.realizedPL||0;const c=pl>=0?'p':'n';const pct=x.avgBuyPrice?((x.price-x.avgBuyPrice)/x.avgBuyPrice*100):0;
       return `<div class="tc" style="border-left:3px solid ${pl>=0?'var(--pos)':'var(--neg)'}"><div class="th"><div><div class="ts">${x.symbol}</div><div class="tn">${x.name||''} · ${fD(x.date)}${x.time?' '+x.time:''}</div></div><div class="tb sell"><i class="fa-solid fa-hand-holding-dollar"></i> Verkauf</div></div><div class="tg"><div><div class="tl2">Verkaufspreis</div><div class="tv">${f2(x.price)} ${x.currency}</div></div><div><div class="tl2">Ø Einkauf</div><div class="tv">${f2(x.avgBuyPrice||0)} ${x.currency}</div></div><div><div class="tl2">Stücke</div><div class="tv">${x.shares}</div></div><div><div class="tl2">Erlös</div><div class="tv">${f2(x.price*x.shares)} ${x.currency}</div></div></div><div class="tp ${c}"><i class="fa-solid fa-${pl>=0?'arrow-trend-up':'arrow-trend-down'}"></i> ${pl>=0?'+':''}${f2(pl)} ${x.currency} (${pct>=0?'+':''}${pct.toFixed(2)}%)</div></div>`;}
     return '';

@@ -1713,6 +1713,26 @@ function openSellModal(id) {
   document.getElementById('sellOv').classList.add('open');
 }
 function closeSellModal() { document.getElementById('sellOv').classList.remove('open'); sellStockId=null; }
+
+// Sell a specific purchase's remaining shares
+function openSellForPurchase(stockId, purchaseId) {
+  const s = portfolio.find(x=>x.id===stockId); if(!s) return;
+  const p = s.purchases.find(x=>x.id===purchaseId); if(!p) return;
+  const rem = purchaseRemaining(s, purchaseId);
+  if(rem<=0) return toast('Keine Stücke mehr verfügbar.','te');
+  sellStockId = stockId;
+  const cur = s.currency||'';
+  document.getElementById('sellTitle').textContent = `${s.symbol} — Kauf verkaufen`;
+  document.getElementById('sellSub').textContent = `${rem.toLocaleString('de-DE')} Stücke à ${p.buyPrice.toFixed(2)} ${cur} vom ${p.buyDate||'—'}`;
+  document.getElementById('sellDate').valueAsDate = new Date();
+  document.getElementById('sellTime').value = '';
+  document.getElementById('sellPrice').value = s.price || '';
+  document.getElementById('sellShares').value = rem;
+  updateSellPreview();
+  document.getElementById('sellPrice').oninput = updateSellPreview;
+  document.getElementById('sellShares').oninput = updateSellPreview;
+  document.getElementById('sellOv').classList.add('open');
+}
 function updateSellPreview() {
   const s = portfolio.find(x=>x.id===sellStockId);
   const el = document.getElementById('sellPreview');
@@ -1766,7 +1786,7 @@ function executeSell() {
   const sym = s.symbol;
   const cur = s.currency||'';
   if(activeShares(s) <= 0.001) {
-    archiveClosedPosition(s);
+    // Fully sold — remove from portfolio
     portfolio = portfolio.filter(x=>x.id!==s.id);
     if(sbClient&&sbUser) delSb(s.id);
     closeSellModal(); closePop();
@@ -1806,24 +1826,6 @@ function archiveTrade(stock, trade, type) {
     date: type==='sell' ? trade.sellDate : trade.buyDate,
     time: type==='sell' ? trade.sellTime : trade.buyTime,
     realizedPL: trade.realizedPL || 0,
-    timestamp: Date.now()
-  });
-  saveTradeLog(log);
-}
-
-function archiveClosedPosition(stock) {
-  const log = getTradeLog();
-  log.push({
-    id: 'close_'+stock.id, type: 'position_closed',
-    symbol: stock.symbol, name: stock.name||stock.symbol,
-    currency: stock.currency||'',
-    totalBought: totalShares(stock),
-    totalInvested: investedVal(stock),
-    totalRealized: realizedPL(stock),
-    purchases: stock.purchases,
-    sales: stock.sales,
-    targetPrice: stock.targetPrice,
-    targetReached: stock.price && stock.price >= stock.targetPrice,
     timestamp: Date.now()
   });
   saveTradeLog(log);
@@ -2063,14 +2065,16 @@ function updateSummary() {
   const invF=hasPrices.reduce((a,s)=>a+activeInvested(s),0);
   const gain=cur-invF;
   const tgts=portfolio.filter(s=>s.price&&s.price>=s.targetPrice&&activeShares(s)>0).length;
-  // Realisiert G/V: aktive Portfolio-Sales + geschlossene Positionen aus Trade-Log
+  // Realisiert G/V: from active portfolio sales + from trade log (removed stocks only)
   const activeRpl=totalRealizedPL();
-  const closedRpl=getTradeLog().filter(t=>t.type==='position_closed').reduce((a,t)=>a+(t.totalRealized||0),0);
+  const activeSaleIds=new Set();
+  portfolio.forEach(s=>(s.sales||[]).forEach(sl=>activeSaleIds.add(sl.id)));
+  const logOnlySells=getTradeLog().filter(t=>t.type==='sell'&&!activeSaleIds.has(t.id));
+  const closedRpl=logOnlySells.reduce((a,t)=>a+(t.realizedPL||0),0);
   const rpl=activeRpl+closedRpl;
-  // Trades: aktive + alle aus Trade-Log
+  // Trades: active buys+sells + removed sells from log
   const activeTrades=tradeCount();
-  const logTrades=getTradeLog().filter(t=>t.type==='sell'||t.type==='buy').length;
-  const trades=activeTrades + logTrades;
+  const trades=activeTrades + logOnlySells.length;
   const f2=n=>n.toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2});
   document.getElementById('sN').textContent=n;
   document.getElementById('sI').textContent=f2(inv)+' €';
@@ -2325,7 +2329,9 @@ function openPop(id) {
 
   // Purchase rows
   const sortedP = [...s.purchases].sort((a,b)=>b.buyDate?.localeCompare(a.buyDate||'')||0);
-  const purHtml = sortedP.map((p,i)=>{
+  const activePurchases = sortedP.filter(p=>purchaseRemaining(s,p.id)>0.001);
+  const soldPurchases = sortedP.filter(p=>purchaseRemaining(s,p.id)<=0.001);
+  const purHtml = activePurchases.map((p,i)=>{
     const rem = purchaseRemaining(s, p.id);
     const sold = p.shares - rem;
     const hasSold = sold > 0.001;
@@ -2335,7 +2341,7 @@ function openPop(id) {
     const gs2 = purGain!=null&&purGain>=0?'+':'';
     const dStr = p.buyDate ? new Date(p.buyDate+'T12:00:00').toLocaleDateString('de-DE') : '—';
     const soldBadge = hasSold ? `<div style="font-size:.65rem;color:var(--gld);margin-top:3px"><i class="fa-solid fa-hand-holding-dollar"></i> ${f(sold,sold%1===0?0:3)} verkauft</div>` : '';
-    return `<div class="pur-item" id="purItem_${p.id}" ${rem<0.001?'style="opacity:.45;border-style:dashed"':''}>
+    return `<div class="pur-item" id="purItem_${p.id}">
       <div class="pur-row">
         <div class="pur-field">
           <div class="pur-lbl"><i class="fa-solid fa-tag"></i> Einkaufspreis</div>
@@ -2346,17 +2352,18 @@ function openPop(id) {
           <div class="pur-lbl"><i class="fa-solid fa-cubes"></i> ${hasSold?'Verbleibend':'Stücke'}</div>
           <div class="pur-val">${f(rem,rem%1===0?0:3)} <span style="font-size:.7rem;color:var(--sub)">${hasSold?'/ '+f(p.shares,p.shares%1===0?0:3):''}</span></div>
           ${soldBadge}
-          ${purGainV!=null&&rem>0?`<div class="pur-gain ${gc}">${purGainV>=0?'+':''}${fc(purGainV)}</div>`:''}
+          ${purGainV!=null?`<div class="pur-gain ${gc}">${purGainV>=0?'+':''}${fc(purGainV)}</div>`:''}
         </div>
         <div class="pur-field">
           <div class="pur-lbl"><i class="fa-solid fa-calendar"></i> Datum</div>
           <div class="pur-val" style="font-size:.82rem">${dStr}</div>
           <div class="pur-date">${p.buyTime||''}</div>
         </div>
-        ${rem>0.001?`<button class="pur-edit-btn" id="peb_${p.id}" onclick="togglePurchaseEdit('${p.id}')" title="Kauf bearbeiten"><i class="fa-solid fa-pen"></i></button>`:''}
+        <button class="pur-edit-btn" id="peb_${p.id}" onclick="togglePurchaseEdit('${p.id}')" title="Bearbeiten"><i class="fa-solid fa-pen"></i></button>
+        <button class="pur-edit-btn" style="background:var(--pbg);color:var(--pos)" onclick="openSellForPurchase('${id}','${p.id}')" title="Diesen Kauf verkaufen"><i class="fa-solid fa-hand-holding-dollar"></i></button>
         ${!hasSold?`<button class="pur-del-btn" onclick="deletePurchase('${id}','${p.id}')" title="Kauf entfernen"><i class="fa-solid fa-trash-can"></i></button>`:''}
       </div>
-      ${rem>0.001?`<!-- Inline edit row -->
+      <!-- Inline edit row -->
       <div class="pur-edit-row">
         <div>
           <div class="pur-lbl">Datum</div>
@@ -2381,13 +2388,13 @@ function openPop(id) {
         </div>
       </div>
       <button class="btn btn-acc btn-sm pur-save-btn" onclick="savePurchaseEdit('${id}','${p.id}')">
-        <i class="fa-solid fa-floppy-disk"></i> Kauf ${i+1} speichern
-      </button>`:''}
+        <i class="fa-solid fa-floppy-disk"></i> Speichern
+      </button>
     </div>`;
   }).join('');
 
   const addBtn = `<button class="btn btn-ghost btn-sm" onclick="openRebuyFromPop('${id}')" style="width:100%"><i class="fa-solid fa-plus"></i> Weiteren Kauf hinzufügen</button>`;
-  const sellBtn = `<button class="btn btn-sm" onclick="openSellModal('${id}')" style="width:100%;background:var(--pbg);color:var(--pos);border:1px solid var(--pos);margin-top:6px"><i class="fa-solid fa-hand-holding-dollar"></i> Verkaufen</button>`;
+  const sellBtn = activeShares(s)>0 ? `<button class="btn btn-sm" onclick="openSellModal('${id}')" style="width:100%;background:var(--pbg);color:var(--pos);border:1px solid var(--pos);margin-top:6px"><i class="fa-solid fa-hand-holding-dollar"></i> Alle Stücke verkaufen</button>` : '';
 
   // Sales section
   let salesHtml = '';
@@ -2430,7 +2437,13 @@ function openPop(id) {
     }).join('') + '</div>';
   }
 
-  document.getElementById('popBody').innerHTML = sumHtml + tgtHtml + `<div class="pur-lbl" style="margin-bottom:8px"><i class="fa-solid fa-list"></i> Einzelne Käufe</div>` + `<div class="pur-list">${purHtml}</div>` + addBtn + sellBtn + salesHtml;
+  document.getElementById('popBody').innerHTML = sumHtml + tgtHtml
+    + `<div class="pur-lbl" style="margin-bottom:8px"><i class="fa-solid fa-cart-shopping"></i> Aktive Käufe (${activePurchases.length})</div>`
+    + `<div class="pur-list">${purHtml}</div>` + addBtn + sellBtn + salesHtml
+    + (soldPurchases.length ? `<div class="pur-lbl" style="margin-bottom:8px;margin-top:18px"><i class="fa-solid fa-check-double"></i> Vollständig verkaufte Käufe (${soldPurchases.length})</div><div class="pur-list">${soldPurchases.map(p=>{
+      const dStr = p.buyDate ? new Date(p.buyDate+'T12:00:00').toLocaleDateString('de-DE') : '—';
+      return `<div class="pur-item" style="opacity:.5;border-style:dashed;padding:10px 15px"><div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap"><span style="font-size:.78rem;color:var(--sub)"><i class="fa-solid fa-check" style="color:var(--pos);margin-right:4px"></i> ${f(p.shares,p.shares%1===0?0:3)} St. @ ${fc(p.buyPrice)} · ${dStr}</span><span style="font-size:.68rem;color:var(--gld);font-weight:600">Verkauft</span></div></div>`;
+    }).join('')}</div>` : '');
   document.getElementById('popOv').classList.add('open');
 }
 
