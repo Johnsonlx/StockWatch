@@ -341,8 +341,20 @@ footer{position:relative;z-index:1;background:var(--sur);border-top:1px solid va
 /* Portfolio Header Row 1 ────────────────────────────────────────────── */
 .pf-header{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px}
 .pf-header .pf-addbtn{flex-shrink:0;min-height:40px;margin-left:auto}
+.btn-trades{display:inline-flex;align-items:center;gap:7px;padding:9px 16px;border-radius:10px;
+  background:var(--gbg);border:1.5px solid var(--gld);color:var(--gld);
+  font-size:.82rem;font-weight:700;text-decoration:none;flex-shrink:0;
+  transition:all .2s;font-family:inherit;letter-spacing:.01em}
+.btn-trades:hover{background:var(--gld);color:#000;box-shadow:0 0 16px var(--gbg)}
+.btn-trades i{font-size:.78rem}
+.scard-link{transition:border-color .2s,box-shadow .2s,transform .15s !important}
+.scard-link:hover{border-color:var(--gld) !important;box-shadow:0 4px 18px var(--shd);transform:translateY(-2px)}
+.scard-hint{font-size:.6rem;font-weight:600;color:var(--gld);margin-top:6px;opacity:0;transition:opacity .2s}
+.scard-link:hover .scard-hint{opacity:1}
 @media(max-width:560px){
   .pf-header .pf-addbtn{width:100%;margin-left:0}
+  .pf-header .btn-trades{width:100%;justify-content:center}
+  .pf-header .btn-trades .trades-lbl{display:inline}
 }
 
 /* Filter & Sort Bar ─────────────────────────────────────────────────── */
@@ -424,6 +436,7 @@ footer{position:relative;z-index:1;background:var(--sur);border-top:1px solid va
   .ar-toggle span{display:none}
   .ar-toggle{padding:5px 8px}
   .trades-lbl{display:none}
+  .btn-trades{padding:8px 10px}
   .hbtn{padding:8px 10px;min-height:38px}
   /* iOS prevents auto-zoom when input font-size >= 16px */
   .fi,.fi-sm,select,input[type="text"],input[type="number"],input[type="date"],input[type="time"],input[type="email"],input[type="password"]{font-size:16px}
@@ -818,16 +831,16 @@ create policy "own" on public.sw_portfolio
     <div class="scard"><div class="scico"><i class="fa-solid fa-wallet"></i></div><div class="sclbl">Investiert</div><div class="scval vt" id="sI">—</div></div>
     <div class="scard"><div class="scico"><i class="fa-solid fa-chart-pie"></i></div><div class="sclbl">Aktuell</div><div class="scval vt" id="sC">—</div></div>
     <div class="scard"><div class="scico"><i class="fa-solid fa-arrow-trend-up"></i></div><div class="sclbl">Unrealisiert G/V</div><div class="scval vt" id="sG">—</div></div>
-    <div class="scard"><div class="scico"><i class="fa-solid fa-cash-register"></i></div><div class="sclbl">Realisiert G/V</div><div class="scval vt" id="sR">—</div></div>
+    <a href="stockwatch_trades.html" class="scard scard-link" style="text-decoration:none;color:inherit;cursor:pointer"><div class="scico"><i class="fa-solid fa-cash-register"></i></div><div class="sclbl">Realisiert G/V</div><div class="scval vt" id="sR">—</div><div class="scard-hint"><i class="fa-solid fa-arrow-up-right-from-square"></i> Details ansehen</div></a>
     <div class="scard"><div class="scico"><i class="fa-solid fa-bullseye"></i></div><div class="sclbl">Ziele erreicht</div><div class="scval vg" id="sT">0</div></div>
-    <div class="scard"><div class="scico"><i class="fa-solid fa-arrow-right-arrow-left"></i></div><div class="sclbl">Trades</div><div class="scval va" id="sTr">0</div></div>
+    <a href="stockwatch_trades.html" class="scard scard-link" style="text-decoration:none;color:inherit;cursor:pointer"><div class="scico"><i class="fa-solid fa-arrow-right-arrow-left"></i></div><div class="sclbl">Trades</div><div class="scval va" id="sTr">0</div><div class="scard-hint"><i class="fa-solid fa-arrow-up-right-from-square"></i> Dashboard öffnen</div></a>
   </div>
   <!-- Portfolio Header Zeile 1: Titel + Refresh + Stand + AddBtn -->
   <div class="pf-header">
     <span class="sec-t"><i class="fa-solid fa-layer-group"></i> Portfolio</span>
     <button class="rbtn" id="rBtn" onclick="doRefresh()" title="Aktualisieren"><i class="fa-solid fa-rotate" id="rIco"></i></button>
     <span class="upd-time" id="updLbl"></span>
-    <a href="stockwatch_trades.html" class="btn btn-ghost btn-sm" style="flex-shrink:0"><i class="fa-solid fa-arrow-right-arrow-left"></i> <span class="trades-lbl">Trades</span></a>
+    <a href="stockwatch_trades.html" class="btn btn-trades"><i class="fa-solid fa-arrow-right-arrow-left"></i> <span class="trades-lbl">Trades-Dashboard</span></a>
     <button class="btn btn-acc btn-sm pf-addbtn" onclick="openModal()"><i class="fa-solid fa-plus"></i> Aktie hinzufügen</button>
   </div>
   <!-- Portfolio Header Zeile 2: Filter & Sort Bar -->
