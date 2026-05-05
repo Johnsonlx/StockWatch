@@ -423,6 +423,7 @@ footer{position:relative;z-index:1;background:var(--sur);border-top:1px solid va
   .hbtn span{display:none}
   .ar-toggle span{display:none}
   .ar-toggle{padding:5px 8px}
+  .trades-lbl{display:none}
   .hbtn{padding:8px 10px;min-height:38px}
   /* iOS prevents auto-zoom when input font-size >= 16px */
   .fi,.fi-sm,select,input[type="text"],input[type="number"],input[type="date"],input[type="time"],input[type="email"],input[type="password"]{font-size:16px}
@@ -826,6 +827,7 @@ create policy "own" on public.sw_portfolio
     <span class="sec-t"><i class="fa-solid fa-layer-group"></i> Portfolio</span>
     <button class="rbtn" id="rBtn" onclick="doRefresh()" title="Aktualisieren"><i class="fa-solid fa-rotate" id="rIco"></i></button>
     <span class="upd-time" id="updLbl"></span>
+    <a href="stockwatch_trades.html" class="btn btn-ghost btn-sm" style="flex-shrink:0"><i class="fa-solid fa-arrow-right-arrow-left"></i> <span class="trades-lbl">Trades</span></a>
     <button class="btn btn-acc btn-sm pf-addbtn" onclick="openModal()"><i class="fa-solid fa-plus"></i> Aktie hinzufügen</button>
   </div>
   <!-- Portfolio Header Zeile 2: Filter & Sort Bar -->
@@ -1486,13 +1488,28 @@ async function loadHist() {
   const btn=document.getElementById('histBtn');
   const hint=document.getElementById('histHint');
   btn.disabled=true; btn.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i>';
-  hint.style.color=''; hint.textContent='Suche historischen Kurs…';
+  hint.style.color=''; hint.textContent='Suche Kurs…';
 
   let result = null;
+  const isToday = date === new Date().toISOString().slice(0,10);
+  const isRecent = (Date.now() - new Date(date+'T23:59:59').getTime()) < 3*86400000; // last 3 days
 
-  // 1) Finnhub Candle FIRST (no CORS issues, user has API key)
-  if(apiKey) {
-    hint.textContent='Finnhub wird abgefragt…';
+  // Strategy: Today/Recent → parallel live quote (fast!), Historical → candle
+  if(isToday || isRecent) {
+    // Try Finnhub live quote AND Yahoo simultaneously — first wins
+    hint.textContent='Live-Kurs wird abgerufen…';
+    const promises = [];
+    if(apiKey) promises.push(fhQ(sym).then(q => q?.c > 0 ? {price:q.c} : null).catch(()=>null));
+    promises.push(yahooLiveQuote(sym).then(q => q?.c > 0 ? {price:q.c} : null).catch(()=>null));
+    const results = await Promise.allSettled(promises);
+    for(const r of results) {
+      if(r.status==='fulfilled' && r.value) { result = r.value; break; }
+    }
+  }
+
+  // Fallback: historical candle (Finnhub first, then Yahoo)
+  if(!result && apiKey) {
+    hint.textContent='Finnhub historisch…';
     try {
       const d=new Date(date+'T12:00:00Z');
       const from=Math.floor(d.getTime()/1000)-259200, to=Math.floor(d.getTime()/1000)+259200;
@@ -1504,22 +1521,21 @@ async function loadHist() {
       }
     } catch(e) { if(e.message==='BAD_KEY'){showProfileScreen();pTab(1);toast('API Key ungültig.','te');} }
   }
-
-  // 2) Yahoo Finance Fallback (via CORS proxies)
   if(!result) {
-    hint.textContent='Yahoo Finance wird abgefragt…';
+    hint.textContent='Yahoo historisch…';
     result = await fetchYahooHist(sym,date);
   }
 
   if(result) {
     document.getElementById('fBuy').value=result.price.toFixed(4);
     hint.style.color='var(--pos)';
-    hint.textContent=`✓ Schlusskurs ${result.date.toLocaleDateString('de-DE')}: ${result.price.toFixed(2)} — eingetragen.`;
+    const dateLabel = result.date ? result.date.toLocaleDateString('de-DE') : 'Aktuell';
+    hint.textContent=`✓ Kurs ${dateLabel}: ${result.price.toFixed(2)} — eingetragen.`;
     toast(`Kurs geladen: ${result.price.toFixed(2)}`,'ts');
   } else {
     hint.style.color='var(--neg)';
-    hint.textContent='⚠ Kein Kurs gefunden (Wochenende/Feiertag?). Preis manuell eintragen.';
-    toast('Kein historischer Kurs gefunden.','te');
+    hint.textContent='⚠ Kein Kurs gefunden. Preis manuell eintragen.';
+    toast('Kein Kurs gefunden.','te');
   }
   btn.disabled=false; btn.innerHTML='<i class="fa-solid fa-clock-rotate-left"></i> Kurs laden';
 }

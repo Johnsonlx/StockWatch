@@ -3,235 +3,159 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>StockWatch — Trades</title>
+<title>StockWatch — Trades-Dashboard</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--tx);min-height:100vh;transition:background .3s,color .3s}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--tx);min-height:100vh;padding-top:62px;transition:background .3s,color .3s}
 a{color:var(--acc);text-decoration:none}
-
-/* Themes (same as main) */
-[data-theme="dark"]{--bg:#0A2647;--sur:#0f2d52;--card:#144272;--cb:#205295;--hov:#1a3a65;--acc:#2C74B3;--adim:rgba(44,116,179,.20);--pos:#00e676;--pbg:rgba(0,230,118,.10);--neg:#ff4d6a;--nbg:rgba(255,77,106,.10);--gld:#ffc740;--gbg:rgba(255,199,64,.12);--tx:#d8e8f8;--sub:#6a95be;--mut:#2a4a6e;--shd:rgba(0,0,0,.55)}
-[data-theme="ocean"]{--bg:#1a2130;--sur:#222b3d;--card:#28354a;--cb:#354660;--hov:#2e3d55;--acc:#00b4d8;--adim:rgba(0,180,216,.18);--pos:#56d18a;--pbg:rgba(86,209,138,.10);--neg:#ff6b88;--nbg:rgba(255,107,136,.10);--gld:#f6c90e;--gbg:rgba(246,201,14,.12);--tx:#dce8f0;--sub:#6e8fa8;--mut:#364a5e;--shd:rgba(0,0,0,.5)}
-[data-theme="lavender"]{--bg:#EEF1FF;--sur:#D2DAFF;--card:#ffffff;--cb:#AAC4FF;--hov:#c3cfff;--acc:#6366f1;--adim:rgba(99,102,241,.12);--pos:#2d7a2d;--pbg:rgba(45,122,45,.08);--neg:#c0392b;--nbg:rgba(192,57,43,.08);--gld:#b8860b;--gbg:rgba(184,134,11,.10);--tx:#1e1e3a;--sub:#6a6aa0;--mut:#B1B2FF;--shd:rgba(99,102,241,.12)}
-[data-theme="mint"]{--bg:#EEE9DA;--sur:#BDCDD6;--card:#ffffff;--cb:#93BFCF;--hov:#adc5cf;--acc:#6096B4;--adim:rgba(96,150,180,.14);--pos:#2a7a4f;--pbg:rgba(42,122,79,.08);--neg:#b83232;--nbg:rgba(184,50,50,.08);--gld:#9a7010;--gbg:rgba(154,112,16,.10);--tx:#1a2e30;--sub:#4a7080;--mut:#93BFCF;--shd:rgba(96,150,180,.15)}
-[data-theme="earth"]{--bg:#F8EDE3;--sur:#BDD2B6;--card:#ffffff;--cb:#A2B29F;--hov:#b0c3a9;--acc:#798777;--adim:rgba(121,135,119,.14);--pos:#3d7a3d;--pbg:rgba(61,122,61,.08);--neg:#a83232;--nbg:rgba(168,50,50,.08);--gld:#8a6a10;--gbg:rgba(138,106,16,.10);--tx:#2a2520;--sub:#5a6055;--mut:#A2B29F;--shd:rgba(121,135,119,.15)}
-
-.wrap{max-width:960px;margin:0 auto;padding:20px 16px 60px}
-
-/* Header */
-.hdr{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:28px;flex-wrap:wrap}
-.hdr-left{display:flex;align-items:center;gap:12px}
-.hdr-ico{width:42px;height:42px;border-radius:12px;background:linear-gradient(135deg,var(--acc),var(--adim));display:flex;align-items:center;justify-content:center;font-size:1.1rem;color:#fff}
-.hdr h1{font-size:1.3rem;font-weight:800;letter-spacing:-.3px}
-.hdr-sub{font-size:.78rem;color:var(--sub);margin-top:2px}
-.back-btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:9px;background:var(--adim);border:1px solid var(--acc);color:var(--acc);font-size:.8rem;font-weight:600;cursor:pointer;transition:all .15s;text-decoration:none}
+button,input{-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+[data-theme="dark"]{--bg:#0A2647;--sur:#0f2d52;--card:#144272;--cb:#205295;--acc:#2C74B3;--adim:rgba(44,116,179,.20);--pos:#00e676;--pbg:rgba(0,230,118,.10);--neg:#ff4d6a;--nbg:rgba(255,77,106,.10);--gld:#ffc740;--gbg:rgba(255,199,64,.12);--tx:#d8e8f8;--sub:#6a95be;--mut:#2a4a6e;--shd:rgba(0,0,0,.55);--hdr:rgba(10,38,71,.92)}
+[data-theme="ocean"]{--bg:#1a2130;--sur:#222b3d;--card:#28354a;--cb:#354660;--acc:#00b4d8;--adim:rgba(0,180,216,.18);--pos:#56d18a;--pbg:rgba(86,209,138,.10);--neg:#ff6b88;--nbg:rgba(255,107,136,.10);--gld:#f6c90e;--gbg:rgba(246,201,14,.12);--tx:#dce8f0;--sub:#6e8fa8;--mut:#364a5e;--shd:rgba(0,0,0,.5);--hdr:rgba(26,33,48,.92)}
+[data-theme="lavender"]{--bg:#EEF1FF;--sur:#D2DAFF;--card:#ffffff;--cb:#AAC4FF;--acc:#6366f1;--adim:rgba(99,102,241,.12);--pos:#2d7a2d;--pbg:rgba(45,122,45,.08);--neg:#c0392b;--nbg:rgba(192,57,43,.08);--gld:#b8860b;--gbg:rgba(184,134,11,.10);--tx:#1e1e3a;--sub:#6a6aa0;--mut:#B1B2FF;--shd:rgba(99,102,241,.12);--hdr:rgba(238,241,255,.95)}
+[data-theme="mint"]{--bg:#EEE9DA;--sur:#BDCDD6;--card:#ffffff;--cb:#93BFCF;--acc:#6096B4;--adim:rgba(96,150,180,.14);--pos:#2a7a4f;--pbg:rgba(42,122,79,.08);--neg:#b83232;--nbg:rgba(184,50,50,.08);--gld:#9a7010;--gbg:rgba(154,112,16,.10);--tx:#1a2e30;--sub:#4a7080;--mut:#93BFCF;--shd:rgba(96,150,180,.15);--hdr:rgba(238,233,218,.95)}
+[data-theme="earth"]{--bg:#F8EDE3;--sur:#BDD2B6;--card:#ffffff;--cb:#A2B29F;--acc:#798777;--adim:rgba(121,135,119,.14);--pos:#3d7a3d;--pbg:rgba(61,122,61,.08);--neg:#a83232;--nbg:rgba(168,50,50,.08);--gld:#8a6a10;--gbg:rgba(138,106,16,.10);--tx:#2a2520;--sub:#5a6055;--mut:#A2B29F;--shd:rgba(121,135,119,.15);--hdr:rgba(248,237,227,.95)}
+[data-theme="dark"] .logo-ico{background:linear-gradient(135deg,var(--acc),#a06bff)}
+[data-theme="ocean"] .logo-ico{background:linear-gradient(135deg,#00b4d8,#0077a8)}
+[data-theme="lavender"] .logo-ico{background:linear-gradient(135deg,#6366f1,#AAC4FF)}
+[data-theme="mint"] .logo-ico{background:linear-gradient(135deg,#6096B4,#93BFCF)}
+[data-theme="earth"] .logo-ico{background:linear-gradient(135deg,#798777,#BDD2B6)}
+header{position:fixed;top:0;left:0;right:0;z-index:300;background:var(--hdr);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:1px solid var(--cb);height:60px;display:flex;align-items:center;padding:0 20px;gap:10px}
+.logo{display:flex;align-items:center;gap:9px;font-weight:800;font-size:1.1rem;letter-spacing:-.4px;flex-shrink:0;color:var(--tx)}
+.logo span{color:var(--acc)}
+.logo-ico{width:32px;height:32px;border-radius:9px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px;flex-shrink:0}
+.hdr-gap{flex:1}
+.hdr-r{display:flex;align-items:center;gap:7px}
+.rt-time{font-family:'JetBrains Mono',monospace;font-size:.75rem;font-weight:600;color:var(--tx);background:var(--adim);border:1px solid var(--acc);border-radius:7px;padding:3px 9px;white-space:nowrap;flex-shrink:0}
+.thm-grp{display:flex;gap:2px;background:var(--bg);border:1px solid var(--cb);border-radius:9px;padding:3px;flex-shrink:0}
+.tbtn{width:28px;height:26px;border:none;background:transparent;color:var(--sub);border-radius:7px;cursor:pointer;font-size:11px;display:flex;align-items:center;justify-content:center;transition:all .15s}
+.tbtn:hover{color:var(--tx)}.tbtn.on{background:var(--acc);color:#fff}
+.back-btn{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:8px;font-size:.78rem;font-weight:600;background:var(--adim);border:1px solid var(--acc);color:var(--acc);white-space:nowrap;flex-shrink:0}
 .back-btn:hover{background:var(--acc);color:#fff}
-
-/* Summary cards */
-.sum{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:24px}
-.sc{background:var(--sur);border:1px solid var(--cb);border-radius:13px;padding:16px;text-align:center}
-.sc-lbl{font-size:.66rem;text-transform:uppercase;letter-spacing:.08em;color:var(--sub);font-weight:700;margin-bottom:6px}
-.sc-val{font-family:'JetBrains Mono',monospace;font-size:1.1rem;font-weight:800}
-.sc-val.p{color:var(--pos)}.sc-val.n{color:var(--neg)}.sc-val.a{color:var(--acc)}.sc-val.g{color:var(--gld)}
-
-/* Filter tabs */
+.wrap{max-width:1100px;margin:0 auto;padding:24px 18px 40px}
+.pt{font-size:1.2rem;font-weight:800;margin-bottom:4px;display:flex;align-items:center;gap:10px}.pt i{color:var(--acc)}
+.ps{font-size:.8rem;color:var(--sub);margin-bottom:22px}
+.sum{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-bottom:22px}
+.sc{background:var(--sur);border:1px solid var(--cb);border-radius:13px;padding:14px;text-align:center}
+.sl{font-size:.64rem;text-transform:uppercase;letter-spacing:.08em;color:var(--sub);font-weight:700;margin-bottom:5px}
+.sv{font-family:'JetBrains Mono',monospace;font-size:1.05rem;font-weight:800}
+.sv.p{color:var(--pos)}.sv.n{color:var(--neg)}.sv.a{color:var(--acc)}.sv.g{color:var(--gld)}
 .tabs{display:flex;gap:6px;margin-bottom:18px;flex-wrap:wrap}
 .tab{padding:7px 14px;border-radius:8px;font-size:.78rem;font-weight:600;border:1px solid var(--cb);background:var(--card);color:var(--sub);cursor:pointer;transition:all .15s}
-.tab.on{background:var(--adim);border-color:var(--acc);color:var(--acc)}
-
-/* Trade list */
+.tab:hover{border-color:var(--acc);color:var(--tx)}.tab.on{background:var(--adim);border-color:var(--acc);color:var(--acc)}
 .tl{display:flex;flex-direction:column;gap:10px}
 .tc{background:var(--card);border:1px solid var(--cb);border-radius:14px;padding:16px 18px;transition:border-color .2s}
 .tc:hover{border-color:var(--acc)}
-.tc-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}
-.tc-sym{font-family:'JetBrains Mono',monospace;font-size:1rem;font-weight:800}
-.tc-name{font-size:.72rem;color:var(--sub)}
-.tc-badge{font-size:.7rem;font-weight:700;padding:3px 10px;border-radius:6px;font-family:'JetBrains Mono',monospace}
-.tc-badge.sell{background:var(--pbg);color:var(--pos);border:1px solid var(--pos)}
-.tc-badge.close{background:var(--gbg);color:var(--gld);border:1px solid var(--gld)}
-.tc-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:10px}
-.tc-item{}
-.tc-lbl{font-size:.64rem;text-transform:uppercase;letter-spacing:.07em;color:var(--sub);font-weight:600;margin-bottom:3px}
-.tc-v{font-family:'JetBrains Mono',monospace;font-size:.88rem;font-weight:700}
-.tc-pl{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:5px;font-family:'JetBrains Mono',monospace;font-size:.78rem;font-weight:700;margin-top:8px}
-.tc-pl.p{color:var(--pos);background:var(--pbg)}.tc-pl.n{color:var(--neg);background:var(--nbg)}
-
-/* Closed position details */
-.tc-details{margin-top:12px;padding-top:12px;border-top:1px solid var(--cb);font-size:.75rem;color:var(--sub);line-height:1.6}
-
-/* Empty state */
-.empty{text-align:center;padding:60px 20px;color:var(--sub)}
-.empty i{font-size:2.5rem;margin-bottom:14px;color:var(--mut)}
-.empty p{font-size:.9rem}
-
-@media(max-width:600px){
-  .hdr h1{font-size:1.1rem}
-  .tc-grid{grid-template-columns:1fr 1fr}
+.th{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}
+.ts{font-family:'JetBrains Mono',monospace;font-size:1.05rem;font-weight:800}
+.tn{font-size:.72rem;color:var(--sub);margin-top:2px}
+.tb{font-size:.68rem;font-weight:700;padding:4px 10px;border-radius:7px;font-family:'JetBrains Mono',monospace;white-space:nowrap}
+.tb.sell{background:var(--pbg);color:var(--pos);border:1px solid var(--pos)}
+.tb.close{background:var(--gbg);color:var(--gld);border:1px solid var(--gld)}
+.tg{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:12px}
+.tl2{font-size:.64rem;text-transform:uppercase;letter-spacing:.07em;color:var(--sub);font-weight:600;margin-bottom:4px}
+.tv{font-family:'JetBrains Mono',monospace;font-size:.88rem;font-weight:700}
+.tp{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:6px;font-family:'JetBrains Mono',monospace;font-size:.8rem;font-weight:700;margin-top:10px}
+.tp.p{color:var(--pos);background:var(--pbg)}.tp.n{color:var(--neg);background:var(--nbg)}
+.td{margin-top:10px;padding-top:10px;border-top:1px solid var(--cb);font-size:.75rem;color:var(--sub);line-height:1.6}
+.empty{text-align:center;padding:60px 20px;color:var(--sub)}.empty i{font-size:2.5rem;margin-bottom:14px;color:var(--mut);display:block}
+footer{background:var(--sur);border-top:1px solid var(--cb);padding:22px 20px;margin-top:40px}
+.fi{max-width:1100px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.fl{display:flex;align-items:center;gap:8px;font-weight:800;font-size:.95rem;letter-spacing:-.3px}
+.fl span{color:var(--acc)}
+.fc{font-size:.65rem;color:var(--mut)}
+.dbtn{padding:7px 14px;border-radius:8px;font-size:.75rem;font-weight:600;background:var(--nbg);border:1px solid var(--neg);color:var(--neg);cursor:pointer}
+.dbtn:hover{background:var(--neg);color:#fff}
+@media(max-width:700px){
+  header{padding:0 12px;gap:6px;height:54px}.logo{font-size:.95rem;gap:6px}.logo-ico{width:28px;height:28px;font-size:12px}
+  .tg{grid-template-columns:1fr 1fr}.fi{flex-direction:column;text-align:center}
 }
+@media(max-width:480px){.thm-grp{display:none}.back-btn span{display:none}}
 </style>
 </head>
 <body>
-<div class="wrap">
-  <div class="hdr">
-    <div class="hdr-left">
-      <div class="hdr-ico"><i class="fa-solid fa-arrow-right-arrow-left"></i></div>
-      <div>
-        <h1>Trades-Dashboard</h1>
-        <div class="hdr-sub">Alle Verkäufe & geschlossene Positionen</div>
-      </div>
+<header>
+  <a href="stockwatch_beta.html" class="logo"><div class="logo-ico"><i class="fa-solid fa-chart-line"></i></div>Stock<span>Watch</span></a>
+  <div class="hdr-gap"></div>
+  <div class="hdr-r">
+    <span class="rt-time" id="rtLbl">--:--</span>
+    <div class="thm-grp">
+      <button class="tbtn" id="tDark" onclick="setTheme('dark')"><i class="fa-solid fa-moon"></i></button>
+      <button class="tbtn" id="tOcean" onclick="setTheme('ocean')"><i class="fa-solid fa-water"></i></button>
+      <button class="tbtn" id="tLav" onclick="setTheme('lavender')"><i class="fa-solid fa-star"></i></button>
+      <button class="tbtn" id="tMint" onclick="setTheme('mint')"><i class="fa-solid fa-droplet"></i></button>
+      <button class="tbtn" id="tEarth" onclick="setTheme('earth')"><i class="fa-solid fa-seedling"></i></button>
     </div>
-    <a href="stockwatch_beta.html" class="back-btn"><i class="fa-solid fa-arrow-left"></i> Zum Portfolio</a>
+    <a href="stockwatch_beta.html" class="back-btn"><i class="fa-solid fa-arrow-left"></i> <span>Portfolio</span></a>
   </div>
-
+</header>
+<div class="wrap">
+  <div class="pt"><i class="fa-solid fa-arrow-right-arrow-left"></i> Trades-Dashboard</div>
+  <div class="ps">Alle Verkäufe, geschlossene Positionen & Performance-Übersicht</div>
   <div class="sum" id="summary"></div>
-
-  <div class="tabs" id="tabs">
-    <div class="tab on" data-f="all" onclick="setFilter('all',this)">Alle</div>
-    <div class="tab" data-f="sell" onclick="setFilter('sell',this)">Verkäufe</div>
-    <div class="tab" data-f="close" onclick="setFilter('close',this)">Geschlossene</div>
-    <div class="tab" data-f="profit" onclick="setFilter('profit',this)">Gewinne</div>
-    <div class="tab" data-f="loss" onclick="setFilter('loss',this)">Verluste</div>
+  <div class="tabs">
+    <div class="tab on" onclick="setFilter('all',this)">Alle</div>
+    <div class="tab" onclick="setFilter('sell',this)">Verkäufe</div>
+    <div class="tab" onclick="setFilter('close',this)">Geschlossene</div>
+    <div class="tab" onclick="setFilter('profit',this)">Gewinne</div>
+    <div class="tab" onclick="setFilter('loss',this)">Verluste</div>
   </div>
-
   <div class="tl" id="tradeList"></div>
 </div>
-
+<footer>
+  <div class="fi">
+    <div class="fl"><div class="logo-ico" style="width:24px;height:24px;border-radius:6px;font-size:10px"><i class="fa-solid fa-chart-line"></i></div>Stock<span>Watch</span> Trades</div>
+    <a href="stockwatch_beta.html" class="back-btn"><i class="fa-solid fa-arrow-left"></i> <span>Zum Portfolio</span></a>
+    <button class="dbtn" onclick="clearLog()"><i class="fa-solid fa-trash-can"></i> Log löschen</button>
+    <div class="fc">StockWatch v3.0</div>
+  </div>
+</footer>
 <script>
-// Apply theme from main app
-const theme = localStorage.getItem('sw_theme')||'dark';
-document.documentElement.setAttribute('data-theme', theme);
-
-const f2 = n => n.toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2});
-const fDate = d => d ? new Date(d+'T12:00:00').toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'numeric'}) : '—';
-
-let currentFilter = 'all';
-
-function getTradeLog() { return JSON.parse(localStorage.getItem('sw_trades')||'[]'); }
-
-// Also get active sales from portfolio
-function getActiveSales() {
-  const portfolio = JSON.parse(localStorage.getItem('sw_p')||'[]');
-  const sales = [];
-  portfolio.forEach(s => {
-    (s.sales||[]).forEach(sl => {
-      sales.push({
-        id: sl.id, type: 'sell',
-        symbol: s.symbol, name: s.name||s.symbol,
-        currency: s.currency||'',
-        shares: sl.shares,
-        price: sl.sellPrice,
-        avgBuyPrice: sl.avgBuyPrice,
-        date: sl.sellDate,
-        time: sl.sellTime||'',
-        realizedPL: sl.realizedPL || (sl.sellPrice - sl.avgBuyPrice) * sl.shares,
-        timestamp: new Date(sl.sellDate+'T12:00:00').getTime()
-      });
-    });
-  });
-  return sales;
+function setTheme(t){document.documentElement.setAttribute('data-theme',t);localStorage.setItem('sw_theme',t);['Dark','Ocean','Lav','Mint','Earth'].forEach((n,i)=>{const th=['dark','ocean','lavender','mint','earth'][i];document.getElementById('t'+n)?.classList.toggle('on',th===t);});}
+setTheme(localStorage.getItem('sw_theme')||'dark');
+function uc(){document.getElementById('rtLbl').textContent=new Date().toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit',second:'2-digit'});}setInterval(uc,1000);uc();
+const f2=n=>n.toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2});
+const fD=d=>d?new Date(typeof d==='number'?d:d+'T12:00:00').toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'numeric'}):'—';
+let cf='all';
+function gLog(){return JSON.parse(localStorage.getItem('sw_trades')||'[]');}
+function gActive(){const p=JSON.parse(localStorage.getItem('sw_p')||'[]'),s=[];p.forEach(st=>{(st.sales||[]).forEach(sl=>{s.push({id:sl.id,type:'sell',symbol:st.symbol,name:st.name||st.symbol,currency:st.currency||'',shares:sl.shares,price:sl.sellPrice,avgBuyPrice:sl.avgBuyPrice,date:sl.sellDate,time:sl.sellTime||'',realizedPL:sl.realizedPL||(sl.sellPrice-sl.avgBuyPrice)*sl.shares,timestamp:new Date((sl.sellDate||'2000-01-01')+'T12:00:00').getTime()});});});return s;}
+function gAll(){const l=gLog(),a=gActive(),ids=new Set(l.map(t=>t.id)),m=[...l];a.forEach(x=>{if(!ids.has(x.id))m.push(x);});m.sort((a,b)=>(b.timestamp||0)-(a.timestamp||0));return m;}
+function rSum(t){
+  const sells=t.filter(x=>x.type==='sell'),closed=t.filter(x=>x.type==='position_closed');
+  const pl=sells.reduce((a,x)=>a+(x.realizedPL||0),0)+closed.reduce((a,x)=>a+(x.totalRealized||0),0);
+  const rev=sells.reduce((a,x)=>a+(x.price||0)*(x.shares||0),0);
+  const w=sells.filter(x=>(x.realizedPL||0)>=0).length+closed.filter(x=>(x.totalRealized||0)>=0).length;
+  const l=sells.filter(x=>(x.realizedPL||0)<0).length+closed.filter(x=>(x.totalRealized||0)<0).length;
+  const tot=w+l;const ct=closed.filter(x=>x.targetReached).length;
+  document.getElementById('summary').innerHTML=`
+    <div class="sc"><div class="sl">Realisierter G/V</div><div class="sv ${pl>=0?'p':'n'}">${pl>=0?'+':''}${f2(pl)}</div></div>
+    <div class="sc"><div class="sl">Erlöse</div><div class="sv a">${f2(rev)}</div></div>
+    <div class="sc"><div class="sl">Trades</div><div class="sv a">${tot}</div></div>
+    <div class="sc"><div class="sl">Gewinner</div><div class="sv p">${w}</div></div>
+    <div class="sc"><div class="sl">Verlierer</div><div class="sv n">${l}</div></div>
+    <div class="sc"><div class="sl">Trefferquote</div><div class="sv g">${tot?Math.round(w/tot*100)+'%':'—'}</div></div>
+    <div class="sc"><div class="sl">Ziele verkauft</div><div class="sv g">${ct}</div></div>`;
 }
-
-function getAllTrades() {
-  const log = getTradeLog();
-  const active = getActiveSales();
-  // Merge, deduplicate by id
-  const ids = new Set(log.map(t=>t.id));
-  const merged = [...log];
-  active.forEach(a => { if(!ids.has(a.id)) merged.push(a); });
-  // Sort by date desc
-  merged.sort((a,b) => (b.timestamp||0) - (a.timestamp||0));
-  return merged;
-}
-
-function renderSummary(trades) {
-  const sells = trades.filter(t=>t.type==='sell');
-  const closed = trades.filter(t=>t.type==='position_closed');
-  const totalPL = sells.reduce((a,t)=>a+(t.realizedPL||0),0) + closed.reduce((a,t)=>a+(t.totalRealized||0),0);
-  const winners = sells.filter(t=>(t.realizedPL||0)>=0).length + closed.filter(t=>(t.totalRealized||0)>=0).length;
-  const losers = sells.filter(t=>(t.realizedPL||0)<0).length + closed.filter(t=>(t.totalRealized||0)<0).length;
-  const totalTrades = sells.length + closed.length;
-
-  document.getElementById('summary').innerHTML = `
-    <div class="sc"><div class="sc-lbl">Realisierter G/V</div><div class="sc-val ${totalPL>=0?'p':'n'}">${totalPL>=0?'+':''}${f2(totalPL)} €</div></div>
-    <div class="sc"><div class="sc-lbl">Trades gesamt</div><div class="sc-val a">${totalTrades}</div></div>
-    <div class="sc"><div class="sc-lbl">Gewinner</div><div class="sc-val p">${winners}</div></div>
-    <div class="sc"><div class="sc-lbl">Verlierer</div><div class="sc-val n">${losers}</div></div>
-    <div class="sc"><div class="sc-lbl">Trefferquote</div><div class="sc-val g">${totalTrades?Math.round(winners/totalTrades*100)+'%':'—'}</div></div>
-  `;
-}
-
-function renderTrades(trades) {
-  const el = document.getElementById('tradeList');
-  let filtered = trades;
-  if(currentFilter==='sell') filtered = trades.filter(t=>t.type==='sell');
-  if(currentFilter==='close') filtered = trades.filter(t=>t.type==='position_closed');
-  if(currentFilter==='profit') filtered = trades.filter(t=>(t.realizedPL||t.totalRealized||0)>=0 && t.type!=='buy');
-  if(currentFilter==='loss') filtered = trades.filter(t=>(t.realizedPL||t.totalRealized||0)<0 && t.type!=='buy');
-
-  if(!filtered.length) {
-    el.innerHTML = `<div class="empty"><i class="fa-solid fa-inbox"></i><p>Keine Trades vorhanden.</p></div>`;
-    return;
-  }
-
-  el.innerHTML = filtered.map(t => {
-    if(t.type === 'position_closed') {
-      const pl = t.totalRealized||0;
-      const plC = pl>=0?'p':'n';
-      const buyCount = (t.purchases||[]).length;
-      const sellCount = (t.sales||[]).length;
-      return `<div class="tc" style="border-left:3px solid ${pl>=0?'var(--pos)':'var(--neg)'}">
-        <div class="tc-head">
-          <div><div class="tc-sym">${t.symbol}</div><div class="tc-name">${t.name} · Position geschlossen</div></div>
-          <div class="tc-badge close"><i class="fa-solid fa-flag-checkered"></i> Closed</div>
-        </div>
-        <div class="tc-grid">
-          <div class="tc-item"><div class="tc-lbl">Investiert</div><div class="tc-v">${f2(t.totalInvested||0)} ${t.currency}</div></div>
-          <div class="tc-item"><div class="tc-lbl">Stücke</div><div class="tc-v">${t.totalBought||0}</div></div>
-          <div class="tc-item"><div class="tc-lbl">Zielpreis</div><div class="tc-v">${t.targetPrice?f2(t.targetPrice)+' '+t.currency:'—'}</div></div>
-          <div class="tc-item"><div class="tc-lbl">Ziel erreicht</div><div class="tc-v" style="color:${t.targetReached?'var(--gld)':'var(--sub)'}">${t.targetReached?'✓ Ja':'Nein'}</div></div>
-        </div>
-        <div class="tc-pl ${plC}"><i class="fa-solid fa-${pl>=0?'arrow-trend-up':'arrow-trend-down'}"></i> ${pl>=0?'+':''}${f2(pl)} ${t.currency}</div>
-        <div class="tc-details">${buyCount} Käufe · ${sellCount} Verkäufe · Geschlossen am ${new Date(t.timestamp).toLocaleDateString('de-DE')}</div>
-      </div>`;
-    }
-
-    if(t.type === 'sell') {
-      const pl = t.realizedPL||0;
-      const plC = pl>=0?'p':'n';
-      const pct = t.avgBuyPrice ? ((t.price-t.avgBuyPrice)/t.avgBuyPrice*100) : 0;
-      return `<div class="tc" style="border-left:3px solid ${pl>=0?'var(--pos)':'var(--neg)'}">
-        <div class="tc-head">
-          <div><div class="tc-sym">${t.symbol}</div><div class="tc-name">${t.name||''} · ${fDate(t.date)}${t.time?' '+t.time:''}</div></div>
-          <div class="tc-badge sell"><i class="fa-solid fa-hand-holding-dollar"></i> Verkauf</div>
-        </div>
-        <div class="tc-grid">
-          <div class="tc-item"><div class="tc-lbl">Verkaufspreis</div><div class="tc-v">${f2(t.price)} ${t.currency}</div></div>
-          <div class="tc-item"><div class="tc-lbl">Ø Einkauf</div><div class="tc-v">${f2(t.avgBuyPrice||0)} ${t.currency}</div></div>
-          <div class="tc-item"><div class="tc-lbl">Stücke</div><div class="tc-v">${t.shares}</div></div>
-          <div class="tc-item"><div class="tc-lbl">Erlös</div><div class="tc-v">${f2(t.price*t.shares)} ${t.currency}</div></div>
-        </div>
-        <div class="tc-pl ${plC}"><i class="fa-solid fa-${pl>=0?'arrow-trend-up':'arrow-trend-down'}"></i> ${pl>=0?'+':''}${f2(pl)} ${t.currency} (${pct>=0?'+':''}${pct.toFixed(2)}%)</div>
-      </div>`;
-    }
-
+function rTrades(t){
+  const el=document.getElementById('tradeList');let f=t;
+  if(cf==='sell')f=t.filter(x=>x.type==='sell');
+  if(cf==='close')f=t.filter(x=>x.type==='position_closed');
+  if(cf==='profit')f=t.filter(x=>(x.realizedPL||x.totalRealized||0)>=0&&x.type!=='buy');
+  if(cf==='loss')f=t.filter(x=>(x.realizedPL||x.totalRealized||0)<0&&x.type!=='buy');
+  if(!f.length){el.innerHTML='<div class="empty"><i class="fa-solid fa-inbox"></i><p>Keine Trades vorhanden.</p><p style="font-size:.78rem;margin-top:8px;color:var(--mut)">Verkäufe aus dem Portfolio erscheinen hier automatisch.</p></div>';return;}
+  el.innerHTML=f.map(x=>{
+    if(x.type==='position_closed'){const pl=x.totalRealized||0;const c=pl>=0?'p':'n';
+      return `<div class="tc" style="border-left:3px solid ${pl>=0?'var(--pos)':'var(--neg)'}"><div class="th"><div><div class="ts">${x.symbol}</div><div class="tn">${x.name} · Position geschlossen</div></div><div class="tb close"><i class="fa-solid fa-flag-checkered"></i> Closed</div></div><div class="tg"><div><div class="tl2">Investiert</div><div class="tv">${f2(x.totalInvested||0)} ${x.currency}</div></div><div><div class="tl2">Stücke</div><div class="tv">${x.totalBought||0}</div></div><div><div class="tl2">Zielpreis</div><div class="tv">${x.targetPrice?f2(x.targetPrice)+' '+x.currency:'—'}</div></div><div><div class="tl2">Ziel erreicht</div><div class="tv" style="color:${x.targetReached?'var(--gld)':'var(--sub)'}">${x.targetReached?'✓ Ja':'Nein'}</div></div></div><div class="tp ${c}"><i class="fa-solid fa-${pl>=0?'arrow-trend-up':'arrow-trend-down'}"></i> ${pl>=0?'+':''}${f2(pl)} ${x.currency}</div><div class="td">${(x.purchases||[]).length} Käufe · ${(x.sales||[]).length} Verkäufe · ${fD(x.timestamp)}</div></div>`;}
+    if(x.type==='sell'){const pl=x.realizedPL||0;const c=pl>=0?'p':'n';const pct=x.avgBuyPrice?((x.price-x.avgBuyPrice)/x.avgBuyPrice*100):0;
+      return `<div class="tc" style="border-left:3px solid ${pl>=0?'var(--pos)':'var(--neg)'}"><div class="th"><div><div class="ts">${x.symbol}</div><div class="tn">${x.name||''} · ${fD(x.date)}${x.time?' '+x.time:''}</div></div><div class="tb sell"><i class="fa-solid fa-hand-holding-dollar"></i> Verkauf</div></div><div class="tg"><div><div class="tl2">Verkaufspreis</div><div class="tv">${f2(x.price)} ${x.currency}</div></div><div><div class="tl2">Ø Einkauf</div><div class="tv">${f2(x.avgBuyPrice||0)} ${x.currency}</div></div><div><div class="tl2">Stücke</div><div class="tv">${x.shares}</div></div><div><div class="tl2">Erlös</div><div class="tv">${f2(x.price*x.shares)} ${x.currency}</div></div></div><div class="tp ${c}"><i class="fa-solid fa-${pl>=0?'arrow-trend-up':'arrow-trend-down'}"></i> ${pl>=0?'+':''}${f2(pl)} ${x.currency} (${pct>=0?'+':''}${pct.toFixed(2)}%)</div></div>`;}
     return '';
   }).join('');
 }
-
-function setFilter(f, btn) {
-  currentFilter = f;
-  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
-  btn.classList.add('on');
-  renderTrades(getAllTrades());
-}
-
-// Init
-const allTrades = getAllTrades();
-renderSummary(allTrades);
-renderTrades(allTrades);
+function setFilter(f,b){cf=f;document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));b.classList.add('on');rTrades(gAll());}
+function clearLog(){if(!confirm('Trade-Log löschen?'))return;localStorage.removeItem('sw_trades');location.reload();}
+const all=gAll();rSum(all);rTrades(all);
 </script>
 </body>
 </html>
