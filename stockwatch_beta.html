@@ -4,6 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>StockWatch — Portfolio Tracker</title>
+<meta name="description" content="StockWatch: Kostenloses Aktien-Portfolio mit Live-Kursen via Finnhub &amp; Yahoo Finance. Käufe, Verkäufe, Gewinn/Verlust verfolgen.">
+<meta name="theme-color" content="#0A2647">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📈</text></svg>">
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
@@ -587,6 +592,7 @@ button[id^="purLiveBtn_"]:hover{background:var(--adim);color:var(--acc);box-shad
 </style>
 </head>
 <body>
+<a href="#grid" class="skip-link" style="position:absolute;top:-100px;left:0;background:var(--acc);color:#fff;padding:8px 16px;z-index:9999;focus:top:0">Zum Inhalt springen</a>
 
 <!-- ══════════════ HEADER (always visible) ══════════════════════════ -->
 <header>
@@ -838,7 +844,7 @@ create policy "own" on public.sw_portfolio
   <!-- Portfolio Header Zeile 1: Titel + Refresh + Stand + AddBtn -->
   <div class="pf-header">
     <span class="sec-t"><i class="fa-solid fa-layer-group"></i> Portfolio</span>
-    <button class="rbtn" id="rBtn" onclick="doRefresh()" title="Aktualisieren"><i class="fa-solid fa-rotate" id="rIco"></i></button>
+    <button class="rbtn" aria-label="Aktualisieren" id="rBtn" onclick="doRefresh()" title="Aktualisieren"><i class="fa-solid fa-rotate" id="rIco"></i></button>
     <span class="upd-time" id="updLbl"></span>
     <a href="stockwatch_trades.html" class="btn btn-trades"><i class="fa-solid fa-arrow-right-arrow-left"></i> <span class="trades-lbl">Trades-Dashboard</span></a>
     <button class="btn btn-acc btn-sm pf-addbtn" onclick="openModal()"><i class="fa-solid fa-plus"></i> Aktie hinzufügen</button>
@@ -919,6 +925,7 @@ create policy "own" on public.sw_portfolio
     <div class="footer-left">
       <div class="footer-logo"><div class="logo-ico"><i class="fa-solid fa-chart-line"></i></div>Stock<span>Watch</span></div>
       <div class="footer-sub">Live-Kurse alle 5 Min. via Finnhub &amp; Yahoo<br>Cloud-Sync via Supabase (optional)</div>
+      <div style="font-size:.6rem;color:var(--mut);margin-top:8px;line-height:1.5"><i class="fa-solid fa-shield-halved" style="margin-right:3px"></i> Daten werden lokal im Browser gespeichert (localStorage). Es werden keine personenbezogenen Daten an Dritte übermittelt, außer bei aktiviertem Cloud-Sync. Keine Anlageberatung — alle Angaben ohne Gewähr.</div>
       <a href="stockwatch_trades.html" style="display:inline-flex;align-items:center;gap:6px;margin-top:10px;padding:8px 16px;border-radius:9px;background:var(--adim);border:1px solid var(--acc);color:var(--acc);font-size:.8rem;font-weight:600;text-decoration:none;transition:all .15s"><i class="fa-solid fa-arrow-right-arrow-left"></i> Trades-Dashboard öffnen</a>
     </div>
     <div class="footer-center">
@@ -986,6 +993,9 @@ create policy "own" on public.sw_portfolio
 <div class="tc" id="tc"></div>
 
 <script>
+// Polyfill: AbortSignal.timeout for Safari < 16.4
+if(!AbortSignal.timeout){AbortSignal.timeout=function(ms){const c=new AbortController();setTimeout(()=>c.abort(new DOMException('TimeoutError','TimeoutError')),ms);return c.signal;};}
+
 // ─── CONSTANTS ───────────────────────────────────────────────────────
 const FH = 'https://finnhub.io/api/v1';
 const INTV = 300000; // 5 Minuten
@@ -2047,9 +2057,9 @@ function cardHTML(s, idx) {
           ${hp&&s.priceSource?`<span class="src-badge ${s.priceSource==='yahoo'?'src-yahoo':'src-finnhub'}"><i class="fa-solid fa-${s.priceSource==='yahoo'?'y':'bolt'}"></i>${s.priceSource==='yahoo'?'Yahoo Finance':'Finnhub'}${s.exchange?' · '+s.exchange:''}</span>`:'<span style="color:var(--mut);font-size:.65rem"><i class="fa-regular fa-clock"></i> Noch nicht geladen</span>'}
         </div>
         <div class="cfb" onclick="event.stopPropagation()">
-          <button class="bic bedt" data-id="${s.id}" title="Nachkauf"><i class="fa-solid fa-cart-plus"></i></button>
-          <button class="bic bsell" data-id="${s.id}" title="Verkaufen"><i class="fa-solid fa-hand-holding-dollar"></i></button>
-          <button class="bic bdel" data-id="${s.id}" title="Entfernen"><i class="fa-solid fa-trash-can"></i></button>
+          <button class="bic bedt" aria-label="Nachkauf" data-id="${s.id}" title="Nachkauf"><i class="fa-solid fa-cart-plus"></i></button>
+          <button class="bic bsell" aria-label="Verkaufen" data-id="${s.id}" title="Verkaufen"><i class="fa-solid fa-hand-holding-dollar"></i></button>
+          <button class="bic bdel" aria-label="Entfernen" data-id="${s.id}" title="Entfernen"><i class="fa-solid fa-trash-can"></i></button>
         </div>
       </div>
     </div>
@@ -2667,7 +2677,7 @@ init().then(()=>{ firstRender=false; });
         <div class="pop-title" id="popTitle">Käufe</div>
         <div class="pop-sub" id="popSub"></div>
       </div>
-      <button class="pop-close" onclick="closePop()"><i class="fa-solid fa-xmark"></i></button>
+      <button class="pop-close" aria-label="Schließen" onclick="closePop()"><i class="fa-solid fa-xmark"></i></button>
     </div>
     <div class="pop-body" id="popBody"></div>
   </div>

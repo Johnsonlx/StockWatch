@@ -4,12 +4,15 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <title>StockWatch — Trades-Dashboard</title>
+<meta name="description" content="StockWatch Trades: Verkäufe, Gewinne und Verluste auf einen Blick.">
+<meta name="theme-color" content="#0A2647">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📈</text></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--tx);min-height:100vh;padding-top:62px;transition:background .3s,color .3s}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--tx);min-height:100vh;padding-top:110px;transition:background .3s,color .3s}
 a{color:var(--acc);text-decoration:none}
 button,input{-webkit-tap-highlight-color:transparent;touch-action:manipulation}
 [data-theme="dark"]{--bg:#0A2647;--sur:#0f2d52;--card:#144272;--cb:#205295;--acc:#2C74B3;--adim:rgba(44,116,179,.20);--pos:#00e676;--pbg:rgba(0,230,118,.10);--neg:#ff4d6a;--nbg:rgba(255,77,106,.10);--gld:#ffc740;--gbg:rgba(255,199,64,.12);--tx:#d8e8f8;--sub:#6a95be;--mut:#2a4a6e;--shd:rgba(0,0,0,.55);--hdr:rgba(10,38,71,.92)}
@@ -68,8 +71,18 @@ footer{background:var(--sur);border-top:1px solid var(--cb);padding:22px 20px;ma
 .fc{font-size:.65rem;color:var(--mut)}
 .dbtn{padding:7px 14px;border-radius:8px;font-size:.75rem;font-weight:600;background:var(--nbg);border:1px solid var(--neg);color:var(--neg);cursor:pointer}
 .dbtn:hover{background:var(--neg);color:#fff}
+.hdr-link{width:34px;height:34px;border-radius:8px;background:var(--adim);border:1px solid var(--cb);display:flex;align-items:center;justify-content:center;color:var(--sub);font-size:.8rem;flex-shrink:0;transition:all .15s}
+.hdr-link:hover{color:var(--acc);border-color:var(--acc)}
+.nav-bar{position:fixed;top:60px;left:0;right:0;z-index:299;background:var(--sur);border-bottom:1px solid var(--cb);display:flex;align-items:center;justify-content:center;gap:4px;padding:6px 16px;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+.nav-item{display:flex;align-items:center;gap:6px;padding:8px 20px;border-radius:9px;font-size:.82rem;font-weight:600;color:var(--sub);transition:all .15s;border:1px solid transparent}
+.nav-item:hover{color:var(--tx);background:var(--adim)}
+.nav-item.active{color:var(--acc);background:var(--adim);border-color:var(--acc)}
+.nav-item i{font-size:.75rem}
 @media(max-width:700px){
-  header{padding:0 12px;gap:6px;height:54px}.logo{font-size:.95rem;gap:6px}.logo-ico{width:28px;height:28px;font-size:12px}
+  header{padding:0 12px;gap:6px;height:54px}
+  .nav-bar{top:54px;padding:4px 10px}
+  .nav-item{padding:6px 14px;font-size:.76rem}
+  body{padding-top:100px}.logo{font-size:.95rem;gap:6px}.logo-ico{width:28px;height:28px;font-size:12px}
   .tg{grid-template-columns:1fr 1fr}.fi{flex-direction:column;text-align:center}
 }
 @media(max-width:480px){.thm-grp{display:none}.back-btn span{display:none}}
@@ -88,9 +101,15 @@ footer{background:var(--sur);border-top:1px solid var(--cb);padding:22px 20px;ma
       <button class="tbtn" id="tMint" onclick="setTheme('mint')"><i class="fa-solid fa-droplet"></i></button>
       <button class="tbtn" id="tEarth" onclick="setTheme('earth')"><i class="fa-solid fa-seedling"></i></button>
     </div>
-    <a href="stockwatch_beta.html" class="back-btn"><i class="fa-solid fa-arrow-left"></i> <span>Portfolio</span></a>
+    <a href="stockwatch_beta.html" class="hdr-link" title="Profil"><i class="fa-solid fa-user-gear"></i></a>
   </div>
 </header>
+
+<!-- Sticky nav bar -->
+<div class="nav-bar">
+  <a href="stockwatch_beta.html" class="nav-item"><i class="fa-solid fa-briefcase"></i> Portfolio</a>
+  <a href="stockwatch_trades.html" class="nav-item active"><i class="fa-solid fa-arrow-right-arrow-left"></i> Trades</a>
+</div>
 <div class="wrap">
   <div class="pt"><i class="fa-solid fa-arrow-right-arrow-left"></i> Trades-Dashboard</div>
   <div class="ps">Alle Verkäufe, geschlossene Positionen & Performance-Übersicht</div>
@@ -106,9 +125,9 @@ footer{background:var(--sur);border-top:1px solid var(--cb);padding:22px 20px;ma
 <footer>
   <div class="fi">
     <div class="fl"><div class="logo-ico" style="width:24px;height:24px;border-radius:6px;font-size:10px"><i class="fa-solid fa-chart-line"></i></div>Stock<span>Watch</span> Trades</div>
-    <a href="stockwatch_beta.html" class="back-btn"><i class="fa-solid fa-arrow-left"></i> <span>Zum Portfolio</span></a>
+    
     <button class="dbtn" onclick="clearLog()"><i class="fa-solid fa-trash-can"></i> Log löschen</button>
-    <div class="fc">StockWatch v3.0</div>
+    <div class="fc">StockWatch v3.0 · Keine Anlageberatung — alle Angaben ohne Gewähr.</div>
   </div>
 </footer>
 <script>
