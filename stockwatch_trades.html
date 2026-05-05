@@ -44,6 +44,16 @@ header{position:fixed;top:0;left:0;right:0;z-index:300;background:var(--hdr);bac
 .hbtn{display:flex;align-items:center;gap:6px;padding:4px 10px;border-radius:8px;border:1px solid var(--cb);background:var(--sur);font-size:.78rem;font-weight:600;color:var(--sub);cursor:pointer;transition:all .15s;flex-shrink:0;font-family:inherit}
 .hbtn:hover{border-color:var(--acc);color:var(--acc)}
 
+/* Settings dropdown */
+.sett-drop{position:fixed;top:62px;right:16px;z-index:298;background:var(--sur);border:1px solid var(--cb);border-radius:14px;padding:14px;box-shadow:0 12px 32px var(--shd);min-width:200px;opacity:0;visibility:hidden;transform:translateY(-6px);transition:all .18s}
+.sett-drop.open{opacity:1;visibility:visible;transform:translateY(0)}
+.sd-title{font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--sub);margin-bottom:10px}
+.sd-themes{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:12px}
+.sd-th{padding:5px 10px;border-radius:7px;font-size:.72rem;font-weight:600;border:1px solid var(--cb);background:transparent;color:var(--sub);cursor:pointer;transition:all .15s;font-family:inherit;display:flex;align-items:center;gap:4px}
+.sd-th:hover{border-color:var(--acc);color:var(--acc)}
+.sd-link{display:flex;align-items:center;gap:7px;padding:8px 10px;border-radius:8px;font-size:.78rem;font-weight:600;color:var(--sub);transition:all .15s;border:none;background:none;cursor:pointer;width:100%;font-family:inherit;text-align:left;margin-top:4px;border-top:1px solid var(--cb);padding-top:10px}
+.sd-link:hover{color:var(--acc);background:var(--adim)}
+
 /* ═══ CONTENT WRAPPER ═══ */
 .wrap{max-width:1400px;margin:0 auto;padding:22px 18px 40px}
 
@@ -112,6 +122,7 @@ footer{background:var(--sur);border-top:1px solid var(--cb);padding:24px 20px}
   .logo{font-size:.95rem;gap:6px}.logo-ico{width:28px;height:28px;font-size:12px}
   .rt-time{font-size:.68rem;padding:3px 7px}
   .hbtn span{display:none}
+  .sett-drop{top:56px;right:8px;left:8px;min-width:auto}
   .tc-grid{grid-template-columns:1fr 1fr}
   .footer-inner{grid-template-columns:1fr;text-align:center;gap:14px}
   .footer-left{align-items:center}.footer-right{align-items:center}
@@ -142,7 +153,20 @@ footer{background:var(--sur);border-top:1px solid var(--cb);padding:24px 20px}
       <button class="tbtn" id="tMint" onclick="setTheme('mint')" title="Mint"><i class="fa-solid fa-droplet"></i></button>
       <button class="tbtn" id="tEarth" onclick="setTheme('earth')" title="Earth"><i class="fa-solid fa-seedling"></i></button>
     </div>
-    <button class="hbtn" onclick="location.href='stockwatch_beta.html'"><i class="fa-solid fa-user-gear"></i><span>Profil</span></button>
+    <button class="hbtn" onclick="document.getElementById('settDrop').classList.toggle('open')"><i class="fa-solid fa-user-gear"></i><span>Profil</span></button>
+  </div>
+  <!-- Settings dropdown (same page) -->
+  <div class="sett-drop" id="settDrop">
+    <div class="sd-title"><i class="fa-solid fa-palette"></i> Design</div>
+    <div class="sd-themes">
+      <button class="sd-th" onclick="setTheme('dark')"><i class="fa-solid fa-moon"></i> Midnight</button>
+      <button class="sd-th" onclick="setTheme('ocean')"><i class="fa-solid fa-water"></i> Ocean</button>
+      <button class="sd-th" onclick="setTheme('lavender')"><i class="fa-solid fa-star"></i> Lavender</button>
+      <button class="sd-th" onclick="setTheme('mint')"><i class="fa-solid fa-droplet"></i> Mint</button>
+      <button class="sd-th" onclick="setTheme('earth')"><i class="fa-solid fa-seedling"></i> Earth</button>
+    </div>
+    <a href="stockwatch_beta.html" class="sd-link"><i class="fa-solid fa-briefcase"></i> Zum Portfolio</a>
+    <button class="sd-link" style="color:var(--neg)" onclick="clearLog()"><i class="fa-solid fa-trash-can"></i> Trade-Log löschen</button>
   </div>
 </header>
 
@@ -324,6 +348,10 @@ function clearLog(){
 }
 
 // ─── INIT ───────────────────────────────────────────────────────────
+document.addEventListener('click',e=>{
+  const d=document.getElementById('settDrop');
+  if(d&&d.classList.contains('open')&&!d.contains(e.target)&&!e.target.closest('.hbtn'))d.classList.remove('open');
+});
 const allTrades=getAllTrades();
 renderSummary(allTrades);
 renderTrades(allTrades);
