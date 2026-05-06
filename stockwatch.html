@@ -4,6 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>StockWatch — Portfolio Tracker</title>
+<meta name="description" content="StockWatch: Kostenloses Aktien-Portfolio mit Live-Kursen via Finnhub &amp; Yahoo Finance. Käufe, Verkäufe, Gewinn/Verlust verfolgen.">
+<meta name="theme-color" content="#0A2647">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📈</text></svg>">
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
@@ -341,8 +346,20 @@ footer{position:relative;z-index:1;background:var(--sur);border-top:1px solid va
 /* Portfolio Header Row 1 ────────────────────────────────────────────── */
 .pf-header{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px}
 .pf-header .pf-addbtn{flex-shrink:0;min-height:40px;margin-left:auto}
+.btn-trades{display:inline-flex;align-items:center;gap:7px;padding:9px 16px;border-radius:10px;
+  background:var(--gbg);border:1.5px solid var(--gld);color:var(--gld);
+  font-size:.82rem;font-weight:700;text-decoration:none;flex-shrink:0;
+  transition:all .2s;font-family:inherit;letter-spacing:.01em}
+.btn-trades:hover{background:var(--gld);color:#000;box-shadow:0 0 16px var(--gbg)}
+.btn-trades i{font-size:.78rem}
+.scard-link{transition:border-color .2s,box-shadow .2s,transform .15s !important}
+.scard-link:hover{border-color:var(--gld) !important;box-shadow:0 4px 18px var(--shd);transform:translateY(-2px)}
+.scard-hint{font-size:.6rem;font-weight:600;color:var(--gld);margin-top:6px;opacity:0;transition:opacity .2s}
+.scard-link:hover .scard-hint{opacity:1}
 @media(max-width:560px){
   .pf-header .pf-addbtn{width:100%;margin-left:0}
+  .pf-header .btn-trades{width:100%;justify-content:center}
+  .pf-header .btn-trades .trades-lbl{display:inline}
 }
 
 /* Filter & Sort Bar ─────────────────────────────────────────────────── */
@@ -423,6 +440,8 @@ footer{position:relative;z-index:1;background:var(--sur);border-top:1px solid va
   .hbtn span{display:none}
   .ar-toggle span{display:none}
   .ar-toggle{padding:5px 8px}
+  .trades-lbl{display:none}
+  .btn-trades{padding:8px 10px}
   .hbtn{padding:8px 10px;min-height:38px}
   /* iOS prevents auto-zoom when input font-size >= 16px */
   .fi,.fi-sm,select,input[type="text"],input[type="number"],input[type="date"],input[type="time"],input[type="email"],input[type="password"]{font-size:16px}
@@ -573,6 +592,7 @@ button[id^="purLiveBtn_"]:hover{background:var(--adim);color:var(--acc);box-shad
 </style>
 </head>
 <body>
+<a href="#grid" class="skip-link" style="position:absolute;top:-100px;left:0;background:var(--acc);color:#fff;padding:8px 16px;z-index:9999;focus:top:0">Zum Inhalt springen</a>
 
 <!-- ══════════════ HEADER (always visible) ══════════════════════════ -->
 <header>
@@ -817,16 +837,17 @@ create policy "own" on public.sw_portfolio
     <div class="scard"><div class="scico"><i class="fa-solid fa-wallet"></i></div><div class="sclbl">Investiert</div><div class="scval vt" id="sI">—</div></div>
     <div class="scard"><div class="scico"><i class="fa-solid fa-chart-pie"></i></div><div class="sclbl">Aktuell</div><div class="scval vt" id="sC">—</div></div>
     <div class="scard"><div class="scico"><i class="fa-solid fa-arrow-trend-up"></i></div><div class="sclbl">Unrealisiert G/V</div><div class="scval vt" id="sG">—</div></div>
-    <div class="scard"><div class="scico"><i class="fa-solid fa-cash-register"></i></div><div class="sclbl">Realisiert G/V</div><div class="scval vt" id="sR">—</div></div>
+    <a href="stockwatch_trades.html" class="scard scard-link" style="text-decoration:none;color:inherit;cursor:pointer"><div class="scico"><i class="fa-solid fa-cash-register"></i></div><div class="sclbl">Realisiert G/V</div><div class="scval vt" id="sR">—</div><div class="scard-hint"><i class="fa-solid fa-arrow-up-right-from-square"></i> Details ansehen</div></a>
     <div class="scard"><div class="scico"><i class="fa-solid fa-bullseye"></i></div><div class="sclbl">Ziele erreicht</div><div class="scval vg" id="sT">0</div></div>
-    <div class="scard"><div class="scico"><i class="fa-solid fa-arrow-right-arrow-left"></i></div><div class="sclbl">Trades</div><div class="scval va" id="sTr">0</div></div>
+    <a href="stockwatch_trades.html" class="scard scard-link" style="text-decoration:none;color:inherit;cursor:pointer"><div class="scico"><i class="fa-solid fa-arrow-right-arrow-left"></i></div><div class="sclbl">Trades</div><div class="scval va" id="sTr">0</div><div class="scard-hint"><i class="fa-solid fa-arrow-up-right-from-square"></i> Dashboard öffnen</div></a>
   </div>
   <!-- Portfolio Header Zeile 1: Titel + Refresh + Stand + AddBtn -->
   <div class="pf-header">
     <span class="sec-t"><i class="fa-solid fa-layer-group"></i> Portfolio</span>
-    <button class="rbtn" id="rBtn" onclick="doRefresh()" title="Aktualisieren"><i class="fa-solid fa-rotate" id="rIco"></i></button>
+    <button class="rbtn" aria-label="Aktualisieren" id="rBtn" onclick="doRefresh()" title="Aktualisieren"><i class="fa-solid fa-rotate" id="rIco"></i></button>
     <span class="upd-time" id="updLbl"></span>
     <button class="btn btn-acc btn-sm pf-addbtn" onclick="openModal()"><i class="fa-solid fa-plus"></i> Aktie hinzufügen</button>
+    <a href="stockwatch_trades.html" class="btn btn-trades"><i class="fa-solid fa-arrow-right-arrow-left"></i> <span class="trades-lbl">Trades-Dashboard</span></a>
   </div>
   <!-- Portfolio Header Zeile 2: Filter & Sort Bar -->
   <div class="fsbar" id="fsBar">
@@ -904,6 +925,7 @@ create policy "own" on public.sw_portfolio
     <div class="footer-left">
       <div class="footer-logo"><div class="logo-ico"><i class="fa-solid fa-chart-line"></i></div>Stock<span>Watch</span></div>
       <div class="footer-sub">Live-Kurse alle 5 Min. via Finnhub &amp; Yahoo<br>Cloud-Sync via Supabase (optional)</div>
+      <div style="font-size:.6rem;color:var(--mut);margin-top:8px;line-height:1.5"><i class="fa-solid fa-shield-halved" style="margin-right:3px"></i> Daten werden lokal im Browser gespeichert (localStorage). Es werden keine personenbezogenen Daten an Dritte übermittelt, außer bei aktiviertem Cloud-Sync. Keine Anlageberatung — alle Angaben ohne Gewähr.</div>
       <a href="stockwatch_trades.html" style="display:inline-flex;align-items:center;gap:6px;margin-top:10px;padding:8px 16px;border-radius:9px;background:var(--adim);border:1px solid var(--acc);color:var(--acc);font-size:.8rem;font-weight:600;text-decoration:none;transition:all .15s"><i class="fa-solid fa-arrow-right-arrow-left"></i> Trades-Dashboard öffnen</a>
     </div>
     <div class="footer-center">
@@ -971,6 +993,9 @@ create policy "own" on public.sw_portfolio
 <div class="tc" id="tc"></div>
 
 <script>
+// Polyfill: AbortSignal.timeout for Safari < 16.4
+if(!AbortSignal.timeout){AbortSignal.timeout=function(ms){const c=new AbortController();setTimeout(()=>c.abort(new DOMException('TimeoutError','TimeoutError')),ms);return c.signal;};}
+
 // ─── CONSTANTS ───────────────────────────────────────────────────────
 const FH = 'https://finnhub.io/api/v1';
 const INTV = 300000; // 5 Minuten
@@ -1486,13 +1511,28 @@ async function loadHist() {
   const btn=document.getElementById('histBtn');
   const hint=document.getElementById('histHint');
   btn.disabled=true; btn.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i>';
-  hint.style.color=''; hint.textContent='Suche historischen Kurs…';
+  hint.style.color=''; hint.textContent='Suche Kurs…';
 
   let result = null;
+  const isToday = date === new Date().toISOString().slice(0,10);
+  const isRecent = (Date.now() - new Date(date+'T23:59:59').getTime()) < 3*86400000; // last 3 days
 
-  // 1) Finnhub Candle FIRST (no CORS issues, user has API key)
-  if(apiKey) {
-    hint.textContent='Finnhub wird abgefragt…';
+  // Strategy: Today/Recent → parallel live quote (fast!), Historical → candle
+  if(isToday || isRecent) {
+    // Try Finnhub live quote AND Yahoo simultaneously — first wins
+    hint.textContent='Live-Kurs wird abgerufen…';
+    const promises = [];
+    if(apiKey) promises.push(fhQ(sym).then(q => q?.c > 0 ? {price:q.c} : null).catch(()=>null));
+    promises.push(yahooLiveQuote(sym).then(q => q?.c > 0 ? {price:q.c} : null).catch(()=>null));
+    const results = await Promise.allSettled(promises);
+    for(const r of results) {
+      if(r.status==='fulfilled' && r.value) { result = r.value; break; }
+    }
+  }
+
+  // Fallback: historical candle (Finnhub first, then Yahoo)
+  if(!result && apiKey) {
+    hint.textContent='Finnhub historisch…';
     try {
       const d=new Date(date+'T12:00:00Z');
       const from=Math.floor(d.getTime()/1000)-259200, to=Math.floor(d.getTime()/1000)+259200;
@@ -1504,22 +1544,21 @@ async function loadHist() {
       }
     } catch(e) { if(e.message==='BAD_KEY'){showProfileScreen();pTab(1);toast('API Key ungültig.','te');} }
   }
-
-  // 2) Yahoo Finance Fallback (via CORS proxies)
   if(!result) {
-    hint.textContent='Yahoo Finance wird abgefragt…';
+    hint.textContent='Yahoo historisch…';
     result = await fetchYahooHist(sym,date);
   }
 
   if(result) {
     document.getElementById('fBuy').value=result.price.toFixed(4);
     hint.style.color='var(--pos)';
-    hint.textContent=`✓ Schlusskurs ${result.date.toLocaleDateString('de-DE')}: ${result.price.toFixed(2)} — eingetragen.`;
+    const dateLabel = result.date ? result.date.toLocaleDateString('de-DE') : 'Aktuell';
+    hint.textContent=`✓ Kurs ${dateLabel}: ${result.price.toFixed(2)} — eingetragen.`;
     toast(`Kurs geladen: ${result.price.toFixed(2)}`,'ts');
   } else {
     hint.style.color='var(--neg)';
-    hint.textContent='⚠ Kein Kurs gefunden (Wochenende/Feiertag?). Preis manuell eintragen.';
-    toast('Kein historischer Kurs gefunden.','te');
+    hint.textContent='⚠ Kein Kurs gefunden. Preis manuell eintragen.';
+    toast('Kein Kurs gefunden.','te');
   }
   btn.disabled=false; btn.innerHTML='<i class="fa-solid fa-clock-rotate-left"></i> Kurs laden';
 }
@@ -1684,6 +1723,26 @@ function openSellModal(id) {
   document.getElementById('sellOv').classList.add('open');
 }
 function closeSellModal() { document.getElementById('sellOv').classList.remove('open'); sellStockId=null; }
+
+// Sell a specific purchase's remaining shares
+function openSellForPurchase(stockId, purchaseId) {
+  const s = portfolio.find(x=>x.id===stockId); if(!s) return;
+  const p = s.purchases.find(x=>x.id===purchaseId); if(!p) return;
+  const rem = purchaseRemaining(s, purchaseId);
+  if(rem<=0) return toast('Keine Stücke mehr verfügbar.','te');
+  sellStockId = stockId;
+  const cur = s.currency||'';
+  document.getElementById('sellTitle').textContent = `${s.symbol} — Kauf verkaufen`;
+  document.getElementById('sellSub').textContent = `${rem.toLocaleString('de-DE')} Stücke à ${p.buyPrice.toFixed(2)} ${cur} vom ${p.buyDate||'—'}`;
+  document.getElementById('sellDate').valueAsDate = new Date();
+  document.getElementById('sellTime').value = '';
+  document.getElementById('sellPrice').value = s.price || '';
+  document.getElementById('sellShares').value = rem;
+  updateSellPreview();
+  document.getElementById('sellPrice').oninput = updateSellPreview;
+  document.getElementById('sellShares').oninput = updateSellPreview;
+  document.getElementById('sellOv').classList.add('open');
+}
 function updateSellPreview() {
   const s = portfolio.find(x=>x.id===sellStockId);
   const el = document.getElementById('sellPreview');
@@ -1708,23 +1767,36 @@ function executeSell() {
   if(!price||price<=0) return toast('Bitte Verkaufspreis eingeben.','te');
   if(!shares||shares<=0) return toast('Bitte Stückzahl eingeben.','te');
   const avail = activeShares(s);
-  if(shares>avail) return toast(`Nur ${avail} Stücke verfügbar.`,'te');
+  if(shares>avail+0.001) return toast(`Nur ${avail} Stücke verfügbar.`,'te');
   if(!s.sales) s.sales = [];
+
+  // FIFO: track which purchases are affected
+  const adjustments = [];
+  let remaining = shares;
+  const sorted = [...s.purchases].sort((a,b)=>(a.buyDate||'').localeCompare(b.buyDate||''));
+  for(const p of sorted) {
+    if(remaining<=0) break;
+    const purRemaining = purchaseRemaining(s, p.id);
+    if(purRemaining<=0) continue;
+    const take = Math.min(remaining, purRemaining);
+    adjustments.push({purchaseId: p.id, sharesReduced: take, buyPrice: p.buyPrice});
+    remaining -= take;
+  }
+
   const sale = {
     id: Date.now().toString(36)+Math.random().toString(36).slice(2,6),
     shares, sellPrice: price, sellDate: date, sellTime: time||'',
     avgBuyPrice: avgBuyPrice(s),
-    realizedPL: (price - avgBuyPrice(s)) * shares
+    realizedPL: (price - avgBuyPrice(s)) * shares,
+    adjustments // FIFO tracking for undo
   };
   s.sales.push(sale);
-  // Archive trade to trade log
   archiveTrade(s, sale, 'sell');
   const pl = sale.realizedPL;
   const sym = s.symbol;
   const cur = s.currency||'';
-  // If fully sold → archive entire stock and remove from portfolio
-  if(activeShares(s) <= 0) {
-    archiveClosedPosition(s);
+  if(activeShares(s) <= 0.001) {
+    // Fully sold — remove from portfolio
     portfolio = portfolio.filter(x=>x.id!==s.id);
     if(sbClient&&sbUser) delSb(s.id);
     closeSellModal(); closePop();
@@ -1736,6 +1808,16 @@ function executeSell() {
     toast(`${sym}: ${shares} Stücke verkauft · ${pl>=0?'+':''}${pl.toFixed(2)} ${cur}`, pl>=0?'ts':'te');
   }
   save(); renderGrid(); updateSummary();
+}
+
+// How many shares remain in a specific purchase (after all sales that affected it)
+function purchaseRemaining(stock, purchaseId) {
+  const p = stock.purchases.find(x=>x.id===purchaseId);
+  if(!p) return 0;
+  const sold = (stock.sales||[]).reduce((a,sl)=>{
+    return a + (sl.adjustments||[]).filter(adj=>adj.purchaseId===purchaseId).reduce((b,adj)=>b+adj.sharesReduced,0);
+  },0);
+  return Math.max(0, p.shares - sold);
 }
 
 // ─── TRADE LOG (localStorage: sw_trades) ────────────────────────────
@@ -1759,41 +1841,18 @@ function archiveTrade(stock, trade, type) {
   saveTradeLog(log);
 }
 
-function archiveClosedPosition(stock) {
-  const log = getTradeLog();
-  log.push({
-    id: 'close_'+stock.id, type: 'position_closed',
-    symbol: stock.symbol, name: stock.name||stock.symbol,
-    currency: stock.currency||'',
-    totalBought: totalShares(stock),
-    totalInvested: investedVal(stock),
-    totalRealized: realizedPL(stock),
-    purchases: stock.purchases,
-    sales: stock.sales,
-    targetPrice: stock.targetPrice,
-    targetReached: stock.price && stock.price >= stock.targetPrice,
-    timestamp: Date.now()
-  });
-  saveTradeLog(log);
-}
-
-// Undo sale (restore shares)
+// Undo sale: restore shares to purchases + remove from trade log
 function undoSale(stockId, saleId) {
   const s = portfolio.find(x=>x.id===stockId); if(!s||!s.sales) return;
+  // Remove from trade log
+  const log = getTradeLog().filter(t=>t.id!==saleId);
+  saveTradeLog(log);
+  // Remove sale from stock
   s.sales = s.sales.filter(sl=>sl.id!==saleId);
   save(); renderGrid(); updateSummary();
   if(sbClient&&sbUser) pushSb(s);
   closePop(); openPop(stockId);
-  toast('Verkauf rückgängig gemacht.','ts');
-}
-// Delete sale permanently
-function deleteSale(stockId, saleId) {
-  const s = portfolio.find(x=>x.id===stockId); if(!s||!s.sales) return;
-  s.sales = s.sales.filter(sl=>sl.id!==saleId);
-  save(); renderGrid(); updateSummary();
-  if(sbClient&&sbUser) pushSb(s);
-  closePop(); openPop(stockId);
-  toast('Verkauf entfernt.','ti');
+  toast('Verkauf rückgängig — Stücke wiederhergestellt.','ts');
 }
 // Edit sale
 function toggleSaleEdit(saleId) {
@@ -1806,8 +1865,20 @@ function saveSaleEdit(stockId, saleId) {
   sale.sellDate = document.getElementById('sed_'+saleId)?.value || sale.sellDate;
   sale.sellTime = document.getElementById('set_'+saleId)?.value || '';
   sale.sellPrice = parseFloat(document.getElementById('sep_'+saleId)?.value) || sale.sellPrice;
-  sale.shares = parseFloat(document.getElementById('ses_'+saleId)?.value) || sale.shares;
+  const newShares = parseFloat(document.getElementById('ses_'+saleId)?.value) || sale.shares;
+  sale.shares = newShares;
   sale.realizedPL = (sale.sellPrice - sale.avgBuyPrice) * sale.shares;
+  // Update trade log entry
+  const log = getTradeLog();
+  const logEntry = log.find(t=>t.id===saleId);
+  if(logEntry) {
+    logEntry.price = sale.sellPrice;
+    logEntry.shares = sale.shares;
+    logEntry.date = sale.sellDate;
+    logEntry.time = sale.sellTime;
+    logEntry.realizedPL = sale.realizedPL;
+    saveTradeLog(log);
+  }
   save(); renderGrid(); updateSummary();
   if(sbClient&&sbUser) pushSb(s);
   closePop(); openPop(stockId);
@@ -1986,9 +2057,9 @@ function cardHTML(s, idx) {
           ${hp&&s.priceSource?`<span class="src-badge ${s.priceSource==='yahoo'?'src-yahoo':'src-finnhub'}"><i class="fa-solid fa-${s.priceSource==='yahoo'?'y':'bolt'}"></i>${s.priceSource==='yahoo'?'Yahoo Finance':'Finnhub'}${s.exchange?' · '+s.exchange:''}</span>`:'<span style="color:var(--mut);font-size:.65rem"><i class="fa-regular fa-clock"></i> Noch nicht geladen</span>'}
         </div>
         <div class="cfb" onclick="event.stopPropagation()">
-          <button class="bic bedt" data-id="${s.id}" title="Nachkauf"><i class="fa-solid fa-cart-plus"></i></button>
-          <button class="bic bsell" data-id="${s.id}" title="Verkaufen"><i class="fa-solid fa-hand-holding-dollar"></i></button>
-          <button class="bic bdel" data-id="${s.id}" title="Entfernen"><i class="fa-solid fa-trash-can"></i></button>
+          <button class="bic bedt" aria-label="Nachkauf" data-id="${s.id}" title="Nachkauf"><i class="fa-solid fa-cart-plus"></i></button>
+          <button class="bic bsell" aria-label="Verkaufen" data-id="${s.id}" title="Verkaufen"><i class="fa-solid fa-hand-holding-dollar"></i></button>
+          <button class="bic bdel" aria-label="Entfernen" data-id="${s.id}" title="Entfernen"><i class="fa-solid fa-trash-can"></i></button>
         </div>
       </div>
     </div>
@@ -2004,14 +2075,16 @@ function updateSummary() {
   const invF=hasPrices.reduce((a,s)=>a+activeInvested(s),0);
   const gain=cur-invF;
   const tgts=portfolio.filter(s=>s.price&&s.price>=s.targetPrice&&activeShares(s)>0).length;
-  // Realisiert G/V: aktive Portfolio-Sales + geschlossene Positionen aus Trade-Log
+  // Realisiert G/V: from active portfolio sales + from trade log (removed stocks only)
   const activeRpl=totalRealizedPL();
-  const closedRpl=getTradeLog().filter(t=>t.type==='position_closed').reduce((a,t)=>a+(t.totalRealized||0),0);
+  const activeSaleIds=new Set();
+  portfolio.forEach(s=>(s.sales||[]).forEach(sl=>activeSaleIds.add(sl.id)));
+  const logOnlySells=getTradeLog().filter(t=>t.type==='sell'&&!activeSaleIds.has(t.id));
+  const closedRpl=logOnlySells.reduce((a,t)=>a+(t.realizedPL||0),0);
   const rpl=activeRpl+closedRpl;
-  // Trades: aktive + alle aus Trade-Log
+  // Trades: active buys+sells + removed sells from log
   const activeTrades=tradeCount();
-  const logTrades=getTradeLog().filter(t=>t.type==='sell'||t.type==='buy').length;
-  const trades=activeTrades + logTrades;
+  const trades=activeTrades + logOnlySells.length;
   const f2=n=>n.toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2});
   document.getElementById('sN').textContent=n;
   document.getElementById('sI').textContent=f2(inv)+' €';
@@ -2266,12 +2339,18 @@ function openPop(id) {
 
   // Purchase rows
   const sortedP = [...s.purchases].sort((a,b)=>b.buyDate?.localeCompare(a.buyDate||'')||0);
-  const purHtml = sortedP.map((p,i)=>{
+  const activePurchases = sortedP.filter(p=>purchaseRemaining(s,p.id)>0.001);
+  const soldPurchases = sortedP.filter(p=>purchaseRemaining(s,p.id)<=0.001);
+  const purHtml = activePurchases.map((p,i)=>{
+    const rem = purchaseRemaining(s, p.id);
+    const sold = p.shares - rem;
+    const hasSold = sold > 0.001;
     const purGain = hp ? (s.price - p.buyPrice)/p.buyPrice*100 : null;
-    const purGainV = hp ? (s.price - p.buyPrice)*p.shares : null;
+    const purGainV = hp ? (s.price - p.buyPrice)*rem : null;
     const gc = purGain==null?'':(purGain>=0?'p':'n');
     const gs2 = purGain!=null&&purGain>=0?'+':'';
     const dStr = p.buyDate ? new Date(p.buyDate+'T12:00:00').toLocaleDateString('de-DE') : '—';
+    const soldBadge = hasSold ? `<div style="font-size:.65rem;color:var(--gld);margin-top:3px"><i class="fa-solid fa-hand-holding-dollar"></i> ${f(sold,sold%1===0?0:3)} verkauft</div>` : '';
     return `<div class="pur-item" id="purItem_${p.id}">
       <div class="pur-row">
         <div class="pur-field">
@@ -2280,8 +2359,9 @@ function openPop(id) {
           ${purGain!=null?`<div class="pur-gain ${gc}">${gs2}${f(purGain)}%</div>`:''}
         </div>
         <div class="pur-field">
-          <div class="pur-lbl"><i class="fa-solid fa-hashtag"></i> Stücke</div>
-          <div class="pur-val">${f(p.shares,0)}</div>
+          <div class="pur-lbl"><i class="fa-solid fa-cubes"></i> ${hasSold?'Verbleibend':'Stücke'}</div>
+          <div class="pur-val">${f(rem,rem%1===0?0:3)} <span style="font-size:.7rem;color:var(--sub)">${hasSold?'/ '+f(p.shares,p.shares%1===0?0:3):''}</span></div>
+          ${soldBadge}
           ${purGainV!=null?`<div class="pur-gain ${gc}">${purGainV>=0?'+':''}${fc(purGainV)}</div>`:''}
         </div>
         <div class="pur-field">
@@ -2289,10 +2369,11 @@ function openPop(id) {
           <div class="pur-val" style="font-size:.82rem">${dStr}</div>
           <div class="pur-date">${p.buyTime||''}</div>
         </div>
-        <button class="pur-edit-btn" id="peb_${p.id}" onclick="togglePurchaseEdit('${p.id}')" title="Kauf bearbeiten"><i class="fa-solid fa-pen"></i></button>
-        <button class="pur-del-btn" onclick="deletePurchase('${id}','${p.id}')" title="Kauf entfernen"><i class="fa-solid fa-trash-can"></i></button>
+        <button class="pur-edit-btn" id="peb_${p.id}" onclick="togglePurchaseEdit('${p.id}')" title="Bearbeiten"><i class="fa-solid fa-pen"></i></button>
+        <button class="pur-edit-btn" style="background:var(--pbg);color:var(--pos)" onclick="openSellForPurchase('${id}','${p.id}')" title="Diesen Kauf verkaufen"><i class="fa-solid fa-hand-holding-dollar"></i></button>
+        ${!hasSold?`<button class="pur-del-btn" onclick="deletePurchase('${id}','${p.id}')" title="Kauf entfernen"><i class="fa-solid fa-trash-can"></i></button>`:''}
       </div>
-      <!-- Inline edit row (klappt auf via .editing) -->
+      <!-- Inline edit row -->
       <div class="pur-edit-row">
         <div>
           <div class="pur-lbl">Datum</div>
@@ -2306,7 +2387,7 @@ function openPop(id) {
           <div class="pur-lbl">Einkaufspreis</div>
           <div style="display:flex;gap:5px;align-items:center">
             <input class="fi" id="pep_${p.id}" type="number" step="0.0001" value="${p.buyPrice}" placeholder="Preis" style="padding:6px 9px;font-size:.82rem;flex:1;min-width:0">
-            <button class="btn btn-ghost btn-sm" id="purLiveBtn_${p.id}" onclick="fetchPurLivePrice('${id}','${p.id}')" title="Kurs für gewähltes Datum abrufen" style="padding:6px 8px;flex-shrink:0;white-space:nowrap">
+            <button class="btn btn-ghost btn-sm" id="purLiveBtn_${p.id}" onclick="fetchPurLivePrice('${id}','${p.id}')" title="Kurs abrufen" style="padding:6px 8px;flex-shrink:0;white-space:nowrap">
               <i class="fa-solid fa-satellite-dish"></i>
             </button>
           </div>
@@ -2317,13 +2398,13 @@ function openPop(id) {
         </div>
       </div>
       <button class="btn btn-acc btn-sm pur-save-btn" onclick="savePurchaseEdit('${id}','${p.id}')">
-        <i class="fa-solid fa-floppy-disk"></i> Kauf ${i+1} speichern
+        <i class="fa-solid fa-floppy-disk"></i> Speichern
       </button>
     </div>`;
   }).join('');
 
   const addBtn = `<button class="btn btn-ghost btn-sm" onclick="openRebuyFromPop('${id}')" style="width:100%"><i class="fa-solid fa-plus"></i> Weiteren Kauf hinzufügen</button>`;
-  const sellBtn = `<button class="btn btn-sm" onclick="openSellModal('${id}')" style="width:100%;background:var(--pbg);color:var(--pos);border:1px solid var(--pos);margin-top:6px"><i class="fa-solid fa-hand-holding-dollar"></i> Verkaufen</button>`;
+  const sellBtn = activeShares(s)>0 ? `<button class="btn btn-sm" onclick="openSellModal('${id}')" style="width:100%;background:var(--pbg);color:var(--pos);border:1px solid var(--pos);margin-top:6px"><i class="fa-solid fa-hand-holding-dollar"></i> Alle Stücke verkaufen</button>` : '';
 
   // Sales section
   let salesHtml = '';
@@ -2354,7 +2435,6 @@ function openPop(id) {
         <div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap">
           <button class="btn btn-ghost btn-sm" style="flex:1;font-size:.72rem" onclick="toggleSaleEdit('${sl.id}')"><i class="fa-solid fa-pen"></i> Bearbeiten</button>
           <button class="btn btn-ghost btn-sm" style="flex:1;font-size:.72rem;color:var(--pos);border-color:var(--pos)" onclick="undoSale('${id}','${sl.id}')"><i class="fa-solid fa-rotate-left"></i> Rückgängig</button>
-          <button class="btn btn-ghost btn-sm" style="flex:1;font-size:.72rem;color:var(--neg);border-color:var(--neg)" onclick="deleteSale('${id}','${sl.id}')"><i class="fa-solid fa-trash-can"></i> Entfernen</button>
         </div>
         <div class="pur-edit-row">
           <div><div class="pur-lbl">Datum</div><input class="fi" id="sed_${sl.id}" type="date" value="${sl.sellDate||''}"></div>
@@ -2367,7 +2447,13 @@ function openPop(id) {
     }).join('') + '</div>';
   }
 
-  document.getElementById('popBody').innerHTML = sumHtml + tgtHtml + `<div class="pur-lbl" style="margin-bottom:8px"><i class="fa-solid fa-list"></i> Einzelne Käufe</div>` + `<div class="pur-list">${purHtml}</div>` + addBtn + sellBtn + salesHtml;
+  document.getElementById('popBody').innerHTML = sumHtml + tgtHtml
+    + `<div class="pur-lbl" style="margin-bottom:8px"><i class="fa-solid fa-cart-shopping"></i> Aktive Käufe (${activePurchases.length})</div>`
+    + `<div class="pur-list">${purHtml}</div>` + addBtn + sellBtn + salesHtml
+    + (soldPurchases.length ? `<div class="pur-lbl" style="margin-bottom:8px;margin-top:18px"><i class="fa-solid fa-check-double"></i> Vollständig verkaufte Käufe (${soldPurchases.length})</div><div class="pur-list">${soldPurchases.map(p=>{
+      const dStr = p.buyDate ? new Date(p.buyDate+'T12:00:00').toLocaleDateString('de-DE') : '—';
+      return `<div class="pur-item" style="opacity:.5;border-style:dashed;padding:10px 15px"><div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap"><span style="font-size:.78rem;color:var(--sub)"><i class="fa-solid fa-check" style="color:var(--pos);margin-right:4px"></i> ${f(p.shares,p.shares%1===0?0:3)} St. @ ${fc(p.buyPrice)} · ${dStr}</span><span style="font-size:.68rem;color:var(--gld);font-weight:600">Verkauft</span></div></div>`;
+    }).join('')}</div>` : '');
   document.getElementById('popOv').classList.add('open');
 }
 
@@ -2591,7 +2677,7 @@ init().then(()=>{ firstRender=false; });
         <div class="pop-title" id="popTitle">Käufe</div>
         <div class="pop-sub" id="popSub"></div>
       </div>
-      <button class="pop-close" onclick="closePop()"><i class="fa-solid fa-xmark"></i></button>
+      <button class="pop-close" aria-label="Schließen" onclick="closePop()"><i class="fa-solid fa-xmark"></i></button>
     </div>
     <div class="pop-body" id="popBody"></div>
   </div>
