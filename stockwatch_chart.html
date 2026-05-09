@@ -619,8 +619,13 @@ async function loadChart(symbol, range = '1D', interval = '5m') {
   const isPositive = last >= first;
 
   // Stock-Info aus Batch-Quote holen (gecacht, schnell)
+  // Fallback auf /v8/finance/chart falls Batch-Endpunkt versagt
   const quoteMap = await SWEngine.fetchBatchQuotes([currentSymbol]).catch(() => ({}));
-  const q = quoteMap[currentSymbol];
+  let q = quoteMap[currentSymbol];
+  if (!q || q.price == null) {
+    // Einzelabfrage via Chart-Endpunkt (zuverlässiger durch CORS-Proxy)
+    q = await _chartFallbackQuote(currentSymbol).catch(() => null);
+  }
 
   const price     = q?.price ?? meta.regularMarketPrice ?? last;
   const prevClose = q?.prevClose ?? meta.chartPreviousClose ?? first;
@@ -955,13 +960,54 @@ function updateWlItemPrice(symbol, price, chgPct, currency) {
 }
 
 // Alle Watchlist-Preise in EINEM Batch-Request aktualisieren
+// Mit Fallback auf /v8/finance/chart für fehlgeschlagene Symbole
 async function refreshAllWlPrices() {
   if (!watchlist.length) return;
   const syms = watchlist.map(w => w.sym);
   const map  = await SWEngine.fetchBatchQuotes(syms).catch(() => ({}));
+
+  // Fallback für Symbole ohne Ergebnis
+  const missed = syms.filter(s => !map[s] || map[s].price == null);
+  if (missed.length) {
+    await Promise.allSettled(missed.map(async sym => {
+      const q = await _chartFallbackQuote(sym).catch(() => null);
+      if (q) map[sym] = q;
+    }));
+  }
+
   for (const [sym, q] of Object.entries(map)) {
     if (q?.price != null) updateWlItemPrice(sym, q.price, q.changePct ?? 0, q.currency ?? '');
   }
+}
+
+/**
+ * _chartFallbackQuote — /v8/finance/chart als Einzelabfrage.
+ * Funktioniert zuverlässiger durch CORS-Proxies als /v7/finance/quote.
+ */
+async function _chartFallbackQuote(sym) {
+  for (const host of ['query1', 'query2']) {
+    const url = `https://${host}.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(sym)}`
+      + `?interval=1d&range=1d&region=US&lang=en-US&corsDomain=finance.yahoo.com`;
+    try {
+      const data = await SWEngine.proxyFetch(url, 7000);
+      const m = data?.chart?.result?.[0]?.meta;
+      if (!m) continue;
+      const price = m.regularMarketPrice || m.previousClose;
+      if (!price) continue;
+      const prev = m.chartPreviousClose || m.previousClose || price;
+      return {
+        symbol: sym, price,
+        prevClose: prev,
+        change:    price - prev,
+        changePct: prev ? (price - prev) / prev * 100 : 0,
+        name:      m.longName || m.shortName || sym,
+        currency:  m.currency || '',
+        exchange:  m.exchangeName || '',
+        _src:      'yahoo-chart',
+      };
+    } catch (_) {}
+  }
+  return null;
 }
 
 // ─── SEARCH / AUTOCOMPLETE ────────────────────────────────────────────

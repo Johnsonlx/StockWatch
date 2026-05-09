@@ -1738,16 +1738,10 @@ async function doRefresh() {
   let qMap = {};
   let errSymbols = [];
 
+  // ── Stufe 1: Yahoo Batch (/v7/finance/quote) ─────────────────────
+  // Ein Request für alle Symbole. Falls der Endpunkt durch den Proxy
+  // nicht erreichbar ist, kommen leere oder unvollständige Ergebnisse.
   try {
-    /**
-     * EIN Batch-Request für alle Symbole.
-     * SWEngine.fetchBatchQuotes() handhabt intern:
-     *  - Batching in Gruppen von 50
-     *  - Parallele Ausführung der Batches (Promise.all)
-     *  - Cache-Lookup (15s TTL) → bei Cache-Hit: 0 Netzwerk-Requests
-     *  - Retry mit Exponential Backoff
-     *  - Request-Deduplication (kein Doppel-Fetch)
-     */
     qMap = await SWEngine.fetchBatchQuotes(syms);
   } catch (e) {
     if (e.message === 'OFFLINE') {
@@ -1755,55 +1749,75 @@ async function doRefresh() {
       rb.classList.remove('spin'); rb.disabled = false;
       return;
     }
-    // Totaler Netzwerkfehler → trotzdem weitermachen, Fehler per Card anzeigen
-    console.warn('Batch-Fetch fehlgeschlagen:', e.message);
   }
 
-  // Normalisierte Quotes in Portfolio-State übernehmen
+  // ── Stufe 2: Fallback für fehlgeschlagene Symbole ─────────────────
+  // /v7/finance/quote liefert manchmal leere Antworten durch CORS-Proxies.
+  // Fallback: /v8/finance/chart (ein Call pro Symbol, aber zuverlässiger).
+  const needFallback = syms.filter(sym => !qMap[sym] || qMap[sym].price == null);
+
+  if (needFallback.length) {
+    await Promise.allSettled(
+      needFallback.map(async sym => {
+        try {
+          const q = await _yahooChartQuote(sym);
+          if (q) qMap[sym] = q;
+        } catch (_) {}
+      })
+    );
+  }
+
+  // ── Stufe 3: Gecachte Daten als letzten Ausweg anzeigen ──────────
+  // Wenn auch der Fallback versagt, zeige vorhandene gecachte Preise
+  // (s.price != null) und markiere als nicht refreshed statt als Fehler.
+
+  // Portfolio-State aktualisieren
   portfolio.forEach(s => {
     const q = qMap[s.symbol];
 
     if (!q || q.price == null) {
-      s.fetchError = true;
+      // Gecachten Preis behalten falls vorhanden, nur fetchError setzen
+      if (s.price == null) s.fetchError = true;
       errSymbols.push(s.symbol);
       return;
     }
 
-    s.price     = q.price;
-    s.prevClose = q.prevClose;
-    s.dayChange = q.change;
-    s.dayPct    = q.changePct;
-    s.fetchError= false;
-    s.lastUpd   = Date.now();
-    s.priceSource = 'yahoo-batch'; // immer Yahoo Batch jetzt
+    s.price      = q.price;
+    s.prevClose  = q.prevClose;
+    s.dayChange  = q.change;
+    s.dayPct     = q.changePct;
+    s.fetchError = false;
+    s.lastUpd    = Date.now();
+    s.priceSource = q._src || 'yahoo';
 
-    // Währung aus Batch-Quote (zuverlässiger als Profil-API)
     const hasSuffix = s.symbol.includes('.');
     if (q.currency && (hasSuffix || !s.currency)) s.currency = q.currency;
     if (q.exchange) s.exchange = q.exchange;
 
-    // Explizite Fallbacks
     if (!s.currency) {
-      if (s.symbol.endsWith('.DE') || s.symbol.endsWith('.F')) s.currency = 'EUR';
-      else if (s.symbol.endsWith('.SW'))                        s.currency = 'CHF';
-      else if (s.symbol.endsWith('.L'))                         s.currency = 'GBp';
-      else if (!hasSuffix)                                      s.currency = 'USD';
+      if      (s.symbol.endsWith('.DE') || s.symbol.endsWith('.F')) s.currency = 'EUR';
+      else if (s.symbol.endsWith('.SW'))                              s.currency = 'CHF';
+      else if (s.symbol.endsWith('.L'))                               s.currency = 'GBp';
+      else if (!hasSuffix)                                            s.currency = 'USD';
     }
 
-    // Firmenname aus Batch-Quote übernehmen (spart separaten Profil-API-Call)
     if (!s.nameFetched && q.name && q.name !== s.symbol) {
-      s.name       = q.name;
-      s.nameFetched= true;
+      s.name = q.name; s.nameFetched = true;
     }
   });
 
-  // Error-Banner
-  if (errSymbols.length && errSymbols.length === syms.length) {
-    showErrBanner('Keine Kurse abrufbar', 'Yahoo Finance nicht erreichbar. Verbindung prüfen.', 'error');
-  } else if (errSymbols.length) {
+  // Banner nur wenn ALLE Symbole fehlschlagen und kein gecachter Preis vorhanden
+  const totallyFailed = errSymbols.filter(sym => {
+    const s = portfolio.find(p => p.symbol === sym);
+    return s && s.price == null;
+  });
+
+  if (totallyFailed.length && totallyFailed.length === syms.length) {
+    showErrBanner('Keine Kurse abrufbar', 'Yahoo Finance nicht erreichbar. Verbindung und Ticker-Symbol prüfen.', 'error');
+  } else if (errSymbols.length && errSymbols.length < syms.length) {
     showErrBanner(
       `${errSymbols.length} Symbol(e) nicht gefunden`,
-      `WKN ≠ Ticker! Fehlerhaft: ${errSymbols.slice(0, 5).join(', ')}${errSymbols.length > 5 ? ' …' : ''}`,
+      `WKN ≠ Ticker! Prüfen: ${errSymbols.slice(0, 5).join(', ')}${errSymbols.length > 5 ? ' …' : ''}`,
       'warn'
     );
   }
@@ -1811,9 +1825,45 @@ async function doRefresh() {
   save(); renderWatchlist(); updateSummary();
   SWEngine.patchText(
     document.getElementById('updLbl'),
-    '⟳ Stand: ' + new Date().toLocaleTimeString('de-DE') + ' · nächster in 15s'
+    '⟳ Stand: ' + new Date().toLocaleTimeString('de-DE') + ' · nächster in 5 Min.'
   );
   rb.classList.remove('spin'); rb.disabled = false;
+}
+
+/**
+ * _yahooChartQuote — Fallback-Einzelabfrage via /v8/finance/chart.
+ * Dieser Endpunkt funktioniert zuverlässiger durch CORS-Proxies als /v7/finance/quote.
+ * Gibt ein normalisiertes Quote-Objekt zurück, kompatibel mit dem Batch-Format.
+ */
+async function _yahooChartQuote(sym) {
+  for (const host of ['query1', 'query2']) {
+    const url = `https://${host}.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(sym)}`
+      + `?interval=1d&range=1d&region=US&lang=en-US&corsDomain=finance.yahoo.com`;
+    try {
+      const data = await SWEngine.proxyFetch(url, 7000);
+      const m = data?.chart?.result?.[0]?.meta;
+      if (!m) continue;
+      const price = m.regularMarketPrice || m.previousClose;
+      if (!price) continue;
+      const prev = m.chartPreviousClose || m.previousClose || price;
+      return {
+        symbol:    sym,
+        price,
+        prevClose: prev,
+        change:    price - prev,
+        changePct: prev ? (price - prev) / prev * 100 : 0,
+        high:      m.regularMarketDayHigh ?? null,
+        low:       m.regularMarketDayLow  ?? null,
+        open:      m.regularMarketOpen    ?? null,
+        volume:    m.regularMarketVolume  ?? null,
+        name:      m.longName || m.shortName || sym,
+        currency:  m.currency || '',
+        exchange:  m.exchangeName || m.fullExchangeName || '',
+        _src:      'yahoo-chart',
+      };
+    } catch (_) {}
+  }
+  return null;
 }
 
 function logoClick() {
