@@ -539,6 +539,7 @@ header{
 
 <div id="tc"></div>
 
+<script src="sw-engine.js"></script>
 <script>
 'use strict';
 
@@ -564,38 +565,19 @@ let acTimeout      = null;
 let acItems        = [];
 let acIndex        = -1;
 
-// ─── CORS PROXY ───────────────────────────────────────────────────────
-async function fetchProxy(url, timeout=8000) {
-  const strategies = [
-    [`https://api.allorigins.win/get?url=${encodeURIComponent(url)}`, true],
-    [`https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`, false],
-    [`https://corsproxy.io/?${encodeURIComponent(url)}`, false],
-  ];
-  for (const [px, unwrap] of strategies) {
-    try {
-      const r = await fetch(px, { signal: AbortSignal.timeout(timeout) });
-      if (!r.ok) continue;
-      let raw;
-      if (unwrap) {
-        const w = await r.json();
-        raw = w?.contents;
-        if (!raw) continue;
-      } else {
-        raw = await r.text();
-      }
-      if (!raw || raw.startsWith('<!') || raw.includes('consent.yahoo')) continue;
-      try { return JSON.parse(raw); } catch(_) {}
-    } catch(_) {}
-  }
-  return null;
+// ─── CORS PROXY (delegiert an SWEngine) ───────────────────────────────
+async function fetchProxy(url, timeoutMs = 8000, signal = null) {
+  return SWEngine.proxyFetch(url, timeoutMs, signal);
 }
 
-// ─── YAHOO FINANCE API ────────────────────────────────────────────────
+// ─── CHART LADEN (via SWEngine.fetchChart) ────────────────────────────
 /**
- * loadChart(symbol, range, interval)
- * Fetches Yahoo Finance chart data and renders Chart.js
+ * loadChart verwendet SWEngine.fetchChart():
+ *  - 5min Cache → zweites Klicken auf denselben Zeitraum: 0 API-Calls
+ *  - Stale-while-revalidate → sofort gecachte Daten, Hintergrund-Update
+ *  - Retry mit Backoff bei Netzwerkfehlern
  */
-async function loadChart(symbol, range='1D', interval='5m') {
+async function loadChart(symbol, range = '1D', interval = '5m') {
   if (!symbol) return;
   currentSymbol   = symbol.toUpperCase();
   currentRange    = range;
@@ -603,90 +585,76 @@ async function loadChart(symbol, range='1D', interval='5m') {
 
   showChartLoading(currentSymbol);
 
-  const rangeMap = { '1D':'1d', '1W':'5d', '1M':'1mo', '1Y':'1y', '5Y':'5y' };
-  const yRange   = rangeMap[range] || '1d';
-  const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(currentSymbol)}`
-    + `?interval=${interval}&range=${yRange}&region=US&lang=en-US&corsDomain=finance.yahoo.com`;
-
-  let data;
+  let chartData;
   try {
-    data = await fetchProxy(url, 10000);
+    chartData = await SWEngine.fetchChart(currentSymbol, range, interval);
   } catch(e) {
     showChartError('Netzwerkfehler', 'Verbindung prüfen und erneut versuchen.');
     return;
   }
 
-  if (!data) {
-    showChartError('Keine Daten', `„${currentSymbol}" konnte nicht geladen werden. Ticker prüfen (z.B. SAP.DE statt SAP).`);
+  if (!chartData) {
+    showChartError('Symbol nicht gefunden',
+      `„${currentSymbol}" konnte nicht geladen werden. Ticker prüfen (z.B. SAP.DE statt SAP).`);
     return;
   }
 
-  const result = data?.chart?.result?.[0];
-  const meta   = result?.meta;
-  if (!result || !meta) {
-    showChartError('Symbol nicht gefunden', `„${currentSymbol}" ist kein gültiges Ticker-Symbol. Beispiele: AAPL · SAP.DE · BTC-USD`);
+  const { meta, points } = chartData;
+
+  if (!points.length) {
+    showChartError('Keine Kursdaten',
+      `Für „${currentSymbol}" sind im Zeitraum ${range} keine Daten verfügbar.`);
     return;
   }
 
-  // Timestamps + closes
-  const timestamps = result.timestamp;
-  const closes     = result.indicators?.quote?.[0]?.close;
-  const highs      = result.indicators?.quote?.[0]?.high;
-  const lows       = result.indicators?.quote?.[0]?.low;
-  const opens      = result.indicators?.quote?.[0]?.open;
-  const volumes    = result.indicators?.quote?.[0]?.volume;
-
-  if (!timestamps || !closes || closes.length === 0) {
-    showChartError('Keine Kursdaten', `Für „${currentSymbol}" sind im gewählten Zeitraum keine Daten verfügbar.`);
-    return;
-  }
-
-  // Filter null closes
-  const filtered = timestamps.map((ts, i) => ({ ts, c: closes[i], h: highs?.[i], l: lows?.[i], o: opens?.[i], v: volumes?.[i] }))
-    .filter(d => d.c != null);
-
-  if (!filtered.length) {
-    showChartError('Leere Daten', 'Für diesen Zeitraum wurden keine gültigen Schlusskurse gefunden.');
-    return;
-  }
-
-  // Chart labels
-  const labels = filtered.map(d => {
-    const dt = new Date(d.ts * 1000);
+  const labels = points.map(p => {
+    const dt = new Date(p.ts * 1000);
     if (range === '1D') return dt.toLocaleTimeString('de-DE', { hour:'2-digit', minute:'2-digit' });
     if (range === '1W') return dt.toLocaleDateString('de-DE', { weekday:'short', hour:'2-digit', minute:'2-digit' });
     return dt.toLocaleDateString('de-DE', { day:'2-digit', month:'short', year: range==='5Y'?'numeric':undefined });
   });
-  const prices = filtered.map(d => d.c);
+  const prices = points.map(p => p.c);
 
-  // Trend color
   const first = prices[0], last = prices[prices.length - 1];
   const isPositive = last >= first;
 
-  // Update info panel
-  const price    = meta.regularMarketPrice ?? last;
-  const prevClose= meta.chartPreviousClose ?? meta.previousClose ?? first;
-  const chgAbs   = price - prevClose;
-  const chgPct   = prevClose ? chgAbs / prevClose * 100 : 0;
-  const currency = meta.currency || '';
-  const exchg    = meta.exchangeName || meta.fullExchangeName || '';
+  // Stock-Info aus Batch-Quote holen (gecacht, schnell)
+  const quoteMap = await SWEngine.fetchBatchQuotes([currentSymbol]).catch(() => ({}));
+  const q = quoteMap[currentSymbol];
+
+  const price     = q?.price ?? meta.regularMarketPrice ?? last;
+  const prevClose = q?.prevClose ?? meta.chartPreviousClose ?? first;
+  const chgAbs    = q?.change    ?? price - prevClose;
+  const chgPct    = q?.changePct ?? (prevClose ? chgAbs / prevClose * 100 : 0);
+  const currency  = q?.currency  ?? meta.currency ?? '';
+  const exchg     = q?.exchange  ?? meta.exchangeName ?? '';
 
   updateStockInfo({
     symbol: currentSymbol,
-    company: meta.longName || meta.shortName || '',
+    company: q?.name ?? meta.longName ?? meta.shortName ?? '',
     exchange: exchg,
     price, prevClose, chgAbs, chgPct, currency,
-    high:  meta.regularMarketDayHigh ?? Math.max(...filtered.map(d=>d.h).filter(Boolean)),
-    low:   meta.regularMarketDayLow  ?? Math.min(...filtered.map(d=>d.l).filter(Boolean)),
-    open:  meta.regularMarketOpen    ?? (filtered[0]?.o ?? null),
-    vol:   meta.regularMarketVolume  ?? null,
-    cap:   meta.marketCap            ?? null,
+    high:  q?.high   ?? meta.regularMarketDayHigh ?? Math.max(...points.map(p=>p.h).filter(Boolean)),
+    low:   q?.low    ?? meta.regularMarketDayLow  ?? Math.min(...points.map(p=>p.l).filter(Boolean)),
+    open:  q?.open   ?? meta.regularMarketOpen    ?? (points[0]?.o ?? null),
+    vol:   q?.volume ?? meta.regularMarketVolume  ?? null,
+    cap:   q?.marketCap ?? meta.marketCap         ?? null,
   });
 
   renderChartJs(labels, prices, isPositive);
-
-  // Update watchlist item price
   updateWlItemPrice(currentSymbol, price, chgPct, currency);
+
+  // Watchlist-Preise für alle anderen Einträge im Hintergrund aktualisieren
+  const otherSyms = watchlist.map(w => w.sym).filter(s => s !== currentSymbol);
+  if (otherSyms.length) {
+    SWEngine.fetchBatchQuotes(otherSyms)
+      .then(map => {
+        for (const [sym, quote] of Object.entries(map)) {
+          if (quote?.price != null) updateWlItemPrice(sym, quote.price, quote.changePct ?? 0, quote.currency ?? '');
+        }
+      })
+      .catch(() => {});
+  }
 }
 
 // ─── CHART.JS RENDER ──────────────────────────────────────────────────
@@ -911,8 +879,13 @@ function addStock(symbol, name='') {
   saveWatchlist();
   renderWatchlist();
   toast(`${symbol} hinzugefügt ✓`, 'ts');
-  // fetch price in background
-  fetchWlPrice(symbol);
+  // Preis im Hintergrund via Batch-Quote laden
+  SWEngine.fetchBatchQuotes([symbol])
+    .then(map => {
+      const q = map[symbol];
+      if (q?.price != null) updateWlItemPrice(symbol, q.price, q.changePct ?? 0, q.currency ?? '');
+    })
+    .catch(() => {});
 }
 
 /**
@@ -981,20 +954,14 @@ function updateWlItemPrice(symbol, price, chgPct, currency) {
   }
 }
 
-async function fetchWlPrice(symbol) {
-  const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1d&range=1d&region=US&lang=en-US`;
-  const data = await fetchProxy(url);
-  const meta = data?.chart?.result?.[0]?.meta;
-  if (!meta) return;
-  const price = meta.regularMarketPrice ?? meta.previousClose;
-  const prev  = meta.chartPreviousClose ?? meta.previousClose ?? price;
-  const chgPct = prev ? (price - prev) / prev * 100 : 0;
-  updateWlItemPrice(symbol, price, chgPct, meta.currency || '');
-}
-
-// Refresh all watchlist prices periodically
-function refreshAllWlPrices() {
-  watchlist.forEach(w => fetchWlPrice(w.sym));
+// Alle Watchlist-Preise in EINEM Batch-Request aktualisieren
+async function refreshAllWlPrices() {
+  if (!watchlist.length) return;
+  const syms = watchlist.map(w => w.sym);
+  const map  = await SWEngine.fetchBatchQuotes(syms).catch(() => ({}));
+  for (const [sym, q] of Object.entries(map)) {
+    if (q?.price != null) updateWlItemPrice(sym, q.price, q.changePct ?? 0, q.currency ?? '');
+  }
 }
 
 // ─── SEARCH / AUTOCOMPLETE ────────────────────────────────────────────
@@ -1010,14 +977,9 @@ const debouncedSearch = debounce(async (q) => {
   drop.innerHTML = '<div class="ac-loading"><i class="fa-solid fa-spinner fa-spin"></i> Suche…</div>';
   drop.classList.add('open');
 
-  const url = `https://query1.finance.yahoo.com/v1/finance/search?q=${encodeURIComponent(q)}&quotesCount=8&newsCount=0&listsCount=0&enableFuzzyQuery=false&region=DE&lang=de`;
-  let results = [];
-  try {
-    const data = await fetchProxy(url, 5000);
-    results = data?.finance?.result?.[0]?.quotes || [];
-  } catch(_) {}
-
-  acItems = results.filter(r => r.symbol && !r.symbol.includes('~')).slice(0, 8);
+  // SWEngine.fetchSearch: gecacht (10min TTL) + dedupliziert
+  const results = await SWEngine.fetchSearch(q).catch(() => []);
+  acItems = results;
   acIndex = -1;
   renderAcDrop();
 }, DEBOUNCE_MS);
@@ -1127,8 +1089,11 @@ function init() {
   if (lastSym) {
     loadSymbol(lastSym);
   }
-  // Periodic price refresh every 60s
-  setInterval(refreshAllWlPrices, 60000);
+  // Periodische Watchlist-Preis-Updates via Engine (Page Visibility aware)
+  if (watchlist.length) {
+    refreshAllWlPrices();
+    SWEngine.startRefresh(refreshAllWlPrices, 60_000);
+  }
 }
 
 // Save last viewed symbol
