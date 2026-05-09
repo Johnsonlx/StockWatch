@@ -405,6 +405,44 @@ footer{position:relative;z-index:1;background:var(--sur);border-top:1px solid va
 .del-btns{display:flex;gap:10px}
 .del-btns .btn{flex:1}
 
+/* ── HARD RESET MODAL ────────────────────────────────────────────── */
+.hr-ov{position:fixed;inset:0;background:rgba(0,0,0,.75);backdrop-filter:blur(8px);
+  z-index:10000;display:flex;align-items:center;justify-content:center;padding:20px;
+  opacity:0;visibility:hidden;transition:all .22s}
+.hr-ov.open{opacity:1;visibility:visible}
+.hr-box{background:var(--sur);border:2px solid var(--neg);border-radius:20px;
+  padding:30px 26px;max-width:420px;width:100%;
+  box-shadow:0 0 60px rgba(255,77,106,.25),0 20px 50px var(--shd);
+  transform:scale(.92);transition:transform .22s;text-align:center}
+.hr-ov.open .hr-box{transform:scale(1)}
+.hr-ico{width:60px;height:60px;border-radius:50%;background:var(--nbg);
+  border:2px solid var(--neg);display:flex;align-items:center;justify-content:center;
+  margin:0 auto 18px;font-size:1.6rem;color:var(--neg)}
+.hr-title{font-size:1.15rem;font-weight:800;color:var(--tx);margin-bottom:6px}
+.hr-sub{font-size:.82rem;color:var(--sub);line-height:1.6;margin-bottom:20px}
+.hr-checklist{text-align:left;background:var(--card);border:1px solid var(--cb);
+  border-radius:10px;padding:12px 16px;margin-bottom:20px;
+  display:flex;flex-direction:column;gap:7px}
+.hr-check{display:flex;align-items:center;gap:8px;font-size:.78rem;color:var(--sub)}
+.hr-check i{color:var(--neg);font-size:.72rem;width:14px;flex-shrink:0}
+.hr-confirm-wrap{margin-bottom:18px;text-align:left}
+.hr-confirm-label{font-size:.75rem;font-weight:700;text-transform:uppercase;
+  letter-spacing:.07em;color:var(--neg);margin-bottom:6px;display:block}
+.hr-confirm-input{width:100%;background:var(--card);border:2px solid var(--cb);
+  border-radius:9px;padding:10px 14px;color:var(--tx);font-family:'JetBrains Mono',monospace;
+  font-size:.95rem;font-weight:700;outline:none;transition:border-color .2s;
+  letter-spacing:.1em;text-align:center}
+.hr-confirm-input:focus{border-color:var(--neg);box-shadow:0 0 0 3px var(--nbg)}
+.hr-confirm-input.valid{border-color:var(--neg);background:var(--nbg)}
+.hr-btns{display:flex;gap:10px}
+.hr-execute{flex:2;padding:11px;border-radius:10px;border:none;
+  background:var(--neg);color:#fff;font-weight:800;font-size:.9rem;
+  cursor:pointer;transition:all .2s;opacity:.4;pointer-events:none}
+.hr-execute.ready{opacity:1;pointer-events:all;box-shadow:0 4px 16px rgba(255,77,106,.4)}
+.hr-execute.ready:hover{transform:translateY(-1px);box-shadow:0 6px 22px rgba(255,77,106,.5)}
+.hr-execute.running{animation:pulse .7s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.6}}
+
 .fs-dir-btn{width:38px;height:38px;border:1px solid var(--cb);background:transparent;color:var(--sub);border-radius:9px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:.8rem;transition:all .15s;flex-shrink:0}
 .fs-dir-btn:hover{border-color:var(--acc);color:var(--acc);background:var(--adim)}
 .fs-dir-btn.active{border-color:var(--acc);color:var(--acc);background:var(--adim)}
@@ -819,10 +857,10 @@ create policy "own" on public.sw_portfolio
         <div style="padding:14px 0;border-top:1px solid var(--cb)">
           <div style="display:flex;align-items:center;justify-content:space-between;gap:12px">
             <div>
-              <div style="font-size:.84rem;font-weight:700;color:var(--tx)"><i class="fa-solid fa-trash-can" style="color:var(--neg);margin-right:5px"></i>Portfolio zurücksetzen</div>
-              <div style="font-size:.72rem;color:var(--sub);margin-top:3px">Alle Aktien unwiderruflich löschen</div>
+              <div style="font-size:.84rem;font-weight:700;color:var(--tx)"><i class="fa-solid fa-triangle-exclamation" style="color:var(--neg);margin-right:5px"></i>Hard Reset</div>
+              <div style="font-size:.72rem;color:var(--sub);margin-top:3px">Alle Daten, Trades und Cache unwiderruflich löschen</div>
             </div>
-            <button class="btn btn-sm" style="background:var(--nbg);color:var(--neg);min-width:80px;border:1px solid var(--neg)" onclick="resetPortfolio()"><i class="fa-solid fa-trash-can"></i> Reset</button>
+            <button class="btn btn-sm" style="background:var(--nbg);color:var(--neg);min-width:80px;border:1px solid var(--neg)" onclick="openHardReset()"><i class="fa-solid fa-skull"></i> Hard Reset</button>
           </div>
         </div>
 
@@ -981,6 +1019,31 @@ create policy "own" on public.sw_portfolio
     <div class="del-btns">
       <button class="btn btn-ghost btn-sm" onclick="closeSellModal()"><i class="fa-solid fa-xmark"></i> Abbrechen</button>
       <button class="btn btn-sm" style="background:var(--pos);color:#fff" onclick="executeSell()"><i class="fa-solid fa-check"></i> Verkauf buchen</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ HARD RESET MODAL ══════════════════════════════════ -->
+<div class="hr-ov" id="hrOv" onclick="if(event.target===this)closeHardReset()">
+  <div class="hr-box">
+    <div class="hr-ico"><i class="fa-solid fa-skull"></i></div>
+    <div class="hr-title">Hard Reset — Alle Daten löschen</div>
+    <div class="hr-sub">Diese Aktion ist <strong style="color:var(--neg)">unwiderruflich</strong>. Die App wird vollständig auf Erststart zurückgesetzt.</div>
+    <div class="hr-checklist">
+      <div class="hr-check"><i class="fa-solid fa-xmark"></i> Portfolio &amp; alle Käufe/Verkäufe</div>
+      <div class="hr-check"><i class="fa-solid fa-xmark"></i> Komplette Trade-Historie</div>
+      <div class="hr-check"><i class="fa-solid fa-xmark"></i> Watchlist &amp; Chart-Verlauf</div>
+      <div class="hr-check"><i class="fa-solid fa-xmark"></i> API-Key &amp; Cloud-Sync-Daten</div>
+      <div class="hr-check"><i class="fa-solid fa-xmark"></i> Gesamter Cache (In-Memory + localStorage)</div>
+      <div class="hr-check"><i class="fa-solid fa-xmark"></i> Alle Hintergrundprozesse werden gestoppt</div>
+    </div>
+    <div class="hr-confirm-wrap">
+      <label class="hr-confirm-label" for="hrInput">Zur Bestätigung „RESET" eingeben:</label>
+      <input class="hr-confirm-input" id="hrInput" type="text" placeholder="RESET" autocomplete="off" spellcheck="false" oninput="onHrInput(this)">
+    </div>
+    <div class="hr-btns">
+      <button class="btn btn-ghost btn-sm" style="flex:1" onclick="closeHardReset()"><i class="fa-solid fa-xmark"></i> Abbrechen</button>
+      <button class="hr-execute" id="hrExecuteBtn" onclick="hardResetApp()"><i class="fa-solid fa-skull"></i> Jetzt alles löschen</button>
     </div>
   </div>
 </div>
@@ -1927,15 +1990,125 @@ function updateArSetting() {
   }
 }
 
-function resetPortfolio() {
-  if(!portfolio.length) return toast('Portfolio ist bereits leer.','tw');
-  const count = portfolio.length;
-  // Use the delete confirmation modal
-  pendingDelId = '__RESET__';
-  document.getElementById('delTitle').textContent = 'Gesamtes Portfolio löschen?';
-  document.getElementById('delMsg').innerHTML = `Alle <strong>${count} Aktien</strong> und deren Käufe werden unwiderruflich gelöscht. Diese Aktion kann nicht rückgängig gemacht werden.`;
-  document.getElementById('delOv').classList.add('open');
+// ─── HARD RESET MODAL ────────────────────────────────────────────────
+function openHardReset() {
+  const el = document.getElementById('hrInput');
+  if (el) el.value = '';
+  const btn = document.getElementById('hrExecuteBtn');
+  if (btn) { btn.classList.remove('ready','running'); }
+  document.getElementById('hrOv').classList.add('open');
+  setTimeout(() => document.getElementById('hrInput')?.focus(), 200);
 }
+function closeHardReset() {
+  document.getElementById('hrOv').classList.remove('open');
+}
+function onHrInput(input) {
+  const btn = document.getElementById('hrExecuteBtn');
+  const valid = input.value.trim().toUpperCase() === 'RESET';
+  input.classList.toggle('valid', valid);
+  btn.classList.toggle('ready', valid);
+}
+
+/**
+ * hardResetApp() — vollständiger, zuverlässiger Hard Reset.
+ *
+ * WARUM der alte Reset nicht funktionierte:
+ *  1. Nur portfolio[] wurde geleert + sw_p neu geschrieben
+ *  2. sw_trades, sw_wl, sw_chart_last, sw2_* (Engine-Cache) blieben erhalten
+ *  3. SWEngine.startRefresh() lief weiter → beim nächsten Tick wurden Supabase-Daten neu eingelesen
+ *  4. Bei Supabase-Verbindung: loadFromSb() nach Reload stellte alles wieder her
+ *
+ * LÖSUNG: Einzige zuverlässige Methode ist:
+ *  Stoppen → Löschen → Reload
+ * Ein location.reload() nach vollständigem localStorage-Clear ist der einzig
+ * garantiert saubere Weg — kein Memory-Leak, kein Ghost-State.
+ */
+async function hardResetApp() {
+  const btn = document.getElementById('hrExecuteBtn');
+  if (!btn?.classList.contains('ready')) return;
+  btn.classList.add('running');
+  btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Wird gelöscht…';
+  btn.classList.remove('ready');
+
+  console.log('[HardReset] Starte Hard Reset…');
+
+  // ── SCHRITT 1: Alle Hintergrundprozesse stoppen ────────────────────
+  // WARUM zuerst: verhindert dass laufende Fetches den localStorage
+  // nach dem Löschen wieder befüllen.
+  SWEngine.stopRefresh();
+  if (loopTimer) { clearInterval(loopTimer); loopTimer = null; }
+  autoRefreshPaused = true;
+  console.log('[HardReset] ✓ Prozesse gestoppt');
+
+  // ── SCHRITT 2: Supabase-Cloud-Daten löschen ────────────────────────
+  // WARUM: Ohne Cloud-Löschung stellt loadFromSb() nach dem Reload alles wieder her.
+  if (sbClient && sbUser) {
+    try {
+      await sbClient.from('sw_portfolio').delete().eq('user_id', sbUser.id);
+      await sbClient.auth.signOut();
+      console.log('[HardReset] ✓ Supabase-Daten gelöscht + abgemeldet');
+    } catch(e) {
+      console.warn('[HardReset] Supabase-Löschung fehlgeschlagen:', e.message);
+    }
+    sbClient = null; sbUser = null;
+  }
+
+  // ── SCHRITT 3: SWEngine In-Memory Cache leeren ────────────────────
+  SWEngine.clearAllCache();
+  console.log('[HardReset] ✓ In-Memory Cache geleert');
+
+  // ── SCHRITT 4: ALLE App-relevanten localStorage Keys löschen ─────
+  // WARUM removeItem statt localStorage.clear():
+  //   clear() würde auch Browser-Daten anderer Sites löschen (Origin-shared Storage).
+  //   removeItem() ist präzise und sicher.
+  const APP_KEYS = [
+    'sw_p',          // Portfolio
+    'sw_trades',     // Trade-Log
+    'sw_key',        // Finnhub API Key
+    'sw_sb_url',     // Supabase URL
+    'sw_sb_key',     // Supabase Key
+    'sw_wl',         // Watchlist (Chart-Seite)
+    'sw_chart_last', // Zuletzt angezeigtes Symbol
+    'sw_theme',      // Theme (optional: wird beim Neustart auf default zurückgesetzt)
+  ];
+
+  const removedKeys = [];
+
+  // Statische Keys löschen
+  APP_KEYS.forEach(key => {
+    if (localStorage.getItem(key) !== null) {
+      localStorage.removeItem(key);
+      removedKeys.push(key);
+    }
+  });
+
+  // Engine-Cache Keys (Prefix sw2_) dynamisch finden und löschen
+  const engineKeys = Object.keys(localStorage).filter(k => k.startsWith('sw2_'));
+  engineKeys.forEach(k => { localStorage.removeItem(k); removedKeys.push(k); });
+
+  // Sicherheitsnetz: alle weiteren sw_* Keys löschen die wir ggf. übersehen haben
+  const remainingSw = Object.keys(localStorage).filter(k => k.startsWith('sw_') || k.startsWith('sw2_'));
+  remainingSw.forEach(k => { localStorage.removeItem(k); removedKeys.push(k); });
+
+  console.log('[HardReset] ✓ localStorage bereinigt. Gelöschte Keys:', removedKeys);
+
+  // ── SCHRITT 5: In-Memory State zurücksetzen ────────────────────────
+  portfolio = []; notified.clear();
+  apiKey = ''; sbClient = null; sbUser = null;
+  fsFilter = 'all'; fsSort = 'added'; fsDir = 'asc';
+  console.log('[HardReset] ✓ In-Memory State zurückgesetzt');
+
+  // ── SCHRITT 6: Sauberer Reload ─────────────────────────────────────
+  // WARUM location.reload() statt UI-Reset:
+  //   Garantiert sauberen JS-Heap, keine verbleibenden Event-Listener,
+  //   keine Ghost-Closures, kein versteckter State in Modulen.
+  //   Der leere localStorage sorgt dafür dass die App im Setup-Screen startet.
+  console.log('[HardReset] ✓ Reset abgeschlossen. Seite wird neu geladen…');
+  setTimeout(() => location.reload(), 400);
+}
+
+// Alte resetPortfolio-Funktion leitet jetzt auf Hard Reset weiter
+function resetPortfolio() { openHardReset(); }
 
 // ─── COMPUTED HELPERS ────────────────────────────────────────────────
 function totalShares(s) { return s.purchases.reduce((a,p)=>a+p.shares,0); }
@@ -2496,13 +2669,6 @@ function delStock(id){
 function closeDelModal(){ document.getElementById('delOv').classList.remove('open'); pendingDelId=null; }
 function confirmDel(){
   if(!pendingDelId) return;
-  if(pendingDelId === '__RESET__') {
-    portfolio = []; notified.clear();
-    save(); renderGrid(); updateSummary();
-    toast('Portfolio zurückgesetzt.','ti');
-    closeDelModal();
-    return;
-  }
   const s=portfolio.find(x=>x.id===pendingDelId);
   portfolio=portfolio.filter(x=>x.id!==pendingDelId); notified.delete(pendingDelId);
   if(sbClient&&sbUser) delSb(pendingDelId);
@@ -2920,6 +3086,7 @@ function toast(msg,cls='ti',dur=3500){
 // ─── KEYBOARD ────────────────────────────────────────────────────────
 document.addEventListener('keydown',e=>{
   if(e.key==='Escape'){
+    if(document.getElementById('hrOv').classList.contains('open')) { closeHardReset(); return; }
     if(document.getElementById('popOv').classList.contains('open')) closePop();
     else closeModal();
   }
