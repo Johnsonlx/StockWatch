@@ -674,7 +674,6 @@ body.is-offline #app{margin-top:36px}
       <button class="tbtn"    id="tEarth" onclick="setTheme('earth')"    title="Earth"><i class="fa-solid fa-seedling"></i></button>
     </div>
 
-    <a href="stockwatch_chart.html" class="hbtn" title="Chart-Ansicht öffnen"><i class="fa-solid fa-chart-area"></i><span class="nav-lbl">Charts</span></a>
     <button class="hbtn hidden" id="userBtn" onclick="showProfileScreen()"><i class="fa-solid fa-user-gear"></i><span id="userLbl">Profil</span></button>
   </div>
 </header>
@@ -905,7 +904,8 @@ create policy "own" on public.sw_portfolio
     <button class="rbtn" aria-label="Aktualisieren" id="rBtn" onclick="doRefresh()" title="Aktualisieren"><i class="fa-solid fa-rotate" id="rIco"></i></button>
     <span class="upd-time" id="updLbl"></span>
     <button class="btn btn-acc btn-sm pf-addbtn" onclick="openModal()"><i class="fa-solid fa-plus"></i> Aktie hinzufügen</button>
-    <a href="stockwatch_trades.html" class="btn btn-trades"><i class="fa-solid fa-arrow-right-arrow-left"></i> <span class="trades-lbl">Trades-Dashboard</span></a>
+    <a href="stockwatch_chart.html" class="btn btn-trades" style="border-color:var(--acc);color:var(--acc);background:var(--adim)" onmouseover="this.style.background='var(--acc)';this.style.color='#fff'" onmouseout="this.style.background='var(--adim)';this.style.color='var(--acc)'"><i class="fa-solid fa-chart-area"></i> <span class="trades-lbl">Charts</span></a>
+    <a href="stockwatch_trades.html" class="btn btn-trades"><i class="fa-solid fa-arrow-right-arrow-left"></i> <span class="trades-lbl">Trades</span></a>
   </div>
   <!-- Portfolio Header Zeile 2: Filter & Sort Bar -->
   <div class="fsbar" id="fsBar">
@@ -992,7 +992,10 @@ create policy "own" on public.sw_portfolio
       <div class="footer-logo"><div class="logo-ico"><i class="fa-solid fa-chart-line"></i></div>Stock<span>Watch</span></div>
       <div class="footer-sub">Live-Kurse alle 5 Min. via Finnhub &amp; Yahoo<br>Cloud-Sync via Supabase (optional)</div>
       <div style="font-size:.6rem;color:var(--mut);margin-top:8px;line-height:1.5"><i class="fa-solid fa-shield-halved" style="margin-right:3px"></i> Daten werden lokal im Browser gespeichert (localStorage). Es werden keine personenbezogenen Daten an Dritte übermittelt, außer bei aktiviertem Cloud-Sync. Keine Anlageberatung — alle Angaben ohne Gewähr.</div>
-      <a href="stockwatch_trades.html" style="display:inline-flex;align-items:center;gap:6px;margin-top:10px;padding:8px 16px;border-radius:9px;background:var(--adim);border:1px solid var(--acc);color:var(--acc);font-size:.8rem;font-weight:600;text-decoration:none;transition:all .15s"><i class="fa-solid fa-arrow-right-arrow-left"></i> Trades-Dashboard öffnen</a>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
+        <a href="stockwatch_chart.html" style="display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:9px;background:var(--adim);border:1px solid var(--acc);color:var(--acc);font-size:.8rem;font-weight:600;text-decoration:none;transition:all .15s"><i class="fa-solid fa-chart-area"></i> Charts öffnen</a>
+        <a href="stockwatch_trades.html" style="display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:9px;background:var(--adim);border:1px solid var(--acc);color:var(--acc);font-size:.8rem;font-weight:600;text-decoration:none;transition:all .15s"><i class="fa-solid fa-arrow-right-arrow-left"></i> Trades-Dashboard</a>
+      </div>
     </div>
     <div class="footer-center">
       <div class="footer-market"><i class="fa-solid fa-circle" id="fMktDot" style="color:var(--mut)"></i><span id="fMktTxt">—</span></div>
