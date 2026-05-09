@@ -589,10 +589,67 @@ button[id^="purLiveBtn_"]:hover{background:var(--adim);color:var(--acc);box-shad
   to{opacity:1;transform:translateY(0)}
 }
 
+/* ═══ SKELETON UI ════════════════════════════════════════════════════ */
+@keyframes shimmer{
+  0%{background-position:200% 0}
+  100%{background-position:-200% 0}
+}
+.skeleton{
+  background:linear-gradient(90deg,var(--cb) 25%,var(--hov) 50%,var(--cb) 75%);
+  background-size:200% 100%;
+  animation:shimmer 1.6s ease-in-out infinite;
+  border-radius:6px;
+}
+.sk-card{background:var(--card);border:1px solid var(--cb);border-radius:16px;padding:18px;position:relative;overflow:hidden;animation:cardIn .4s ease both}
+.sk-card::before{content:'';position:absolute;inset:0;border-radius:16px;background:linear-gradient(135deg,var(--adim) 0%,transparent 55%);pointer-events:none}
+.sk-line{height:12px;margin-bottom:8px}
+.sk-line.wide{width:60%}
+.sk-line.mid{width:40%}
+.sk-line.short{width:25%}
+.sk-price{height:28px;width:45%;margin:12px 0}
+.sk-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
+.sk-block{height:44px;border-radius:9px}
+.sk-badge{height:20px;width:80px;border-radius:5px;margin-left:auto;display:block}
+.sk-row{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:12px}
+.sk-prog{height:8px;width:100%;border-radius:4px;margin:14px 0 6px}
+.sk-footer{display:flex;justify-content:space-between;align-items:center;margin-top:10px}
+
+/* ═══ ERROR STATES ══════════════════════════════════════════════════ */
+.err-banner{display:flex;align-items:flex-start;gap:12px;background:var(--nbg);border:1px solid var(--nbr);border-radius:12px;padding:14px 16px;margin-bottom:16px;animation:fadeUp .3s ease both}
+.err-banner.warn{background:var(--gbg);border-color:var(--gbr)}
+.err-banner.info{background:var(--adim);border-color:var(--acc)}
+.err-banner i{font-size:1rem;color:var(--neg);flex-shrink:0;margin-top:1px}
+.err-banner.warn i{color:var(--gld)}
+.err-banner.info i{color:var(--acc)}
+.err-banner-body{flex:1;min-width:0}
+.err-banner-title{font-weight:700;font-size:.84rem;margin-bottom:3px}
+.err-banner-msg{font-size:.75rem;color:var(--sub);line-height:1.55}
+.err-banner-close{background:none;border:none;cursor:pointer;color:var(--sub);font-size:11px;padding:2px 5px;flex-shrink:0;border-radius:5px;transition:color .15s}
+.err-banner-close:hover{color:var(--tx)}
+#errBanner{display:none}
+
+/* ═══ ENHANCED BUTTON STATES ════════════════════════════════════════ */
+.btn{transition:all .18s cubic-bezier(.4,0,.2,1) !important}
+.btn:hover:not(:disabled){filter:brightness(1.08)}
+.btn:active:not(:disabled){transform:scale(.96) !important;filter:brightness(.95)}
+.bic{transition:all .18s !important}
+.bic:hover:not(:disabled){transform:scale(1.12)}
+.bic:active:not(:disabled){transform:scale(.93)}
+.rbtn{transition:all .18s !important}
+.rbtn:hover:not(:disabled){transform:scale(1.08)}
+.rbtn:active:not(:disabled){transform:scale(.93)}
+
+/* ═══ OFFLINE BADGE ════════════════════════════════════════════════ */
+.offline-strip{display:none;position:fixed;top:60px;left:0;right:0;z-index:250;background:var(--neg);color:#fff;text-align:center;padding:7px 16px;font-size:.78rem;font-weight:700;letter-spacing:.04em}
+body.is-offline .offline-strip{display:block}
+body.is-offline #app{margin-top:36px}
+
 </style>
 </head>
 <body>
 <a href="#grid" class="skip-link" style="position:absolute;top:-100px;left:0;background:var(--acc);color:#fff;padding:8px 16px;z-index:9999;focus:top:0">Zum Inhalt springen</a>
+
+<div class="offline-strip"><i class="fa-solid fa-wifi-slash"></i> &nbsp;Kein Internet — Kurse können nicht aktualisiert werden</div>
 
 <!-- ══════════════ HEADER (always visible) ══════════════════════════ -->
 <header>
@@ -879,6 +936,14 @@ create policy "own" on public.sw_portfolio
     </button>
     <span class="fs-count" id="fsCount"></span>
   </div>
+  <div id="errBanner" class="err-banner">
+    <i class="fa-solid fa-circle-exclamation" id="errBannerIcon"></i>
+    <div class="err-banner-body">
+      <div class="err-banner-title" id="errBannerTitle">Fehler</div>
+      <div class="err-banner-msg" id="errBannerMsg"></div>
+    </div>
+    <button class="err-banner-close" onclick="dismissErrBanner()" title="Schließen"><i class="fa-solid fa-xmark"></i></button>
+  </div>
   <div id="grid"></div>
 </div>
 
@@ -956,7 +1021,7 @@ create policy "own" on public.sw_portfolio
 
     <div class="fg">
       <label class="fl"><i class="fa-solid fa-magnifying-glass-chart"></i> Ticker Symbol *</label>
-      <input class="fi" id="fSym" type="text" placeholder="NOW · AAPL · SAP.DE · BMW.DE" oninput="this.value=this.value.toUpperCase();checkDuplicate()">
+      <input class="fi" id="fSym" type="text" placeholder="NOW · AAPL · SAP.DE · BMW.DE">
       <div class="fh">⚠ <strong>WKN ≠ Ticker!</strong> z.B. WKN 4S0 = Ticker <em>NOW</em> (NYSE). DAX: <em>SAP.DE · BMW.DE · SIE.DE</em>. <a href="https://finance.yahoo.com/lookup/" target="_blank">Symbol nachschlagen →</a></div>
     </div>
 
@@ -996,7 +1061,85 @@ create policy "own" on public.sw_portfolio
 // Polyfill: AbortSignal.timeout for Safari < 16.4
 if(!AbortSignal.timeout){AbortSignal.timeout=function(ms){const c=new AbortController();setTimeout(()=>c.abort(new DOMException('TimeoutError','TimeoutError')),ms);return c.signal;};}
 
-// ─── CONSTANTS ───────────────────────────────────────────────────────
+// ─── DEBOUNCE ────────────────────────────────────────────────────────
+function debounce(fn, delay=300){
+  let timer;
+  return function(...args){
+    clearTimeout(timer);
+    timer=setTimeout(()=>fn.apply(this,args), delay);
+  };
+}
+const debouncedCheckDuplicate = debounce(checkDuplicate, 280);
+
+// ─── OFFLINE DETECTION ──────────────────────────────────────────────
+function updateOnlineStatus(){
+  document.body.classList.toggle('is-offline', !navigator.onLine);
+}
+window.addEventListener('online',  updateOnlineStatus);
+window.addEventListener('offline', updateOnlineStatus);
+updateOnlineStatus();
+
+// ─── ERROR BANNER ───────────────────────────────────────────────────
+function showErrBanner(title, msg, type='error'){
+  const el=document.getElementById('errBanner'); if(!el) return;
+  el.className='err-banner'+(type==='warn'?' warn':type==='info'?' info':'');
+  document.getElementById('errBannerIcon').className=
+    type==='warn'?'fa-solid fa-triangle-exclamation':
+    type==='info'?'fa-solid fa-circle-info':
+    'fa-solid fa-circle-exclamation';
+  document.getElementById('errBannerTitle').textContent=title;
+  document.getElementById('errBannerMsg').textContent=msg;
+  el.style.display='flex';
+}
+function dismissErrBanner(){
+  const el=document.getElementById('errBanner'); if(el) el.style.display='none';
+}
+
+// ─── SKELETON UI ─────────────────────────────────────────────────────
+function skeletonCardHTML(i){
+  const del=i*80;
+  return `<div class="sk-card" style="animation-delay:${del}ms">
+    <div class="sk-row">
+      <div style="flex:1">
+        <div class="skeleton sk-line wide"></div>
+        <div class="skeleton sk-line short" style="margin-top:5px"></div>
+      </div>
+      <div class="skeleton sk-badge"></div>
+    </div>
+    <div class="skeleton sk-price"></div>
+    <div class="skeleton sk-prog"></div>
+    <div class="sk-grid">
+      <div class="skeleton sk-block"></div>
+      <div class="skeleton sk-block"></div>
+    </div>
+    <div class="sk-footer" style="margin-top:14px">
+      <div class="skeleton sk-line short" style="margin:0;width:120px"></div>
+      <div class="skeleton sk-line short" style="margin:0;width:80px"></div>
+    </div>
+  </div>`;
+}
+function showSkeletons(n=3){
+  const g=document.getElementById('grid');
+  if(!g) return;
+  g.innerHTML=Array.from({length:n},(_,i)=>skeletonCardHTML(i)).join('');
+}
+
+// ─── API ERROR CLASSIFIER ────────────────────────────────────────────
+function classifyApiError(err, symbol=''){
+  if(!navigator.onLine)
+    return {title:'Kein Internet', msg:'Prüfen Sie Ihre Verbindung und versuchen Sie es erneut.', type:'error'};
+  if(err.name==='TimeoutError'||err.name==='AbortError')
+    return {title:'Zeitüberschreitung', msg:'Der Server antwortet nicht. Bitte später erneut versuchen.', type:'warn'};
+  if(err.message==='BAD_KEY')
+    return {title:'Ungültiger API Key', msg:'Der Finnhub API Key ist falsch oder abgelaufen. Bitte in den Einstellungen aktualisieren.', type:'error'};
+  if(err.message==='PLAN_LIMIT')
+    return {title:'API Limit erreicht', msg:'Das kostenlose Finnhub-Kontingent (60 Abfragen/Min.) ist erschöpft. Kurze Pause einlegen.', type:'warn'};
+  if(symbol)
+    return {title:`„${symbol}" nicht gefunden`, msg:'Prüfen Sie das Ticker-Symbol. WKN ≠ Ticker! DAX-Beispiele: SAP.DE · BMW.DE · SIE.DE', type:'warn'};
+  return {title:'Kurse nicht abrufbar', msg:err.message||'Unbekannter Fehler', type:'error'};
+}
+
+
 const FH = 'https://finnhub.io/api/v1';
 const INTV = 300000; // 5 Minuten
 const MARKET_START = 8, MARKET_END = 22; // local hours
@@ -1120,6 +1263,8 @@ async function init() {
       if (session?.user) {
         sbUser = session.user;
         updateUserUI();
+        // Show skeletons immediately if we have cached items
+        if(portfolio.length) showSkeletons(Math.min(portfolio.length,6));
         await loadFromSb();
         setupRealtimeSync();
         showApp();
@@ -1183,8 +1328,14 @@ function showApp() {
   document.getElementById('userBtn').classList.remove('hidden');
   document.getElementById('fDate').valueAsDate = new Date();
   updateSyncBadge();
-  renderGrid();
-  updateSummary();
+  if(portfolio.length && portfolio.every(s=>s.price==null)){
+    // Show skeletons while prices load for the first time
+    showSkeletons(Math.min(portfolio.length, 6));
+    updateSummary();
+  } else {
+    renderWatchlist();
+    updateSummary();
+  }
   if (portfolio.length) doRefresh();
   startLoop();
 }
@@ -1433,10 +1584,18 @@ function save() {
 
 // ─── FINNHUB API ─────────────────────────────────────────────────────
 async function fh(path) {
+  if(!navigator.onLine) throw new Error('OFFLINE');
   const sep=path.includes('?')?'&':'?';
-  const r=await fetch(`${FH}${path}${sep}token=${apiKey}`,{signal:AbortSignal.timeout(5000)});
+  let r;
+  try {
+    r=await fetch(`${FH}${path}${sep}token=${apiKey}`,{signal:AbortSignal.timeout(6000)});
+  } catch(err) {
+    if(err.name==='TimeoutError'||err.name==='AbortError') throw new DOMException('TimeoutError','TimeoutError');
+    throw err;
+  }
   if(r.status===401) throw new Error('BAD_KEY');
   if(r.status===403) throw new Error('PLAN_LIMIT');
+  if(r.status===429) throw new Error('PLAN_LIMIT');
   if(!r.ok) throw new Error('HTTP_'+r.status);
   return r.json();
 }
@@ -1557,7 +1716,11 @@ async function loadHist() {
     toast(`Kurs geladen: ${result.price.toFixed(2)}`,'ts');
   } else {
     hint.style.color='var(--neg)';
-    hint.textContent='⚠ Kein Kurs gefunden. Preis manuell eintragen.';
+    if(!navigator.onLine){
+      hint.textContent='⚠ Kein Internet — Preis manuell eintragen.';
+    } else {
+      hint.textContent=`⚠ „${sym}" nicht gefunden. Ticker prüfen (WKN ≠ Ticker!) oder Preis manuell eintragen.`;
+    }
     toast('Kein Kurs gefunden.','te');
   }
   btn.disabled=false; btn.innerHTML='<i class="fa-solid fa-clock-rotate-left"></i> Kurs laden';
@@ -1566,14 +1729,20 @@ async function loadHist() {
 // ─── REFRESH ─────────────────────────────────────────────────────────
 async function doRefresh() {
   if (!portfolio.length) return;
+  if (!navigator.onLine) {
+    showErrBanner('Kein Internet', 'Kurse können nicht aktualisiert werden. Verbindung prüfen.', 'error');
+    return;
+  }
   const rb=document.getElementById('rBtn');
   rb.classList.add('spin'); rb.disabled=true;
-  let badKey=false;
+  dismissErrBanner();
+  let badKey=false, planLimit=false, errSymbols=[];
   const syms=[...new Set(portfolio.map(s=>s.symbol))];
   const qMap={};
   // Erst Finnhub versuchen
   await Promise.allSettled(syms.map(sym=>fhQ(sym).then(q=>{qMap[sym]=q;}).catch(e=>{
     if(e.message==='BAD_KEY') badKey=true;
+    else if(e.message==='PLAN_LIMIT') planLimit=true;
     else qMap[sym]=null;
   })));
   // Für Symbole bei denen Finnhub keine gültigen Daten liefert → Yahoo Finance Fallback
@@ -1588,7 +1757,11 @@ async function doRefresh() {
   }
   portfolio.forEach(s=>{
     const q=qMap[s.symbol];
-    if(!q||q.c==null||(q.c===0&&(q.pc==null||q.pc===0))){s.fetchError=true;return;}
+    if(!q||q.c==null||(q.c===0&&(q.pc==null||q.pc===0))){
+      s.fetchError=true;
+      errSymbols.push(s.symbol);
+      return;
+    }
     // Wenn c=0 aber pc vorhanden (Markt geschlossen) → letzten Schlusskurs anzeigen
     const livePrice = (q.c===0 && q.pc>0) ? q.pc : q.c;
     s.price=livePrice; s.prevClose=q.pc; s.dayChange=q.d; s.dayPct=q.dp;
@@ -1596,11 +1769,9 @@ async function doRefresh() {
     // Quelle merken (yahoo oder finnhub)
     s.priceSource = q._src === 'yahoo' ? 'yahoo' : 'finnhub';
     // Währung + Börse aus Yahoo – NUR für Symbole mit Ländersuffix (.DE, .F, .L …)
-    // Reine US-Ticker (kein Punkt) bekommen KEINE Yahoo-Währung, da Yahoo manchmal
-    // fälschlicherweise EUR zurückgibt (z.B. für SAP → Frankfurter Listing)
     const hasSuffix = s.symbol.includes('.');
     if(q._src === 'yahoo') {
-      if(q.currency && hasSuffix) s.currency = q.currency; // immer aktuell halten
+      if(q.currency && hasSuffix) s.currency = q.currency;
       if(q.exchange)              s.exchange  = q.exchange;
     }
     // Explizite Fallbacks wenn noch keine Währung gesetzt
@@ -1608,23 +1779,30 @@ async function doRefresh() {
       if(s.symbol.endsWith('.DE') || s.symbol.endsWith('.F'))  s.currency = 'EUR';
       else if(s.symbol.endsWith('.SW'))                         s.currency = 'CHF';
       else if(s.symbol.endsWith('.L'))                          s.currency = 'GBp';
-      else if(!hasSuffix)                                       s.currency = 'USD'; // US-Ticker
+      else if(!hasSuffix)                                       s.currency = 'USD';
     }
     if(!s.nameFetched){
       s.nameFetched=true;
       fhP(s.symbol).then(p=>{
         if(p?.name) s.name = p.name;
-        // Profil-Währung NUR für Symbole MIT Suffix übernehmen.
-        // US-Ticker (kein Punkt) → immer USD, da Finnhub-Profil für z.B. "SAP"
-        // fälschlicherweise XETRA/EUR meldet, der Quote-Preis aber NYSE/USD ist.
         if(p?.currency && s.symbol.includes('.')) s.currency = p.currency;
         if(p?.exchange  && s.symbol.includes('.')) s.exchange = p.exchange;
-        save(); renderGrid();
+        save(); renderWatchlist();
       }).catch(()=>{});
     }
   });
-  if(badKey){toast('API Key ungültig (401).','te');showProfileScreen();pTab(1);}
-  save(); renderGrid(); updateSummary();
+  if(badKey){
+    showErrBanner('Ungültiger API Key (401)', 'Finnhub API Key prüfen → Einstellungen → API & Sync.', 'error');
+    showProfileScreen(); pTab(1);
+  } else if(planLimit){
+    showErrBanner('API Limit erreicht (60/Min.)', 'Finnhub Free-Plan: maximal 60 Abfragen pro Minute. Auto-Refresh kurz pausiert.', 'warn');
+    if(!autoRefreshPaused) { autoRefreshPaused=true; startLoop(); updateMarketBadge(); }
+  } else if(errSymbols.length && errSymbols.length===syms.length){
+    showErrBanner('Keine Kurse abrufbar', 'Alle Symbole konnten nicht geladen werden. Internet und API-Key prüfen.', 'error');
+  } else if(errSymbols.length){
+    showErrBanner(`${errSymbols.length} Symbol(e) nicht gefunden`, `WKN ≠ Ticker! Fehlerhaft: ${errSymbols.slice(0,5).join(', ')}${errSymbols.length>5?' …':''}`, 'warn');
+  }
+  save(); renderWatchlist(); updateSummary();
   const now=new Date();
   document.getElementById('updLbl').textContent = '⟳ Stand: ' + now.toLocaleTimeString('de-DE') + ' · nächster in 5 Min.';
   rb.classList.remove('spin'); rb.disabled=false;
@@ -1971,10 +2149,26 @@ function renderGrid() {
   }
   // Rebuild all cards (simple, no AOS re-trigger issues)
   g.innerHTML=filtered.map((s,i)=>cardHTML(s,i)).join('');
-  g.querySelectorAll('.bdel').forEach(b=>b.addEventListener('click',()=>delStock(b.dataset.id)));
+  g.querySelectorAll('.bdel').forEach(b=>b.addEventListener('click',()=>removeStock(b.dataset.id)));
   g.querySelectorAll('.bedt').forEach(b=>b.addEventListener('click',()=>openEdit(b.dataset.id)));
   g.querySelectorAll('.bsell').forEach(b=>b.addEventListener('click',()=>openSellModal(b.dataset.id)));
 }
+
+// ─── CLEAN NAMED API (aliases for clear function signatures) ─────────
+/** Render the watchlist/portfolio grid */
+const renderWatchlist = renderGrid;
+/** Persist portfolio to localStorage */
+const saveWatchlist = () => save();
+/** Load chart / historical price for given symbol and date */
+const loadChart = (symbol, range) => {
+  if(symbol) document.getElementById('fSym').value = symbol.toUpperCase();
+  if(range)  document.getElementById('fDate').value = range;
+  return loadHist();
+};
+/** Remove a stock from the portfolio by ID */
+const removeStock = (id) => delStock(id);
+/** Add / submit a new stock entry */
+const addStock = () => submitStock();
 
 function cardHTML(s, idx) {
   const hp=s.price!=null&&!s.fetchError;
@@ -2214,6 +2408,8 @@ async function submitStock() {
   closeModal(); btn.disabled=false;
   firstRender=true;
   toast(editId?`${sym} gespeichert ✓`:`${sym} gespeichert — Kurs wird geladen…`,'ts');
+  // Show skeleton for the new card while fetching price
+  if(!editId) showSkeletons(portfolio.length);
   await doRefresh();
   firstRender=false;
 }
@@ -2658,8 +2854,24 @@ document.addEventListener('keydown',e=>{
     else closeModal();
   }
   if(e.key==='Enter'&&document.getElementById('ov').classList.contains('open')){
-    if(document.activeElement.id!=='histBtn') submitStock();
+    const active=document.activeElement;
+    // Enter in Symbol field → focus buy price
+    if(active.id==='fSym'){
+      e.preventDefault();
+      document.getElementById('fBuy').focus();
+      return;
+    }
+    // Enter in any field except histBtn → submit
+    if(active.id!=='histBtn'){
+      e.preventDefault();
+      addStock();
+    }
   }
+});
+// Apply debounced duplicate check to symbol input
+document.getElementById('fSym').addEventListener('input', function(){
+  this.value = this.value.toUpperCase();
+  debouncedCheckDuplicate();
 });
 document.getElementById('ov').addEventListener('click',e=>{
   if(e.target===document.getElementById('ov')) closeModal();
