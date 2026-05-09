@@ -1831,39 +1831,40 @@ async function doRefresh() {
 }
 
 /**
- * _yahooChartQuote — Fallback-Einzelabfrage via /v8/finance/chart.
- * Dieser Endpunkt funktioniert zuverlässiger durch CORS-Proxies als /v7/finance/quote.
- * Gibt ein normalisiertes Quote-Objekt zurück, kompatibel mit dem Batch-Format.
+ * _yahooChartQuote — Fallback via /v8/finance/chart.
+ * query1 und query2 werden gleichzeitig angefragt — schnellster gewinnt.
  */
 async function _yahooChartQuote(sym) {
-  for (const host of ['query1', 'query2']) {
-    const url = `https://${host}.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(sym)}`
-      + `?interval=1d&range=1d&region=US&lang=en-US&corsDomain=finance.yahoo.com`;
-    try {
-      const data = await SWEngine.proxyFetch(url, 7000);
-      const m = data?.chart?.result?.[0]?.meta;
-      if (!m) continue;
-      const price = m.regularMarketPrice || m.previousClose;
-      if (!price) continue;
-      const prev = m.chartPreviousClose || m.previousClose || price;
-      return {
-        symbol:    sym,
-        price,
-        prevClose: prev,
-        change:    price - prev,
-        changePct: prev ? (price - prev) / prev * 100 : 0,
-        high:      m.regularMarketDayHigh ?? null,
-        low:       m.regularMarketDayLow  ?? null,
-        open:      m.regularMarketOpen    ?? null,
-        volume:    m.regularMarketVolume  ?? null,
-        name:      m.longName || m.shortName || sym,
-        currency:  m.currency || '',
-        exchange:  m.exchangeName || m.fullExchangeName || '',
-        _src:      'yahoo-chart',
-      };
-    } catch (_) {}
-  }
-  return null;
+  const makeUrl = host =>
+    `https://${host}.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(sym)}`
+    + `?interval=1d&range=1d&region=US&lang=en-US&corsDomain=finance.yahoo.com`;
+
+  const tryHost = async host => {
+    const data = await SWEngine.proxyFetch(makeUrl(host), 5000);
+    const m = data?.chart?.result?.[0]?.meta;
+    if (!m) throw new Error('no meta');
+    const price = m.regularMarketPrice || m.previousClose;
+    if (!price) throw new Error('no price');
+    const prev = m.chartPreviousClose || m.previousClose || price;
+    return {
+      symbol: sym, price,
+      prevClose: prev,
+      change:    price - prev,
+      changePct: prev ? (price - prev) / prev * 100 : 0,
+      high:      m.regularMarketDayHigh ?? null,
+      low:       m.regularMarketDayLow  ?? null,
+      open:      m.regularMarketOpen    ?? null,
+      volume:    m.regularMarketVolume  ?? null,
+      name:      m.longName || m.shortName || sym,
+      currency:  m.currency || '',
+      exchange:  m.exchangeName || m.fullExchangeName || '',
+      _src:      'yahoo-chart',
+    };
+  };
+
+  try {
+    return await Promise.any(['query1', 'query2'].map(tryHost));
+  } catch (_) { return null; }
 }
 
 function logoClick() {
