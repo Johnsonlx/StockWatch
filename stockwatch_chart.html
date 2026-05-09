@@ -365,6 +365,19 @@ header{
   .stat{border-right:none !important;margin-right:0 !important;padding:0;width:50%;border-bottom:1px solid var(--cb);padding:8px 0}
   .range-btn{padding:5px 10px;font-size:.72rem}
 }
+/* ─── MAIN-AREA SEARCH ──────────────────────────────────────────── */
+.main-search-wrap{width:100%;max-width:520px;margin:0 auto 24px;position:relative}
+.main-search-row{display:flex;align-items:center;gap:10px;background:var(--card);
+  border:2px solid var(--cb);border-radius:12px;padding:0 16px;transition:all .2s}
+.main-search-row:focus-within{border-color:var(--acc);box-shadow:0 0 0 4px var(--adim)}
+.main-search-input{flex:1;background:transparent;border:none;outline:none;color:var(--tx);
+  font-size:1rem;font-family:'Outfit',sans-serif;padding:14px 0;min-width:0}
+.main-search-input::placeholder{color:var(--mut)}
+.main-search-clear{background:none;border:none;color:var(--mut);cursor:pointer;
+  padding:4px;border-radius:5px;font-size:13px;transition:color .15s;display:none}
+.main-search-clear:hover{color:var(--neg)}
+.main-search-clear.visible{display:flex;align-items:center}
+.main-ac-drop{left:0;right:0;top:calc(100% + 6px)}
 
 </style>
 </head>
@@ -486,11 +499,14 @@ header{
 
     <!-- Range buttons -->
     <div class="range-wrap" id="rangeWrap" style="display:none">
-      <button class="range-btn active" data-range="1D" onclick="selectRange(this,'1D','5m')">1T</button>
-      <button class="range-btn" data-range="1W" onclick="selectRange(this,'1W','1h')">1W</button>
-      <button class="range-btn" data-range="1M" onclick="selectRange(this,'1M','1d')">1M</button>
-      <button class="range-btn" data-range="1Y" onclick="selectRange(this,'1Y','1wk')">1J</button>
-      <button class="range-btn" data-range="5Y" onclick="selectRange(this,'5Y','1mo')">5J</button>
+      <button class="range-btn active" data-range="1D">1T</button>
+      <button class="range-btn" data-range="1W">1W</button>
+      <button class="range-btn" data-range="1M">1M</button>
+      <button class="range-btn" data-range="6M">6M</button>
+      <button class="range-btn" data-range="1Y">1J</button>
+      <button class="range-btn" data-range="5Y">5J</button>
+      <div style="flex:1"></div>
+      <button class="range-btn" id="refreshChartBtn" title="Chart aktualisieren" style="padding:6px 10px"><i class="fa-solid fa-rotate"></i></button>
     </div>
 
     <!-- Chart -->
@@ -498,15 +514,30 @@ header{
       <div class="chart-box" id="chartBox">
         <!-- Empty state -->
         <div class="chart-empty" id="chartEmpty">
-          <i class="fa-solid fa-chart-line"></i>
-          <h3>Kein Symbol ausgewählt</h3>
-          <p>Gib ein Aktien-Symbol in die Suche ein oder klicke auf einen Eintrag in deiner Watchlist.</p>
+          <!-- Main search (visible in chart area) -->
+          <div class="main-search-wrap" id="mainSearchWrap">
+            <div class="main-search-row">
+              <i class="fa-solid fa-magnifying-glass" style="color:var(--sub);font-size:1rem"></i>
+              <input class="main-search-input" id="mainSearchInput" type="text"
+                placeholder="Aktie suchen… (z.B. AAPL, SAP.DE, BTC-USD)"
+                autocomplete="off" spellcheck="false">
+              <button class="main-search-clear" id="mainSearchClear" onclick="clearMainSearch()"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="ac-drop main-ac-drop" id="mainAcDrop"></div>
+          </div>
+          <i class="fa-solid fa-chart-line" style="margin-top:8px"></i>
+          <h3>Aktie auswählen</h3>
+          <p>Symbol suchen oder direkt anklicken. <kbd style="font-size:.7rem;padding:2px 6px;border:1px solid var(--cb);border-radius:4px;font-family:monospace">/</kbd> öffnet die Suche.</p>
           <div class="suggest">
-            <button class="sug-btn" onclick="loadSymbol('AAPL')">AAPL</button>
-            <button class="sug-btn" onclick="loadSymbol('MSFT')">MSFT</button>
-            <button class="sug-btn" onclick="loadSymbol('SAP.DE')">SAP.DE</button>
-            <button class="sug-btn" onclick="loadSymbol('BTC-USD')">BTC-USD</button>
-            <button class="sug-btn" onclick="loadSymbol('NVDA')">NVDA</button>
+            <button class="sug-btn" onclick="selectStock('AAPL')">🍎 AAPL</button>
+            <button class="sug-btn" onclick="selectStock('MSFT')">🪟 MSFT</button>
+            <button class="sug-btn" onclick="selectStock('NVDA')">🟩 NVDA</button>
+            <button class="sug-btn" onclick="selectStock('GOOGL')">🔍 GOOGL</button>
+            <button class="sug-btn" onclick="selectStock('AMZN')">📦 AMZN</button>
+            <button class="sug-btn" onclick="selectStock('SAP.DE')">🇩🇪 SAP.DE</button>
+            <button class="sug-btn" onclick="selectStock('BMW.DE')">🚗 BMW.DE</button>
+            <button class="sug-btn" onclick="selectStock('BTC-USD')">₿ BTC-USD</button>
+            <button class="sug-btn" onclick="selectStock('ETH-USD')">⬡ ETH-USD</button>
           </div>
         </div>
 
@@ -543,160 +574,227 @@ header{
 <script>
 'use strict';
 
-// ─── THEME ────────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════
+// §1  ZENTRALE APP-STATE — Single Source of Truth
+//
+// WARUM zentraler State?
+// Vorher war der State auf 6+ Variablen verteilt (currentSymbol,
+// currentRange, watchlist, acItems …) → Inkonsistenzen bei Updates.
+// Jetzt: EINE Quelle, alle Komponenten lesen/schreiben daraus.
+// ═══════════════════════════════════════════════════════════════════
+const appState = {
+  symbol:   null,   // aktiv geladenes Symbol
+  range:    '1D',   // aktuell gewählter Zeitraum
+  watchlist: [],    // Watchlist-Einträge { sym, name, price, chgPct, currency }
+  isLoading: false, // Chart-Ladevorgag aktiv
+  chartInst: null,  // Chart.js Instanz (für destroy())
+  abortCtrl: null,  // AbortController für laufenden Chart-Fetch
+};
+
+// Range → Yahoo Finance Parameter Mapping
+// WARUM Objekt statt switch: wartbar, erweiterbar (z.B. 3M, YTD einfach hinzufügen)
+const RANGES = {
+  '1D': { interval: '5m',  label: '1T' },
+  '1W': { interval: '1h',  label: '1W' },
+  '1M': { interval: '1d',  label: '1M' },
+  '6M': { interval: '1wk', label: '6M' },
+  '1Y': { interval: '1wk', label: '1J' },
+  '5Y': { interval: '1mo', label: '5J' },
+};
+
+// ═══════════════════════════════════════════════════════════════════
+// §2  THEME
+// ═══════════════════════════════════════════════════════════════════
 function setTheme(t) {
   document.documentElement.setAttribute('data-theme', t);
   localStorage.setItem('sw_theme', t);
   ['Dark','Ocean','Lav','Mint','Earth'].forEach((n,i) => {
-    const th=['dark','ocean','lavender','mint','earth'][i];
-    document.getElementById('t'+n)?.classList.toggle('on', th===t);
+    const th = ['dark','ocean','lavender','mint','earth'][i];
+    document.getElementById('t'+n)?.classList.toggle('on', th === t);
   });
-  if(chartInst) redrawChartColors();
+  if (appState.chartInst) _redrawChartColors();
 }
 setTheme(localStorage.getItem('sw_theme') || 'dark');
 
-// ─── STATE ────────────────────────────────────────────────────────────
-let chartInst      = null;
-let currentSymbol  = null;
-let currentRange   = '1D';
-let currentInterval= '5m';
-let watchlist      = JSON.parse(localStorage.getItem('sw_wl') || '[]');
-let acTimeout      = null;
-let acItems        = [];
-let acIndex        = -1;
-
-// ─── CORS PROXY (delegiert an SWEngine) ───────────────────────────────
-async function fetchProxy(url, timeoutMs = 8000, signal = null) {
-  return SWEngine.proxyFetch(url, timeoutMs, signal);
+// ═══════════════════════════════════════════════════════════════════
+// §3  URL SYNCHRONISIERUNG
+//
+// WARUM URL-Sync?
+// - Direkte Links: stockwatch_chart.html?symbol=AAPL
+// - Browser-Back/Forward navigiert zwischen Aktien
+// - Nach Reload bleibt die Aktie erhalten
+// - Share-Links funktionieren
+// ═══════════════════════════════════════════════════════════════════
+function pushUrl(symbol, range = appState.range) {
+  const url = new URL(location.href);
+  url.searchParams.set('symbol', symbol.toUpperCase());
+  url.searchParams.set('range', range);
+  history.pushState({ symbol, range }, '', url);
 }
 
-// ─── CHART LADEN (via SWEngine.fetchChart) ────────────────────────────
-/**
- * loadChart verwendet SWEngine.fetchChart():
- *  - 5min Cache → zweites Klicken auf denselben Zeitraum: 0 API-Calls
- *  - Stale-while-revalidate → sofort gecachte Daten, Hintergrund-Update
- *  - Retry mit Backoff bei Netzwerkfehlern
- */
-async function loadChart(symbol, range = '1D', interval = '5m') {
+function readUrlParams() {
+  const p = new URLSearchParams(location.search);
+  return {
+    symbol: p.get('symbol') || null,
+    range:  p.get('range')  || '1D',
+  };
+}
+
+// Browser-Back/Forward unterstützen
+window.addEventListener('popstate', e => {
+  if (e.state?.symbol) {
+    _applyRangeButton(e.state.range || '1D');
+    _loadChart(e.state.symbol, e.state.range || '1D');
+  }
+});
+
+// ═══════════════════════════════════════════════════════════════════
+// §4  CORE: selectStock — zentraler Einstiegspunkt
+//
+// Ablauf: State setzen → URL pushen → Watchlist highlighten → Chart laden
+// ═══════════════════════════════════════════════════════════════════
+function selectStock(symbol, range = null) {
   if (!symbol) return;
-  currentSymbol   = symbol.toUpperCase();
-  currentRange    = range;
-  currentInterval = interval;
+  symbol = symbol.toUpperCase().trim();
+  const r = range || appState.range;
 
-  showChartLoading(currentSymbol);
+  console.log(`[Chart] selectStock("${symbol}", "${r}")`);
 
-  let chartData;
+  appState.symbol = symbol;
+  appState.range  = r;
+
+  // URL aktualisieren (history.pushState, kein Reload)
+  pushUrl(symbol, r);
+
+  // Watchlist-Highlight aktualisieren
+  _highlightWlItem(symbol);
+
+  // Range-Button aktiv setzen
+  _applyRangeButton(r);
+
+  // Chart laden
+  _loadChart(symbol, r);
+
+  // Mobile Sidebar schließen
+  _closeSidebar();
+
+  // Last viewed in localStorage
+  localStorage.setItem('sw_chart_last', symbol);
+}
+
+// Rückwärts-kompatibel: loadSymbol → selectStock
+const loadSymbol = selectStock;
+
+// ═══════════════════════════════════════════════════════════════════
+// §5  CHART LADEN
+//
+// WARUM AbortController?
+// Nutzer wechselt schnell von AAPL → MSFT → NVDA.
+// Ohne AbortController: 3 parallele Fetches, Ergebnis in beliebiger
+// Reihenfolge → letzter Fetch gewinnt nicht zwingend.
+// Mit AbortController: vorherigen Fetch sofort abbrechen →
+// nur der aktuelle Fetch zählt → keine Race Conditions.
+// ═══════════════════════════════════════════════════════════════════
+async function _loadChart(symbol, range) {
+  // Vorherigen Fetch abbrechen
+  if (appState.abortCtrl) {
+    appState.abortCtrl.abort();
+    console.log(`[Chart] Aborted previous fetch`);
+  }
+  appState.abortCtrl = new AbortController();
+  appState.isLoading = true;
+
+  _showLoading(symbol);
+
+  const rangeConf = RANGES[range] || RANGES['1D'];
+  const interval  = rangeConf.interval;
+
+  console.log(`[Chart] Loading ${symbol} | range=${range} | interval=${interval}`);
+
+  let chartData = null;
   try {
-    chartData = await SWEngine.fetchChart(currentSymbol, range, interval);
+    chartData = await SWEngine.fetchChart(symbol, range, interval);
   } catch(e) {
-    showChartError('Netzwerkfehler', 'Verbindung prüfen und erneut versuchen.');
+    if (e.name === 'AbortError') return; // Abgebrochen, nicht als Fehler behandeln
+    console.error(`[Chart] Fetch error:`, e);
+    _showError('Netzwerkfehler', 'Verbindung prüfen und erneut versuchen.');
+    appState.isLoading = false;
     return;
   }
 
-  if (!chartData) {
-    showChartError('Symbol nicht gefunden',
-      `„${currentSymbol}" konnte nicht geladen werden. Ticker prüfen (z.B. SAP.DE statt SAP).`);
+  // Nochmal prüfen ob ein neuerer Request gestartet wurde (AbortController Race)
+  if (appState.abortCtrl.signal.aborted) return;
+
+  if (!chartData || !chartData.points?.length) {
+    console.warn(`[Chart] No data for ${symbol} (${range})`);
+    _showError(
+      `„${symbol}" nicht gefunden`,
+      'Ticker prüfen: DAX → SAP.DE · BMW.DE, US → AAPL · MSFT, Crypto → BTC-USD'
+    );
+    appState.isLoading = false;
     return;
   }
 
-  const { meta, points } = chartData;
+  console.log(`[Chart] Data loaded: ${chartData.points.length} Datenpunkte`);
+  appState.chartData = chartData;
 
-  if (!points.length) {
-    showChartError('Keine Kursdaten',
-      `Für „${currentSymbol}" sind im Zeitraum ${range} keine Daten verfügbar.`);
-    return;
-  }
+  _renderChart(chartData, range);
+  await _loadStockInfo(symbol, chartData);
+  appState.isLoading = false;
+}
 
-  const labels = points.map(p => {
-    const dt = new Date(p.ts * 1000);
-    if (range === '1D') return dt.toLocaleTimeString('de-DE', { hour:'2-digit', minute:'2-digit' });
-    if (range === '1W') return dt.toLocaleDateString('de-DE', { weekday:'short', hour:'2-digit', minute:'2-digit' });
-    return dt.toLocaleDateString('de-DE', { day:'2-digit', month:'short', year: range==='5Y'?'numeric':undefined });
-  });
+function retryChart() {
+  if (appState.symbol) selectStock(appState.symbol, appState.range);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// §6  CHART.JS RENDERN
+// ═══════════════════════════════════════════════════════════════════
+function _renderChart(chartData, range) {
+  const { points } = chartData;
   const prices = points.map(p => p.c);
-
   const first = prices[0], last = prices[prices.length - 1];
   const isPositive = last >= first;
 
-  // Stock-Info aus Batch-Quote holen (gecacht, schnell)
-  // Fallback auf /v8/finance/chart falls Batch-Endpunkt versagt
-  const quoteMap = await SWEngine.fetchBatchQuotes([currentSymbol]).catch(() => ({}));
-  let q = quoteMap[currentSymbol];
-  if (!q || q.price == null) {
-    // Einzelabfrage via Chart-Endpunkt (zuverlässiger durch CORS-Proxy)
-    q = await _chartFallbackQuote(currentSymbol).catch(() => null);
-  }
-
-  const price     = q?.price ?? meta.regularMarketPrice ?? last;
-  const prevClose = q?.prevClose ?? meta.chartPreviousClose ?? first;
-  const chgAbs    = q?.change    ?? price - prevClose;
-  const chgPct    = q?.changePct ?? (prevClose ? chgAbs / prevClose * 100 : 0);
-  const currency  = q?.currency  ?? meta.currency ?? '';
-  const exchg     = q?.exchange  ?? meta.exchangeName ?? '';
-
-  updateStockInfo({
-    symbol: currentSymbol,
-    company: q?.name ?? meta.longName ?? meta.shortName ?? '',
-    exchange: exchg,
-    price, prevClose, chgAbs, chgPct, currency,
-    high:  q?.high   ?? meta.regularMarketDayHigh ?? Math.max(...points.map(p=>p.h).filter(Boolean)),
-    low:   q?.low    ?? meta.regularMarketDayLow  ?? Math.min(...points.map(p=>p.l).filter(Boolean)),
-    open:  q?.open   ?? meta.regularMarketOpen    ?? (points[0]?.o ?? null),
-    vol:   q?.volume ?? meta.regularMarketVolume  ?? null,
-    cap:   q?.marketCap ?? meta.marketCap         ?? null,
+  const labels = points.map(p => {
+    const dt = new Date(p.ts * 1000);
+    switch(range) {
+      case '1D': return dt.toLocaleTimeString('de-DE', { hour:'2-digit', minute:'2-digit' });
+      case '1W': return dt.toLocaleDateString('de-DE', { weekday:'short' }) + ' ' +
+                        dt.toLocaleTimeString('de-DE', { hour:'2-digit', minute:'2-digit' });
+      case '1M':
+      case '6M': return dt.toLocaleDateString('de-DE', { day:'2-digit', month:'short' });
+      case '1Y': return dt.toLocaleDateString('de-DE', { month:'short', year:'2-digit' });
+      case '5Y': return dt.toLocaleDateString('de-DE', { month:'short', year:'numeric' });
+      default:   return dt.toLocaleDateString('de-DE');
+    }
   });
 
-  renderChartJs(labels, prices, isPositive);
-  updateWlItemPrice(currentSymbol, price, chgPct, currency);
+  // CSS-Variablen auslesen
+  const cs      = getComputedStyle(document.documentElement);
+  const color   = isPositive ? cs.getPropertyValue('--pos').trim() : cs.getPropertyValue('--neg').trim();
+  const gridClr = cs.getPropertyValue('--cb').trim();
+  const subClr  = cs.getPropertyValue('--sub').trim();
+  const txClr   = cs.getPropertyValue('--tx').trim();
+  const cardClr = cs.getPropertyValue('--card').trim();
 
-  // Watchlist-Preise für alle anderen Einträge im Hintergrund aktualisieren
-  const otherSyms = watchlist.map(w => w.sym).filter(s => s !== currentSymbol);
-  if (otherSyms.length) {
-    SWEngine.fetchBatchQuotes(otherSyms)
-      .then(map => {
-        for (const [sym, quote] of Object.entries(map)) {
-          if (quote?.price != null) updateWlItemPrice(sym, quote.price, quote.changePct ?? 0, quote.currency ?? '');
-        }
-      })
-      .catch(() => {});
+  // Vorherige Instanz zerstören (kein Memory Leak)
+  if (appState.chartInst) {
+    appState.chartInst.destroy();
+    appState.chartInst = null;
   }
-}
 
-// ─── CHART.JS RENDER ──────────────────────────────────────────────────
-function getAccentHex() {
-  return getComputedStyle(document.documentElement).getPropertyValue('--acc').trim() || '#2C74B3';
-}
-function getPosHex() {
-  return getComputedStyle(document.documentElement).getPropertyValue('--pos').trim() || '#00e676';
-}
-function getNegHex() {
-  return getComputedStyle(document.documentElement).getPropertyValue('--neg').trim() || '#ff4d6a';
-}
-function getVar(v) {
-  return getComputedStyle(document.documentElement).getPropertyValue(v).trim();
-}
-
-function renderChartJs(labels, prices, isPositive) {
+  _hideAllOverlays();
   const canvas = document.getElementById('mainChart');
-  const color  = isPositive ? getPosHex() : getNegHex();
-  const colorDim = isPositive ? getVar('--pbg') : getVar('--nbg');
-  const gridColor= getVar('--cb');
-  const subColor = getVar('--sub');
-  const txColor  = getVar('--tx');
-
-  // Destroy previous instance
-  if (chartInst) { chartInst.destroy(); chartInst = null; }
-
-  hideAllOverlays();
   canvas.style.display = 'block';
 
-  // Gradient fill
-  const ctx = canvas.getContext('2d');
+  const ctx  = canvas.getContext('2d');
   const grad = ctx.createLinearGradient(0, 0, 0, canvas.offsetHeight || 300);
-  grad.addColorStop(0, color + '33');
+  grad.addColorStop(0, color + '40');
+  grad.addColorStop(0.7, color + '0a');
   grad.addColorStop(1, color + '00');
 
-  chartInst = new Chart(ctx, {
+  appState.chartInst = new Chart(ctx, {
     type: 'line',
     data: {
       labels,
@@ -706,9 +804,9 @@ function renderChartJs(labels, prices, isPositive) {
         borderWidth: 2,
         backgroundColor: grad,
         fill: true,
-        tension: 0.25,
+        tension: 0.3,
         pointRadius: 0,
-        pointHoverRadius: 5,
+        pointHoverRadius: 6,
         pointHoverBackgroundColor: color,
         pointHoverBorderColor: '#fff',
         pointHoverBorderWidth: 2,
@@ -717,277 +815,534 @@ function renderChartJs(labels, prices, isPositive) {
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      interaction: { mode:'index', intersect:false },
-      animation: { duration:400, easing:'easeOutQuart' },
+      interaction: { mode: 'index', intersect: false },
+      animation: { duration: 350, easing: 'easeOutQuart' },
       plugins: {
-        legend: { display:false },
+        legend: { display: false },
         tooltip: {
-          backgroundColor: getVar('--card'),
+          backgroundColor: cardClr,
           borderColor: color,
           borderWidth: 1,
-          titleColor: subColor,
-          bodyColor: txColor,
-          padding: 10,
+          titleColor: subClr,
+          bodyColor: txClr,
+          padding: 12,
           displayColors: false,
           callbacks: {
-            label: ctx => {
-              const v = ctx.parsed.y;
-              return ' ' + v.toLocaleString('de-DE', { minimumFractionDigits:2, maximumFractionDigits:4 });
+            title: items => {
+              const dt = new Date(points[items[0].dataIndex].ts * 1000);
+              if (range === '1D') return dt.toLocaleString('de-DE', { hour:'2-digit', minute:'2-digit' });
+              return dt.toLocaleDateString('de-DE', { weekday:'long', day:'2-digit', month:'long', year:'numeric' });
+            },
+            label: item => {
+              const v = item.parsed.y;
+              const sym = appState.symbol || '';
+              const wl  = appState.watchlist.find(w => w.sym === sym);
+              const cur = wl?.currency || '';
+              return ` ${v.toLocaleString('de-DE', { minimumFractionDigits: v < 10 ? 4 : 2, maximumFractionDigits: v < 10 ? 4 : 2 })}${cur ? ' '+cur : ''}`;
+            },
+            afterLabel: item => {
+              const p = points[item.dataIndex];
+              if (!p) return '';
+              const change = p.c - first;
+              const pct    = first ? change / first * 100 : 0;
+              const sign   = change >= 0 ? '+' : '';
+              return ` ${sign}${change.toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2})} (${sign}${pct.toFixed(2)}%)`;
             }
           }
         }
       },
       scales: {
         x: {
-          grid: { color: gridColor + '44', drawBorder:false },
+          grid: { color: gridClr + '33', drawBorder: false },
           ticks: {
-            color: subColor,
-            font: { family:'JetBrains Mono', size:10 },
-            maxTicksLimit: 8,
+            color: subClr,
+            font: { family: 'JetBrains Mono', size: 10 },
+            maxTicksLimit: range === '1D' ? 8 : 6,
             maxRotation: 0,
           },
-          border: { display:false }
+          border: { display: false }
         },
         y: {
-          position:'right',
-          grid: { color: gridColor + '44', drawBorder:false },
+          position: 'right',
+          grid: { color: gridClr + '33', drawBorder: false },
           ticks: {
-            color: subColor,
-            font: { family:'JetBrains Mono', size:10 },
+            color: subClr,
+            font: { family: 'JetBrains Mono', size: 10 },
             maxTicksLimit: 6,
-            callback: v => v.toLocaleString('de-DE', { minimumFractionDigits:2, maximumFractionDigits:2 })
+            callback: v => v.toLocaleString('de-DE', {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: v < 10 ? 4 : 2
+            })
           },
-          border: { display:false }
+          border: { display: false }
         }
       }
     }
   });
+
+  console.log(`[Chart] Rendered: ${prices.length} Punkte, positiv=${isPositive}`);
 }
 
-function redrawChartColors() {
-  if (!chartInst) return;
+function _redrawChartColors() {
+  if (!appState.chartInst) return;
   const isPos = parseFloat(document.getElementById('infoPrice').dataset.chg || '0') >= 0;
-  const color = isPos ? getPosHex() : getNegHex();
+  const cs    = getComputedStyle(document.documentElement);
+  const color = isPos ? cs.getPropertyValue('--pos').trim() : cs.getPropertyValue('--neg').trim();
   const canvas = document.getElementById('mainChart');
-  const ctx = canvas.getContext('2d');
-  const grad = ctx.createLinearGradient(0, 0, 0, canvas.offsetHeight || 300);
-  grad.addColorStop(0, color + '33');
+  const ctx    = canvas.getContext('2d');
+  const grad   = ctx.createLinearGradient(0, 0, 0, canvas.offsetHeight || 300);
+  grad.addColorStop(0, color + '40');
+  grad.addColorStop(0.7, color + '0a');
   grad.addColorStop(1, color + '00');
-  chartInst.data.datasets[0].borderColor = color;
-  chartInst.data.datasets[0].backgroundColor = grad;
-  chartInst.options.scales.x.grid.color = getVar('--cb') + '44';
-  chartInst.options.scales.y.grid.color = getVar('--cb') + '44';
-  chartInst.options.scales.x.ticks.color = getVar('--sub');
-  chartInst.options.scales.y.ticks.color = getVar('--sub');
-  chartInst.update('none');
+  appState.chartInst.data.datasets[0].borderColor     = color;
+  appState.chartInst.data.datasets[0].backgroundColor = grad;
+  const grid = cs.getPropertyValue('--cb').trim() + '33';
+  const sub  = cs.getPropertyValue('--sub').trim();
+  appState.chartInst.options.scales.x.grid.color   = grid;
+  appState.chartInst.options.scales.y.grid.color   = grid;
+  appState.chartInst.options.scales.x.ticks.color  = sub;
+  appState.chartInst.options.scales.y.ticks.color  = sub;
+  appState.chartInst.update('none');
 }
 
-// ─── STOCK INFO ───────────────────────────────────────────────────────
-function updateStockInfo({ symbol, company, exchange, price, prevClose, chgAbs, chgPct, currency, high, low, open, vol, cap }) {
-  const dir = chgAbs >= 0 ? 'pos' : 'neg';
-  const sign = chgAbs >= 0 ? '+' : '';
-  const fmtN = (n, d=2) => n != null ? n.toLocaleString('de-DE', { minimumFractionDigits:d, maximumFractionDigits:d }) : '—';
-  const fmtV = (n) => {
+// ═══════════════════════════════════════════════════════════════════
+// §7  STOCK INFO PANEL
+// ═══════════════════════════════════════════════════════════════════
+async function _loadStockInfo(symbol, chartData) {
+  const { meta, points } = chartData;
+
+  // Batch-Quote für tagesaktuelle Daten (gecacht)
+  let q = null;
+  try {
+    const map = await SWEngine.fetchBatchQuotes([symbol]);
+    q = map[symbol];
+    if (!q?.price) q = await _chartFallbackQuote(symbol);
+  } catch (_) {}
+
+  const prices    = points.map(p => p.c);
+  const last      = prices[prices.length - 1];
+  const price     = q?.price     ?? meta?.regularMarketPrice ?? last;
+  const prevClose = q?.prevClose ?? meta?.chartPreviousClose ?? prices[0];
+  const chgAbs    = q?.change    ?? price - prevClose;
+  const chgPct    = q?.changePct ?? (prevClose ? chgAbs / prevClose * 100 : 0);
+  const currency  = q?.currency  ?? meta?.currency ?? '';
+  const exchange  = q?.exchange  ?? meta?.exchangeName ?? '';
+  const company   = q?.name      ?? meta?.longName ?? meta?.shortName ?? symbol;
+
+  const highs = points.map(p=>p.h).filter(Boolean);
+  const lows  = points.map(p=>p.l).filter(Boolean);
+
+  _updateStockInfo({
+    symbol, company, exchange, currency,
+    price, prevClose, chgAbs, chgPct,
+    high:  q?.high   ?? meta?.regularMarketDayHigh ?? (highs.length ? Math.max(...highs) : null),
+    low:   q?.low    ?? meta?.regularMarketDayLow  ?? (lows.length  ? Math.min(...lows)  : null),
+    open:  q?.open   ?? meta?.regularMarketOpen    ?? (points[0]?.o ?? null),
+    vol:   q?.volume ?? meta?.regularMarketVolume  ?? null,
+    cap:   q?.marketCap ?? meta?.marketCap         ?? null,
+  });
+
+  // Watchlist-Preis aktualisieren
+  _updateWlItemPrice(symbol, price, chgPct, currency);
+
+  // Andere Watchlist-Preise im Hintergrund (ohne Warten)
+  const others = appState.watchlist.map(w=>w.sym).filter(s=>s!==symbol);
+  if (others.length) {
+    SWEngine.fetchBatchQuotes(others)
+      .then(map => {
+        for (const [sym, qt] of Object.entries(map)) {
+          if (qt?.price != null) _updateWlItemPrice(sym, qt.price, qt.changePct??0, qt.currency??'');
+        }
+      }).catch(()=>{});
+  }
+
+  console.log(`[Chart] StockInfo: ${symbol} @ ${price} ${currency} (${chgPct?.toFixed(2)}%)`);
+}
+
+function _updateStockInfo({ symbol, company, exchange, currency, price, prevClose, chgAbs, chgPct, high, low, open, vol, cap }) {
+  const dir  = (chgAbs ?? 0) >= 0 ? 'pos' : 'neg';
+  const sign = (chgAbs ?? 0) >= 0 ? '+' : '';
+  const fN   = (n, d=2) => n != null ? n.toLocaleString('de-DE', { minimumFractionDigits:d, maximumFractionDigits:d }) : '—';
+  const fV   = n => {
     if (n == null) return '—';
-    if (n >= 1e9) return (n/1e9).toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2}) + ' Mrd.';
-    if (n >= 1e6) return (n/1e6).toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2}) + ' Mio.';
+    if (n >= 1e12) return (n/1e12).toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2}) + ' Bio.';
+    if (n >= 1e9)  return (n/1e9).toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2}) + ' Mrd.';
+    if (n >= 1e6)  return (n/1e6).toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2}) + ' Mio.';
     return n.toLocaleString('de-DE');
   };
 
-  document.getElementById('infoSymbol').textContent  = symbol;
-  document.getElementById('infoCompany').textContent = company;
-  document.getElementById('infoExchange').textContent= exchange ? `${exchange} · ${currency}` : currency;
+  SWEngine.patchText(document.getElementById('infoSymbol'),  symbol);
+  SWEngine.patchText(document.getElementById('infoCompany'), company);
+  SWEngine.patchText(document.getElementById('infoExchange'), exchange ? `${exchange} · ${currency}` : currency);
 
   const priceEl = document.getElementById('infoPrice');
-  priceEl.textContent    = fmtN(price, price < 10 ? 4 : 2) + (currency ? ' '+currency : '');
-  priceEl.className      = `stock-price ${dir}`;
-  priceEl.dataset.chg    = chgAbs;
+  const priceStr = fN(price, price != null && price < 10 ? 4 : 2) + (currency ? ' '+currency : '');
+  SWEngine.patchText(priceEl, priceStr);
+  priceEl.className   = `stock-price ${dir}`;
+  priceEl.dataset.chg = chgAbs ?? 0;
 
   const absEl = document.getElementById('infoChgAbs');
-  absEl.textContent = `${sign}${fmtN(chgAbs, 2)} ${currency}`;
-  absEl.className   = `chg-pill ${dir}`;
+  SWEngine.patchText(absEl, `${sign}${fN(chgAbs,2)} ${currency}`);
+  absEl.className = `chg-pill ${dir}`;
 
   const pctEl = document.getElementById('infoChgPct');
-  pctEl.textContent = `${sign}${fmtN(chgPct, 2)}%`;
-  pctEl.className   = `chg-pill ${dir}`;
+  SWEngine.patchText(pctEl, `${sign}${fN(chgPct,2)}%`);
+  pctEl.className = `chg-pill ${dir}`;
 
-  document.getElementById('infoTime').textContent = 'Aktualisiert: ' + new Date().toLocaleTimeString('de-DE');
-  document.getElementById('statHigh').textContent = fmtN(high);
-  document.getElementById('statLow').textContent  = fmtN(low);
-  document.getElementById('statOpen').textContent = fmtN(open);
-  document.getElementById('statPrev').textContent = fmtN(prevClose);
-  document.getElementById('statVol').textContent  = fmtV(vol);
-  document.getElementById('statCap').textContent  = fmtV(cap);
+  SWEngine.patchText(document.getElementById('infoTime'), 'Aktualisiert: ' + new Date().toLocaleTimeString('de-DE'));
+  SWEngine.patchText(document.getElementById('statHigh'), fN(high));
+  SWEngine.patchText(document.getElementById('statLow'),  fN(low));
+  SWEngine.patchText(document.getElementById('statOpen'), fN(open));
+  SWEngine.patchText(document.getElementById('statPrev'), fN(prevClose));
+  SWEngine.patchText(document.getElementById('statVol'),  fV(vol));
+  SWEngine.patchText(document.getElementById('statCap'),  fV(cap));
 
-  document.getElementById('stockInfo').style.display  = '';
-  document.getElementById('statsStrip').style.display = '';
-  document.getElementById('rangeWrap').style.display  = '';
+  document.getElementById('stockInfo').style.display   = '';
+  document.getElementById('statsStrip').style.display  = '';
+  document.getElementById('rangeWrap').style.display   = '';
 }
 
-// ─── OVERLAYS ─────────────────────────────────────────────────────────
-function hideAllOverlays() {
+// ═══════════════════════════════════════════════════════════════════
+// §8  RANGE BUTTONS
+// ═══════════════════════════════════════════════════════════════════
+function _applyRangeButton(range) {
+  document.querySelectorAll('.range-btn[data-range]').forEach(b => {
+    b.classList.toggle('active', b.dataset.range === range);
+  });
+  appState.range = range;
+}
+
+// Event Delegation für Range-Buttons (kein onclick im HTML)
+document.getElementById('rangeWrap').addEventListener('click', e => {
+  const btn = e.target.closest('.range-btn[data-range]');
+  if (!btn || !appState.symbol) return;
+  const range = btn.dataset.range;
+  if (range === appState.range) {
+    // Gleicher Range → Force-Reload (cache bypass)
+    SWEngine.invalidateCache(`chart:${appState.symbol}:${range}`);
+  }
+  _applyRangeButton(range);
+  pushUrl(appState.symbol, range);
+  _loadChart(appState.symbol, range);
+});
+
+// Refresh-Button
+document.getElementById('refreshChartBtn').addEventListener('click', () => {
+  if (!appState.symbol) return;
+  SWEngine.invalidateCache(`chart:${appState.symbol}:${appState.range}`);
+  _loadChart(appState.symbol, appState.range);
+  toast('Chart wird aktualisiert…', 'ti', 1500);
+});
+
+// ═══════════════════════════════════════════════════════════════════
+// §9  OVERLAYS (Loading / Error / Empty)
+// ═══════════════════════════════════════════════════════════════════
+function _hideAllOverlays() {
   document.getElementById('chartEmpty').style.display   = 'none';
   document.getElementById('chartLoading').style.display = 'none';
   document.getElementById('chartError').style.display   = 'none';
 }
-function showChartLoading(symbol) {
-  hideAllOverlays();
+function _showLoading(symbol) {
+  _hideAllOverlays();
   document.getElementById('mainChart').style.display = 'none';
   document.getElementById('loadingSymbol').textContent = symbol;
   document.getElementById('chartLoading').style.display = 'flex';
 }
-function showChartError(title, msg) {
-  hideAllOverlays();
+function _showError(title, msg) {
+  _hideAllOverlays();
   document.getElementById('mainChart').style.display = 'none';
   document.getElementById('errTitle').textContent = title;
   document.getElementById('errMsg').textContent   = msg;
   document.getElementById('chartError').style.display = 'flex';
 }
-function retryChart() {
-  if (currentSymbol) loadSymbol(currentSymbol);
-}
 
-// ─── RANGE SELECT ─────────────────────────────────────────────────────
-function selectRange(btn, range, interval) {
-  document.querySelectorAll('.range-btn').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-  loadChart(currentSymbol, range, interval);
+// ═══════════════════════════════════════════════════════════════════
+// §10  WATCHLIST
+// ═══════════════════════════════════════════════════════════════════
+function _saveWatchlist() {
+  localStorage.setItem('sw_wl', JSON.stringify(appState.watchlist));
 }
+const saveWatchlist = _saveWatchlist; // rückwärtskompatibel
 
-// ─── LOAD SYMBOL (public entry) ───────────────────────────────────────
-function loadSymbol(symbol) {
-  if (!symbol) return;
-  // Highlight watchlist item
-  document.querySelectorAll('.wl-item').forEach(el => {
-    el.classList.toggle('active', el.dataset.sym === symbol.toUpperCase());
-  });
-  // Reset range to 1D
-  document.querySelectorAll('.range-btn').forEach(b => b.classList.remove('active'));
-  document.querySelector('[data-range="1D"]')?.classList.add('active');
-  loadChart(symbol, '1D', '5m');
-  closeSidebar();
-}
-
-// ─── WATCHLIST STORAGE ────────────────────────────────────────────────
-function saveWatchlist() {
-  localStorage.setItem('sw_wl', JSON.stringify(watchlist));
-}
-
-/**
- * addStock(symbol, name) — adds to the watchlist
- */
-function addStock(symbol, name='') {
+function addStock(symbol, name = '') {
   symbol = symbol.trim().toUpperCase();
   if (!symbol) return toast('Symbol eingeben.', 'te');
-  if (watchlist.find(w => w.sym === symbol)) return toast(`${symbol} ist bereits in der Watchlist.`, 'tw');
-  watchlist.push({ sym: symbol, name: name || symbol, price: null, chgPct: null, currency: '' });
-  saveWatchlist();
+  if (appState.watchlist.find(w => w.sym === symbol)) {
+    toast(`${symbol} bereits in der Watchlist.`, 'tw');
+    selectStock(symbol);
+    return;
+  }
+  appState.watchlist.push({ sym: symbol, name: name || symbol, price: null, chgPct: null, currency: '' });
+  _saveWatchlist();
   renderWatchlist();
   toast(`${symbol} hinzugefügt ✓`, 'ts');
-  // Preis im Hintergrund via Batch-Quote laden
+  console.log(`[Watchlist] Added: ${symbol}`);
+  // Preis im Hintergrund laden
   SWEngine.fetchBatchQuotes([symbol])
     .then(map => {
       const q = map[symbol];
-      if (q?.price != null) updateWlItemPrice(symbol, q.price, q.changePct ?? 0, q.currency ?? '');
-    })
-    .catch(() => {});
+      if (q?.price != null) _updateWlItemPrice(symbol, q.price, q.changePct??0, q.currency??'');
+    }).catch(()=>{});
 }
 
-/**
- * removeStock(symbol) — removes from the watchlist
- */
 function removeStock(symbol) {
-  watchlist = watchlist.filter(w => w.sym !== symbol);
-  saveWatchlist();
+  appState.watchlist = appState.watchlist.filter(w => w.sym !== symbol);
+  _saveWatchlist();
   renderWatchlist();
   toast(`${symbol} entfernt.`, 'ti');
+  console.log(`[Watchlist] Removed: ${symbol}`);
 }
 
 function addToWatchlist() {
   const val = document.getElementById('addInp').value.trim().toUpperCase();
+  if (!val) return;
   addStock(val);
   document.getElementById('addInp').value = '';
+  document.getElementById('addInp').focus();
 }
 
-// ─── WATCHLIST RENDER ─────────────────────────────────────────────────
-/**
- * renderWatchlist() — renders the watchlist sidebar items
- */
 function renderWatchlist() {
   const container = document.getElementById('wlList');
   const empty     = document.getElementById('wlEmpty');
-
-  if (!watchlist.length) {
+  if (!appState.watchlist.length) {
     container.innerHTML = '';
     container.appendChild(empty);
     empty.style.display = '';
     return;
   }
   empty.style.display = 'none';
-
-  container.innerHTML = watchlist.map(w => {
-    const isActive = w.sym === currentSymbol;
+  // DocumentFragment → ein DOM-Update statt N
+  const frag = document.createDocumentFragment();
+  for (const w of appState.watchlist) {
+    const isActive = w.sym === appState.symbol;
     const hasPrice = w.price != null;
-    const dir = w.chgPct >= 0 ? 'p' : 'n';
-    const sign = w.chgPct >= 0 ? '+' : '';
-    return `<div class="wl-item${isActive?' active':''}" data-sym="${w.sym}" onclick="loadSymbol('${w.sym}')">
+    const dir      = (w.chgPct ?? 0) >= 0 ? 'p' : 'n';
+    const sign     = (w.chgPct ?? 0) >= 0 ? '+' : '';
+    const el       = document.createElement('div');
+    el.className   = `wl-item${isActive ? ' active' : ''}`;
+    el.dataset.sym = w.sym;
+    el.innerHTML   = `
       <div class="wl-info">
         <div class="wl-sym">${w.sym}</div>
         <div class="wl-name">${w.name !== w.sym ? w.name : '&nbsp;'}</div>
       </div>
       <div class="wl-price-wrap">
-        <div class="wl-price" style="color:${hasPrice?(w.chgPct>=0?'var(--pos)':'var(--neg)'):'var(--sub)'}">
+        <div class="wl-price" style="color:${hasPrice ? (dir==='p'?'var(--pos)':'var(--neg)') : 'var(--sub)'}">
           ${hasPrice ? w.price.toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:w.price<10?4:2}) : '—'}
         </div>
-        <div class="wl-chg ${hasPrice?dir:''}">
-          ${hasPrice ? sign+w.chgPct.toFixed(2)+'%' : ''}
+        <div class="wl-chg ${hasPrice ? dir : ''}">
+          ${hasPrice ? sign + (w.chgPct??0).toFixed(2) + '%' : ''}
         </div>
       </div>
-      <button class="wl-rm" onclick="event.stopPropagation();removeStock('${w.sym}')" title="Entfernen"><i class="fa-solid fa-xmark"></i></button>
-    </div>`;
-  }).join('');
+      <button class="wl-rm" title="Entfernen"><i class="fa-solid fa-xmark"></i></button>`;
+    el.querySelector('.wl-rm').addEventListener('click', e => { e.stopPropagation(); removeStock(w.sym); });
+    el.addEventListener('click', () => selectStock(w.sym));
+    frag.appendChild(el);
+  }
+  container.innerHTML = '';
+  container.appendChild(empty);
+  container.appendChild(frag);
 }
 
-function updateWlItemPrice(symbol, price, chgPct, currency) {
-  const item = watchlist.find(w => w.sym === symbol);
-  if (item) {
-    item.price = price;
-    item.chgPct = chgPct;
-    item.currency = currency;
-    saveWatchlist();
-    renderWatchlist();
+function _updateWlItemPrice(symbol, price, chgPct, currency) {
+  const item = appState.watchlist.find(w => w.sym === symbol);
+  if (!item) return;
+  item.price    = price;
+  item.chgPct   = chgPct;
+  item.currency = currency;
+  _saveWatchlist();
+  // Diff-basierter Update: nur die betroffene Zeile patchen
+  const el = document.querySelector(`.wl-item[data-sym="${symbol}"] .wl-price`);
+  if (el) {
+    const dir = chgPct >= 0 ? 'var(--pos)' : 'var(--neg)';
+    el.style.color = dir;
+    el.textContent = price.toLocaleString('de-DE', { minimumFractionDigits:2, maximumFractionDigits:price<10?4:2 });
+    const chgEl = document.querySelector(`.wl-item[data-sym="${symbol}"] .wl-chg`);
+    if (chgEl) {
+      const sign = chgPct >= 0 ? '+' : '';
+      chgEl.textContent = sign + chgPct.toFixed(2) + '%';
+      chgEl.className = `wl-chg ${chgPct >= 0 ? 'p' : 'n'}`;
+    }
+  } else {
+    renderWatchlist(); // Fallback
   }
 }
 
-// Alle Watchlist-Preise in EINEM Batch-Request aktualisieren
-// Mit Fallback auf /v8/finance/chart für fehlgeschlagene Symbole
-async function refreshAllWlPrices() {
-  if (!watchlist.length) return;
-  const syms = watchlist.map(w => w.sym);
-  const map  = await SWEngine.fetchBatchQuotes(syms).catch(() => ({}));
+function _highlightWlItem(symbol) {
+  document.querySelectorAll('.wl-item').forEach(el => {
+    el.classList.toggle('active', el.dataset.sym === symbol);
+  });
+}
 
-  // Fallback für Symbole ohne Ergebnis
-  const missed = syms.filter(s => !map[s] || map[s].price == null);
+async function _refreshAllWlPrices() {
+  if (!appState.watchlist.length) return;
+  const syms = appState.watchlist.map(w => w.sym);
+  console.log(`[Watchlist] Refreshing prices for: ${syms.join(', ')}`);
+  const map = await SWEngine.fetchBatchQuotes(syms).catch(() => ({}));
+  // Fallback für fehlgeschlagene Symbole
+  const missed = syms.filter(s => !map[s]?.price);
   if (missed.length) {
     await Promise.allSettled(missed.map(async sym => {
       const q = await _chartFallbackQuote(sym).catch(() => null);
       if (q) map[sym] = q;
     }));
   }
-
   for (const [sym, q] of Object.entries(map)) {
-    if (q?.price != null) updateWlItemPrice(sym, q.price, q.changePct ?? 0, q.currency ?? '');
+    if (q?.price != null) _updateWlItemPrice(sym, q.price, q.changePct??0, q.currency??'');
   }
 }
 
-/**
- * _chartFallbackQuote — query1 + query2 parallel, schnellster gewinnt.
- */
+// ═══════════════════════════════════════════════════════════════════
+// §11  SEARCH / AUTOCOMPLETE — Sidebar + Hauptbereich
+// ═══════════════════════════════════════════════════════════════════
+let _acItems = [];
+let _acIndex = -1;
+
+function _debounce(fn, ms) {
+  let t; return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); };
+}
+
+const _doSearch = _debounce(async (q, dropId) => {
+  if (!q || q.length < 1) { _closeAcDrop(dropId); return; }
+  const drop = document.getElementById(dropId);
+  drop.innerHTML = '<div class="ac-loading"><i class="fa-solid fa-spinner fa-spin"></i> Suche…</div>';
+  drop.classList.add('open');
+  const results = await SWEngine.fetchSearch(q).catch(() => []);
+  _acItems = results;
+  _acIndex = -1;
+  _renderAcDrop(dropId);
+  console.log(`[Search] "${q}" → ${results.length} Ergebnisse`);
+}, 280);
+
+function _renderAcDrop(dropId) {
+  const drop = document.getElementById(dropId);
+  if (!_acItems.length) {
+    drop.innerHTML = '<div class="ac-empty">Keine Ergebnisse.</div>';
+    return;
+  }
+  drop.innerHTML = _acItems.map((item, i) => `
+    <div class="ac-item${i===_acIndex?' focused':''}" data-i="${i}">
+      <span class="ac-sym">${item.symbol}</span>
+      <span class="ac-name">${item.shortname || item.longname || ''}</span>
+      <span class="ac-type">${(item.typeDisp || item.quoteType || '').toLowerCase()}</span>
+    </div>`).join('');
+  drop.querySelectorAll('.ac-item').forEach(el => {
+    el.addEventListener('click', () => _acSelect(parseInt(el.dataset.i)));
+  });
+}
+
+function _acSelect(i) {
+  const item = _acItems[i]; if (!item) return;
+  const sym  = item.symbol;
+  const name = item.shortname || item.longname || sym;
+  selectStock(sym);
+  if (!appState.watchlist.find(w => w.sym === sym)) addStock(sym, name);
+  clearSearch();
+  clearMainSearch();
+}
+
+function _closeAcDrop(dropId) {
+  document.getElementById(dropId)?.classList.remove('open');
+}
+
+function _acKeyNav(e, dropId) {
+  const drop = document.getElementById(dropId);
+  if (!drop.classList.contains('open')) return;
+  if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    _acIndex = Math.min(_acIndex + 1, _acItems.length - 1);
+    _renderAcDrop(dropId);
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    _acIndex = Math.max(_acIndex - 1, -1);
+    _renderAcDrop(dropId);
+  } else if (e.key === 'Enter') {
+    e.preventDefault();
+    _acSelect(_acIndex >= 0 ? _acIndex : 0);
+  } else if (e.key === 'Escape') {
+    _closeAcDrop(dropId);
+  }
+}
+
+// Sidebar-Suche
+const searchIn = document.getElementById('searchInput');
+searchIn.addEventListener('input', function() {
+  document.getElementById('searchClear').classList.toggle('visible', this.value.length > 0);
+  _doSearch(this.value.trim(), 'acDrop');
+});
+searchIn.addEventListener('keydown', e => _acKeyNav(e, 'acDrop'));
+
+function clearSearch() {
+  searchIn.value = '';
+  document.getElementById('searchClear').classList.remove('visible');
+  _closeAcDrop('acDrop');
+}
+
+// Hauptbereich-Suche
+const mainIn = document.getElementById('mainSearchInput');
+mainIn.addEventListener('input', function() {
+  document.getElementById('mainSearchClear').classList.toggle('visible', this.value.length > 0);
+  _doSearch(this.value.trim(), 'mainAcDrop');
+});
+mainIn.addEventListener('keydown', e => _acKeyNav(e, 'mainAcDrop'));
+
+function clearMainSearch() {
+  mainIn.value = '';
+  document.getElementById('mainSearchClear').classList.remove('visible');
+  _closeAcDrop('mainAcDrop');
+}
+
+// Dropdown schließen bei Klick außerhalb
+document.addEventListener('click', e => {
+  if (!e.target.closest('.search-wrap'))      _closeAcDrop('acDrop');
+  if (!e.target.closest('.main-search-wrap')) _closeAcDrop('mainAcDrop');
+});
+
+// ─── Keyboard Shortcuts ──────────────────────────────────────────────
+document.addEventListener('keydown', e => {
+  // '/' → Suche fokussieren (wie TradingView)
+  if (e.key === '/' && !['INPUT','TEXTAREA'].includes(document.activeElement.tagName)) {
+    e.preventDefault();
+    const target = document.getElementById('chartEmpty').style.display !== 'none'
+      ? mainIn : searchIn;
+    target.focus();
+    target.select();
+  }
+  // Escape → Suche schließen
+  if (e.key === 'Escape') {
+    _closeAcDrop('acDrop');
+    _closeAcDrop('mainAcDrop');
+    _closeSidebar();
+  }
+});
+
+// Add-Feld Enter
+document.getElementById('addInp').addEventListener('keydown', e => {
+  if (e.key === 'Enter') addToWatchlist();
+});
+
+// ═══════════════════════════════════════════════════════════════════
+// §12  MOBILE SIDEBAR
+// ═══════════════════════════════════════════════════════════════════
+function openSidebar() {
+  document.getElementById('sidebar').classList.add('mob-open');
+  document.getElementById('mobOverlay').classList.add('active');
+  document.getElementById('mobSidebarBtn').style.display = 'none';
+}
+function _closeSidebar() {
+  document.getElementById('sidebar').classList.remove('mob-open');
+  document.getElementById('mobOverlay').classList.remove('active');
+  document.getElementById('mobSidebarBtn').style.display = '';
+}
+const closeSidebar = _closeSidebar;
+
+// ═══════════════════════════════════════════════════════════════════
+// §13  FALLBACK: /v8/finance/chart Einzelabfrage
+// ═══════════════════════════════════════════════════════════════════
 async function _chartFallbackQuote(sym) {
   const makeUrl = host =>
     `https://${host}.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(sym)}`
     + `?interval=1d&range=1d&region=US&lang=en-US&corsDomain=finance.yahoo.com`;
-
   const tryHost = async host => {
     const data = await SWEngine.proxyFetch(makeUrl(host), 5000);
     const m = data?.chart?.result?.[0]?.meta;
@@ -995,129 +1350,16 @@ async function _chartFallbackQuote(sym) {
     const price = m.regularMarketPrice || m.previousClose;
     if (!price) throw new Error('no price');
     const prev = m.chartPreviousClose || m.previousClose || price;
-    return {
-      symbol: sym, price,
-      prevClose: prev,
-      change:    price - prev,
-      changePct: prev ? (price - prev) / prev * 100 : 0,
-      name:      m.longName || m.shortName || sym,
-      currency:  m.currency || '',
-      exchange:  m.exchangeName || '',
-      _src:      'yahoo-chart',
-    };
+    return { symbol:sym, price, prevClose:prev, change:price-prev,
+      changePct:prev?(price-prev)/prev*100:0, name:m.longName||m.shortName||sym,
+      currency:m.currency||'', exchange:m.exchangeName||'', _src:'yahoo-chart' };
   };
-
-  try {
-    return await Promise.any(['query1', 'query2'].map(tryHost));
-  } catch (_) { return null; }
+  try { return await Promise.any(['query1','query2'].map(tryHost)); } catch(_){return null;}
 }
 
-// ─── SEARCH / AUTOCOMPLETE ────────────────────────────────────────────
-const DEBOUNCE_MS = 320;
-
-function debounce(fn, ms) {
-  let t; return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); };
-}
-
-const debouncedSearch = debounce(async (q) => {
-  if (!q || q.length < 1) { closeAcDrop(); return; }
-  const drop = document.getElementById('acDrop');
-  drop.innerHTML = '<div class="ac-loading"><i class="fa-solid fa-spinner fa-spin"></i> Suche…</div>';
-  drop.classList.add('open');
-
-  // SWEngine.fetchSearch: gecacht (10min TTL) + dedupliziert
-  const results = await SWEngine.fetchSearch(q).catch(() => []);
-  acItems = results;
-  acIndex = -1;
-  renderAcDrop();
-}, DEBOUNCE_MS);
-
-function renderAcDrop() {
-  const drop = document.getElementById('acDrop');
-  if (!acItems.length) {
-    drop.innerHTML = '<div class="ac-empty">Keine Ergebnisse gefunden.</div>';
-    return;
-  }
-  drop.innerHTML = acItems.map((item, i) => `
-    <div class="ac-item${i===acIndex?' focused':''}" onclick="acSelect(${i})">
-      <span class="ac-sym">${item.symbol}</span>
-      <span class="ac-name">${item.shortname || item.longname || ''}</span>
-      <span class="ac-type">${item.quoteType || ''}</span>
-    </div>
-  `).join('');
-}
-
-function acSelect(i) {
-  const item = acItems[i]; if (!item) return;
-  const sym  = item.symbol;
-  const name = item.shortname || item.longname || sym;
-  loadSymbol(sym);
-  // Auto-add to watchlist if not present
-  if (!watchlist.find(w => w.sym === sym)) addStock(sym, name);
-  clearSearch();
-}
-
-function closeAcDrop() {
-  document.getElementById('acDrop').classList.remove('open');
-  acItems = []; acIndex = -1;
-}
-
-function clearSearch() {
-  document.getElementById('searchInput').value = '';
-  document.getElementById('searchClear').classList.remove('visible');
-  closeAcDrop();
-}
-
-// Keyboard nav for autocomplete
-document.getElementById('searchInput').addEventListener('keydown', e => {
-  const drop = document.getElementById('acDrop');
-  if (!drop.classList.contains('open')) return;
-  if (e.key === 'ArrowDown') {
-    e.preventDefault();
-    acIndex = Math.min(acIndex + 1, acItems.length - 1);
-    renderAcDrop();
-  } else if (e.key === 'ArrowUp') {
-    e.preventDefault();
-    acIndex = Math.max(acIndex - 1, -1);
-    renderAcDrop();
-  } else if (e.key === 'Enter') {
-    e.preventDefault();
-    if (acIndex >= 0) acSelect(acIndex);
-    else if (acItems.length) acSelect(0);
-  } else if (e.key === 'Escape') {
-    closeAcDrop();
-  }
-});
-
-document.getElementById('searchInput').addEventListener('input', function() {
-  const val = this.value.trim();
-  document.getElementById('searchClear').classList.toggle('visible', val.length > 0);
-  debouncedSearch(val);
-});
-
-// Close dropdown when clicking outside
-document.addEventListener('click', e => {
-  if (!e.target.closest('.search-wrap')) closeAcDrop();
-});
-
-// ─── ADD INPUT: Enter key ─────────────────────────────────────────────
-document.getElementById('addInp').addEventListener('keydown', e => {
-  if (e.key === 'Enter') addToWatchlist();
-});
-
-// ─── MOBILE SIDEBAR ───────────────────────────────────────────────────
-function openSidebar() {
-  document.getElementById('sidebar').classList.add('mob-open');
-  document.getElementById('mobOverlay').classList.add('active');
-  document.getElementById('mobSidebarBtn').style.display = 'none';
-}
-function closeSidebar() {
-  document.getElementById('sidebar').classList.remove('mob-open');
-  document.getElementById('mobOverlay').classList.remove('active');
-  document.getElementById('mobSidebarBtn').style.display = '';
-}
-
-// ─── TOAST ────────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════
+// §14  TOAST
+// ═══════════════════════════════════════════════════════════════════
 function toast(msg, cls='ti', dur=3000) {
   const c = document.getElementById('tc');
   const el = document.createElement('div');
@@ -1127,31 +1369,43 @@ function toast(msg, cls='ti', dur=3000) {
   setTimeout(() => { el.style.opacity='0'; setTimeout(()=>el.remove(),300); }, dur);
 }
 
-// ─── INIT ─────────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════
+// §15  INIT — Sauberer Startpunkt
+// ═══════════════════════════════════════════════════════════════════
 function init() {
-  renderWatchlist();
-  // Refresh prices for existing watchlist items
-  if (watchlist.length) refreshAllWlPrices();
-  // Auto-load last viewed symbol
-  const lastSym = localStorage.getItem('sw_chart_last');
-  if (lastSym) {
-    loadSymbol(lastSym);
-  }
-  // Periodische Watchlist-Preis-Updates via Engine (Page Visibility aware)
-  if (watchlist.length) {
-    refreshAllWlPrices();
-    SWEngine.startRefresh(refreshAllWlPrices, 60_000);
-  }
-}
+  console.log('[Chart] Initialisierung…');
 
-// Save last viewed symbol
-const _loadSymbolOrig = loadSymbol;
-function loadSymbol(symbol) {
-  localStorage.setItem('sw_chart_last', symbol.toUpperCase());
-  _loadSymbolOrig(symbol);
+  // Watchlist aus localStorage laden
+  try {
+    appState.watchlist = JSON.parse(localStorage.getItem('sw_wl') || '[]');
+  } catch(_) { appState.watchlist = []; }
+
+  renderWatchlist();
+
+  // URL-Parameter prüfen → höchste Priorität
+  const urlParams = readUrlParams();
+  const startSym  = urlParams.symbol
+    || localStorage.getItem('sw_chart_last')
+    || (appState.watchlist[0]?.sym ?? null);
+
+  if (startSym) {
+    const startRange = urlParams.range || appState.range;
+    _applyRangeButton(startRange);
+    selectStock(startSym, startRange);
+    console.log(`[Chart] Auto-load: ${startSym} (${startRange})`);
+  }
+
+  // Watchlist-Preise laden (einmalig + periodisch)
+  if (appState.watchlist.length) {
+    _refreshAllWlPrices();
+    SWEngine.startRefresh(_refreshAllWlPrices, 60_000);
+  }
+
+  console.log(`[Chart] Bereit. Watchlist: ${appState.watchlist.length} Einträge`);
 }
 
 init();
 </script>
+
 </body>
 </html>
