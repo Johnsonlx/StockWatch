@@ -76,7 +76,78 @@ html{-webkit-text-size-adjust:100%}
   --shd:rgba(121,135,119,.15);--hdr:rgba(248,237,227,.95);--gc:rgba(121,135,119,.04);
 }
 
-/* ═══ RESET ══════════════════════════════════════════════════════════ */
+/* ═══ PAGE IDENTITY — Seitenfarben ═══════════════════════════════════
+ *
+ * Drei feste Identitätsfarben unabhängig vom aktiven Theme:
+ *   Portfolio  →  Grün   (Vermögen, Wachstum)
+ *   Chart      →  Cyan   (Analyse, Daten)
+ *   Trades     →  Orange (Aktivität, Dynamik)
+ *
+ * Diese Farben ändern sich NICHT mit dem Theme — sie sind die
+ * visuellen "Ankerpunkte" der Navigationsstruktur.
+ * ═══════════════════════════════════════════════════════════════════ */
+:root {
+  --pf-c:   #22c55e;          /* Portfolio — Grün */
+  --pf-dim: rgba(34,197,94,.14);
+  --pf-glow:rgba(34,197,94,.35);
+  --ch-c:   #06b6d4;          /* Chart — Cyan */
+  --ch-dim: rgba(6,182,212,.14);
+  --ch-glow:rgba(6,182,212,.35);
+  --tr-c:   #f97316;          /* Trades — Orange */
+  --tr-dim: rgba(249,115,22,.14);
+  --tr-glow:rgba(249,115,22,.35);
+}
+
+/* ═══ UNIFIED NAV COMPONENT ══════════════════════════════════════════
+ * Dieselben Klassen auf allen drei Seiten — kein separates Styling.
+ * ═════════════════════════════════════════════════════════════════ */
+.sw-nav{
+  display:flex;align-items:center;gap:3px;
+  background:var(--bg);border:1px solid var(--cb);border-radius:12px;padding:4px;
+  flex-shrink:0
+}
+.sw-nav-btn{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:6px 13px;border-radius:9px;border:none;
+  background:transparent;color:var(--sub);font-size:.77rem;font-weight:700;
+  font-family:'Outfit',sans-serif;cursor:pointer;text-decoration:none;
+  transition:all .2s cubic-bezier(.4,0,.2,1);white-space:nowrap;flex-shrink:0;
+  position:relative;letter-spacing:.01em
+}
+.sw-nav-btn i{font-size:.72rem;transition:transform .2s}
+.sw-nav-btn:hover{color:var(--tx);background:var(--hov)}
+.sw-nav-btn:active{transform:scale(.96)}
+/* Portfolio — grün */
+.sw-nav-btn.pf{--page-c:var(--pf-c);--page-dim:var(--pf-dim);--page-glow:var(--pf-glow)}
+/* Chart — cyan */
+.sw-nav-btn.ch{--page-c:var(--ch-c);--page-dim:var(--ch-dim);--page-glow:var(--ch-glow)}
+/* Trades — orange */
+.sw-nav-btn.tr{--page-c:var(--tr-c);--page-dim:var(--tr-dim);--page-glow:var(--tr-glow)}
+/* Aktiver Zustand */
+.sw-nav-btn.active{
+  background:var(--page-dim);color:var(--page-c);
+  box-shadow:0 0 0 1px var(--page-c),0 2px 12px var(--page-glow)
+}
+.sw-nav-btn.active i{transform:scale(1.15)}
+/* Aktive Seite: Unterstrich-Indikator */
+.sw-nav-btn.active::after{
+  content:'';position:absolute;bottom:-4px;left:50%;transform:translateX(-50%);
+  width:60%;height:2px;border-radius:2px;background:var(--page-c);
+  box-shadow:0 0 6px var(--page-glow)
+}
+@media(max-width:540px){
+  .sw-nav-btn span{display:none}
+  .sw-nav-btn{padding:7px 10px}
+  .sw-nav-btn i{font-size:.85rem}
+}
+
+/* ═══ PAGE ACCENT OVERRIDES ══════════════════════════════════════════
+ * Portfolio-Seite: grüne Akzente für Buttons, Cards, Links
+ * ═════════════════════════════════════════════════════════════════ */
+.page-pf .btn-trades,
+.page-pf .btn-trades:hover { background:var(--pf-c)!important;color:#fff!important;box-shadow:0 0 14px var(--pf-glow)!important }
+
+
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
 html{scroll-behavior:smooth}
 body{background:var(--bg);color:var(--tx);font-family:'Outfit',sans-serif;min-height:100vh;overflow-x:hidden;transition:background .3s,color .3s}
@@ -712,6 +783,11 @@ body.is-offline #app{margin-top:36px}
       <button class="tbtn"    id="tEarth" onclick="setTheme('earth')"    title="Earth"><i class="fa-solid fa-seedling"></i></button>
     </div>
 
+    <div class="sw-nav" role="navigation" aria-label="Seitennavigation">
+      <a href="stockwatch_beta.html"   class="sw-nav-btn pf active" aria-current="page" title="Portfolio"><i class="fa-solid fa-briefcase"></i><span>Portfolio</span></a>
+      <a href="stockwatch_chart.html"  class="sw-nav-btn ch"                                title="Charts"><i class="fa-solid fa-chart-area"></i><span>Charts</span></a>
+      <a href="stockwatch_trades.html" class="sw-nav-btn tr"                                title="Trades"><i class="fa-solid fa-arrow-right-arrow-left"></i><span>Trades</span></a>
+    </div>
     <button class="hbtn hidden" id="userBtn" onclick="showProfileScreen()"><i class="fa-solid fa-user-gear"></i><span id="userLbl">Profil</span></button>
   </div>
 </header>
@@ -942,8 +1018,6 @@ create policy "own" on public.sw_portfolio
     <button class="rbtn" aria-label="Aktualisieren" id="rBtn" onclick="doRefresh()" title="Aktualisieren"><i class="fa-solid fa-rotate" id="rIco"></i></button>
     <span class="upd-time" id="updLbl"></span>
     <button class="btn btn-acc btn-sm pf-addbtn" onclick="openModal()"><i class="fa-solid fa-plus"></i> Aktie hinzufügen</button>
-    <a href="stockwatch_chart.html" class="btn btn-trades" style="border-color:var(--acc);color:var(--acc);background:var(--adim)" onmouseover="this.style.background='var(--acc)';this.style.color='#fff'" onmouseout="this.style.background='var(--adim)';this.style.color='var(--acc)'"><i class="fa-solid fa-chart-area"></i> <span class="trades-lbl">Charts</span></a>
-    <a href="stockwatch_trades.html" class="btn btn-trades"><i class="fa-solid fa-arrow-right-arrow-left"></i> <span class="trades-lbl">Trades</span></a>
   </div>
   <!-- Portfolio Header Zeile 2: Filter & Sort Bar -->
   <div class="fsbar" id="fsBar">
@@ -1056,8 +1130,8 @@ create policy "own" on public.sw_portfolio
       <div class="footer-sub">Live-Kurse alle 5 Min. via Finnhub &amp; Yahoo<br>Cloud-Sync via Supabase (optional)</div>
       <div style="font-size:.6rem;color:var(--mut);margin-top:8px;line-height:1.5"><i class="fa-solid fa-shield-halved" style="margin-right:3px"></i> Daten werden lokal im Browser gespeichert (localStorage). Es werden keine personenbezogenen Daten an Dritte übermittelt, außer bei aktiviertem Cloud-Sync. Keine Anlageberatung — alle Angaben ohne Gewähr.</div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
-        <a href="stockwatch_chart.html" style="display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:9px;background:var(--adim);border:1px solid var(--acc);color:var(--acc);font-size:.8rem;font-weight:600;text-decoration:none;transition:all .15s"><i class="fa-solid fa-chart-area"></i> Charts öffnen</a>
-        <a href="stockwatch_trades.html" style="display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:9px;background:var(--adim);border:1px solid var(--acc);color:var(--acc);font-size:.8rem;font-weight:600;text-decoration:none;transition:all .15s"><i class="fa-solid fa-arrow-right-arrow-left"></i> Trades-Dashboard</a>
+        <a href="stockwatch_chart.html" style="display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:9px;background:var(--ch-dim);border:1px solid var(--ch-c);color:var(--ch-c);font-size:.8rem;font-weight:600;text-decoration:none;transition:all .15s"><i class="fa-solid fa-chart-area"></i> Charts öffnen</a>
+        <a href="stockwatch_trades.html" style="display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:9px;background:var(--tr-dim);border:1px solid var(--tr-c);color:var(--tr-c);font-size:.8rem;font-weight:600;text-decoration:none;transition:all .15s"><i class="fa-solid fa-arrow-right-arrow-left"></i> Trades-Dashboard</a>
       </div>
     </div>
     <div class="footer-center">

@@ -10,6 +10,26 @@
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <style>
+/* ═══ PAGE IDENTITY ══════════════════════════════════════════════════ */
+:root {
+  --pf-c:   #22c55e;--pf-dim:rgba(34,197,94,.14);--pf-glow:rgba(34,197,94,.35);
+  --ch-c:   #06b6d4;--ch-dim:rgba(6,182,212,.14);--ch-glow:rgba(6,182,212,.35);
+  --tr-c:   #f97316;--tr-dim:rgba(249,115,22,.14);--tr-glow:rgba(249,115,22,.35);
+}
+/* ═══ UNIFIED NAV COMPONENT ═════════════════════════════════════════ */
+.sw-nav{display:flex;align-items:center;gap:3px;background:var(--bg);border:1px solid var(--cb);border-radius:12px;padding:4px;flex-shrink:0}
+.sw-nav-btn{display:inline-flex;align-items:center;gap:6px;padding:6px 13px;border-radius:9px;border:none;background:transparent;color:var(--sub);font-size:.77rem;font-weight:700;font-family:'Outfit',sans-serif;cursor:pointer;text-decoration:none;transition:all .2s cubic-bezier(.4,0,.2,1);white-space:nowrap;flex-shrink:0;position:relative;letter-spacing:.01em}
+.sw-nav-btn i{font-size:.72rem;transition:transform .2s}
+.sw-nav-btn:hover{color:var(--tx);background:var(--hov)}
+.sw-nav-btn:active{transform:scale(.96)}
+.sw-nav-btn.pf{--page-c:var(--pf-c);--page-dim:var(--pf-dim);--page-glow:var(--pf-glow)}
+.sw-nav-btn.ch{--page-c:var(--ch-c);--page-dim:var(--ch-dim);--page-glow:var(--ch-glow)}
+.sw-nav-btn.tr{--page-c:var(--tr-c);--page-dim:var(--tr-dim);--page-glow:var(--tr-glow)}
+.sw-nav-btn.active{background:var(--page-dim);color:var(--page-c);box-shadow:0 0 0 1px var(--page-c),0 2px 12px var(--page-glow)}
+.sw-nav-btn.active i{transform:scale(1.15)}
+.sw-nav-btn.active::after{content:'';position:absolute;bottom:-4px;left:50%;transform:translateX(-50%);width:60%;height:2px;border-radius:2px;background:var(--page-c);box-shadow:0 0 6px var(--page-glow)}
+@media(max-width:540px){.sw-nav-btn span{display:none}.sw-nav-btn{padding:7px 10px}.sw-nav-btn i{font-size:.85rem}}
+
 *{margin:0;padding:0;box-sizing:border-box}
 html{scroll-behavior:smooth}
 body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--tx);min-height:100vh;padding-top:62px;transition:background .3s,color .3s}
@@ -187,6 +207,11 @@ footer{position:relative;z-index:1;background:var(--sur);border-top:1px solid va
       <button class="tbtn" id="tMint"  onclick="setTheme('mint')"><i class="fa-solid fa-droplet"></i></button>
       <button class="tbtn" id="tEarth" onclick="setTheme('earth')"><i class="fa-solid fa-seedling"></i></button>
     </div>
+    <div class="sw-nav" role="navigation" aria-label="Seitennavigation">
+      <a href="stockwatch_beta.html"   class="sw-nav-btn pf" title="Portfolio"><i class="fa-solid fa-briefcase"></i><span>Portfolio</span></a>
+      <a href="stockwatch_chart.html"  class="sw-nav-btn ch" title="Charts"><i class="fa-solid fa-chart-area"></i><span>Charts</span></a>
+      <a href="stockwatch_trades.html" class="sw-nav-btn tr active" aria-current="page" title="Trades"><i class="fa-solid fa-arrow-right-arrow-left"></i><span>Trades</span></a>
+    </div>
     <button class="hbtn" onclick="showProfile()"><i class="fa-solid fa-user-gear"></i><span> Profil</span></button>
   </div>
 </header>
@@ -270,8 +295,6 @@ footer{position:relative;z-index:1;background:var(--sur);border-top:1px solid va
   <div class="pf-header">
     <span class="sec-t"><i class="fa-solid fa-arrow-right-arrow-left"></i> Trades-Dashboard</span>
     <span class="upd-time" id="tradeCount"></span>
-    <a href="stockwatch_beta.html" class="btn-nav"><i class="fa-solid fa-briefcase"></i> <span>Portfolio</span></a>
-    <a href="stockwatch_chart.html" class="btn-nav" style="margin-left:8px"><i class="fa-solid fa-chart-area"></i> <span>Charts</span></a>
   </div>
   <div class="toolbar">
     <button class="fs-chip active" onclick="setFilter('all',this)"><i class="fa-solid fa-border-all"></i> Alle</button>
@@ -308,8 +331,8 @@ footer{position:relative;z-index:1;background:var(--sur);border-top:1px solid va
     <div class="footer-center"><button class="del-btn" onclick="clearLog()"><i class="fa-solid fa-trash-can"></i> Trade-Log löschen</button></div>
     <div class="footer-right">
       <div class="footer-links">
-        <a href="stockwatch_beta.html"><i class="fa-solid fa-briefcase"></i> Portfolio</a>
-        <a href="stockwatch_chart.html"><i class="fa-solid fa-chart-area"></i> Charts</a>
+        <a href="stockwatch_beta.html" style="color:var(--pf-c)"><i class="fa-solid fa-briefcase"></i> Portfolio</a>
+        <a href="stockwatch_chart.html" style="color:var(--ch-c)"><i class="fa-solid fa-chart-area"></i> Charts</a>
         <a href="https://finance.yahoo.com/lookup/" target="_blank"><i class="fa-solid fa-magnifying-glass"></i> Symbol-Suche</a>
         <a href="https://finnhub.io/dashboard" target="_blank"><i class="fa-solid fa-key"></i> Finnhub</a>
       </div>
