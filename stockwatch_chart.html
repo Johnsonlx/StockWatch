@@ -111,8 +111,19 @@ header{
 [data-theme="earth"] .logo-ico{background:linear-gradient(135deg,#798777,#BDD2B6)}
 .logo:hover .logo-ico{transform:rotate(-8deg) scale(1.05)}
 .logo span{color:var(--acc)}
-.logo-sep{width:1px;height:22px;background:var(--cb);margin:0 4px;flex-shrink:0}
-.logo-page{font-size:.78rem;font-weight:600;color:var(--sub);letter-spacing:.04em;text-transform:uppercase}
+.logo-sep{display:none} /* entfernt — Seiten-Untertitel im Logo weggefallen */
+.logo-page{display:none}
+.rt-time{font-family:'JetBrains Mono',monospace;font-size:.75rem;font-weight:600;color:var(--tx);background:var(--adim);border:1px solid var(--acc);border-radius:7px;padding:3px 9px;white-space:nowrap;flex-shrink:0}
+.mkt-badge{display:flex;align-items:center;gap:5px;font-size:.7rem;font-family:'JetBrains Mono',monospace;padding:3px 8px;border-radius:6px;white-space:nowrap;flex-shrink:0}
+.mkt-badge.open{background:var(--pbg);color:var(--pos);border:1px solid var(--pbr)}
+.mkt-badge.closed{background:var(--gbg);color:var(--gld);border:1px solid var(--gbr)}
+.hbtn{display:flex;align-items:center;gap:6px;padding:4px 10px;border-radius:8px;border:1px solid var(--cb);background:var(--sur);font-size:.78rem;font-weight:600;color:var(--sub);cursor:pointer;transition:all .15s;flex-shrink:0;font-family:'Outfit',sans-serif}
+.hbtn:hover{border-color:var(--acc);color:var(--acc)}
+@media(max-width:700px){
+  .rt-time{font-size:.68rem;padding:3px 7px}
+  .mkt-badge span{display:none}
+  .mkt-badge{padding:6px;width:28px;justify-content:center}
+}
 .hdr-gap{flex:1}
 .hdr-r{display:flex;align-items:center;gap:7px}
 
@@ -406,25 +417,25 @@ header{
 
 <!-- ══════════════ HEADER ════════════════════════════════════════════ -->
 <header>
-  <a href="stockwatch_beta.html" class="logo" title="Portfolio öffnen">
+  <a href="stockwatch_beta.html" class="logo" title="Zum Portfolio">
     <div class="logo-ico"><i class="fa-solid fa-chart-line"></i></div>
     Stock<span>Watch</span>
   </a>
-  <div class="logo-sep"></div>
-  <span class="logo-page">Charts</span>
   <div class="hdr-gap"></div>
   <div class="hdr-r">
-    <div class="sw-nav" role="navigation" aria-label="Seitennavigation">
-      <a href="stockwatch_beta.html"   class="sw-nav-btn pf" title="Portfolio"><i class="fa-solid fa-briefcase"></i><span>Portfolio</span></a>
-      <a href="stockwatch_chart.html"  class="sw-nav-btn ch active" aria-current="page" title="Charts"><i class="fa-solid fa-chart-area"></i><span>Charts</span></a>
-      <a href="stockwatch_trades.html" class="sw-nav-btn tr" title="Trades"><i class="fa-solid fa-arrow-right-arrow-left"></i><span>Trades</span></a>
-    </div>
+    <span class="rt-time" id="rtLbl">--:--</span>
+    <div class="mkt-badge closed" id="mktBadge"><i class="fa-solid fa-circle"></i><span id="mktLbl">Markt</span></div>
     <div class="thm-grp" title="Design">
       <button class="tbtn on" id="tDark"  onclick="setTheme('dark')"     title="Midnight"><i class="fa-solid fa-moon"></i></button>
       <button class="tbtn"    id="tOcean" onclick="setTheme('ocean')"    title="Ocean"><i class="fa-solid fa-water"></i></button>
       <button class="tbtn"    id="tLav"   onclick="setTheme('lavender')" title="Lavender"><i class="fa-solid fa-star"></i></button>
       <button class="tbtn"    id="tMint"  onclick="setTheme('mint')"     title="Mint"><i class="fa-solid fa-droplet"></i></button>
       <button class="tbtn"    id="tEarth" onclick="setTheme('earth')"    title="Earth"><i class="fa-solid fa-seedling"></i></button>
+    </div>
+    <div class="sw-nav" role="navigation" aria-label="Seitennavigation">
+      <a href="stockwatch_beta.html"   class="sw-nav-btn pf" title="Portfolio"><i class="fa-solid fa-briefcase"></i><span>Portfolio</span></a>
+      <a href="stockwatch_chart.html"  class="sw-nav-btn ch active" aria-current="page" title="Charts"><i class="fa-solid fa-chart-area"></i><span>Charts</span></a>
+      <a href="stockwatch_trades.html" class="sw-nav-btn tr" title="Trades"><i class="fa-solid fa-arrow-right-arrow-left"></i><span>Trades</span></a>
     </div>
   </div>
 </header>
@@ -1425,6 +1436,31 @@ function init() {
 
   console.log(`[Chart] Bereit. Watchlist: ${appState.watchlist.length} Einträge`);
 }
+
+// ─── UHRZEIT + MARKT-BADGE ───────────────────────────────────────────
+function _isMarketOpen() {
+  const now = new Date();
+  const day = now.getDay();
+  if (day === 0 || day === 6) return false;
+  const h = now.getHours();
+  return h >= 9 && h < 18;
+}
+function _updateMktBadge() {
+  const open = _isMarketOpen();
+  const badge = document.getElementById('mktBadge');
+  const lbl   = document.getElementById('mktLbl');
+  if (!badge) return;
+  badge.className = 'mkt-badge ' + (open ? 'open' : 'closed');
+  lbl.textContent  = open ? 'Markt offen' : 'Markt zu';
+}
+setInterval(() => {
+  document.getElementById('rtLbl').textContent =
+    new Date().toLocaleTimeString('de-DE', { hour:'2-digit', minute:'2-digit', second:'2-digit' });
+}, 1000);
+setInterval(_updateMktBadge, 30000);
+document.getElementById('rtLbl').textContent =
+  new Date().toLocaleTimeString('de-DE', { hour:'2-digit', minute:'2-digit', second:'2-digit' });
+_updateMktBadge();
 
 init();
 </script>

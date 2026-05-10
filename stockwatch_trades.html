@@ -55,6 +55,9 @@ header{position:fixed;top:0;left:0;right:0;z-index:300;background:var(--hdr);bac
 .logo{display:flex;align-items:center;gap:9px;font-weight:800;font-size:1.1rem;letter-spacing:-.4px;cursor:pointer;user-select:none;flex-shrink:0}
 .logo span{color:var(--acc)}.logo-ico{width:32px;height:32px;border-radius:9px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px;flex-shrink:0}
 .hdr-gap{flex:1}.hdr-r{display:flex;align-items:center;gap:7px;flex-wrap:nowrap}
+.mkt-badge{display:flex;align-items:center;gap:5px;font-size:.7rem;font-family:'JetBrains Mono',monospace;padding:3px 8px;border-radius:6px;white-space:nowrap;flex-shrink:0}
+.mkt-badge.open{background:var(--pbg);color:var(--pos);border:1px solid var(--pbr)}
+.mkt-badge.closed{background:var(--gbg);color:var(--gld);border:1px solid var(--gbr)}
 .rt-time{font-family:'JetBrains Mono',monospace;font-size:.75rem;font-weight:600;color:var(--tx);background:var(--adim);border:1px solid var(--acc);border-radius:7px;padding:3px 9px;white-space:nowrap;flex-shrink:0}
 .thm-grp{display:flex;gap:2px;background:var(--bg);border:1px solid var(--cb);border-radius:9px;padding:3px;flex-shrink:0}
 .tbtn{width:28px;height:26px;border:none;background:transparent;color:var(--sub);border-radius:7px;cursor:pointer;font-size:11px;display:flex;align-items:center;justify-content:center;transition:all .15s}
@@ -200,12 +203,13 @@ footer{position:relative;z-index:1;background:var(--sur);border-top:1px solid va
   <div class="hdr-gap"></div>
   <div class="hdr-r">
     <span class="rt-time" id="rtLbl">--:--</span>
+    <div class="mkt-badge closed" id="mktBadge"><i class="fa-solid fa-circle"></i><span id="mktLbl">Markt</span></div>
     <div class="thm-grp">
-      <button class="tbtn" id="tDark"  onclick="setTheme('dark')"><i class="fa-solid fa-moon"></i></button>
-      <button class="tbtn" id="tOcean" onclick="setTheme('ocean')"><i class="fa-solid fa-water"></i></button>
-      <button class="tbtn" id="tLav"   onclick="setTheme('lavender')"><i class="fa-solid fa-star"></i></button>
-      <button class="tbtn" id="tMint"  onclick="setTheme('mint')"><i class="fa-solid fa-droplet"></i></button>
-      <button class="tbtn" id="tEarth" onclick="setTheme('earth')"><i class="fa-solid fa-seedling"></i></button>
+      <button class="tbtn" id="tDark"  onclick="setTheme('dark')"     title="Midnight"><i class="fa-solid fa-moon"></i></button>
+      <button class="tbtn" id="tOcean" onclick="setTheme('ocean')"    title="Ocean"><i class="fa-solid fa-water"></i></button>
+      <button class="tbtn" id="tLav"   onclick="setTheme('lavender')" title="Lavender"><i class="fa-solid fa-star"></i></button>
+      <button class="tbtn" id="tMint"  onclick="setTheme('mint')"     title="Mint"><i class="fa-solid fa-droplet"></i></button>
+      <button class="tbtn" id="tEarth" onclick="setTheme('earth')"    title="Earth"><i class="fa-solid fa-seedling"></i></button>
     </div>
     <div class="sw-nav" role="navigation" aria-label="Seitennavigation">
       <a href="stockwatch_beta.html"   class="sw-nav-btn pf" title="Portfolio"><i class="fa-solid fa-briefcase"></i><span>Portfolio</span></a>
@@ -687,6 +691,16 @@ function closeProfile(){
   document.querySelector('footer').style.display='';
 }
 document.addEventListener('keydown',e=>{ if(e.key==='Escape'){closeBkModal();closeProfile();} });
+
+// ─── UHRZEIT + MARKT-BADGE ───────────────────────────────────────────
+(function initHeaderWidgets(){
+  function isOpen(){ const d=new Date(),day=d.getDay(),h=d.getHours(); return day>0&&day<6&&h>=9&&h<18; }
+  function tick(){
+    document.getElementById('rtLbl').textContent=new Date().toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  }
+  function badge(){ const o=isOpen(),b=document.getElementById('mktBadge'),l=document.getElementById('mktLbl'); if(!b)return; b.className='mkt-badge '+(o?'open':'closed'); l.textContent=o?'Markt offen':'Markt zu'; }
+  setInterval(tick,1000); setInterval(badge,30000); tick(); badge();
+})();
 
 // ─── INIT ────────────────────────────────────────────────────────────
 allTrades=getAllTrades();
