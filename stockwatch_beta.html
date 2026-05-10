@@ -378,21 +378,48 @@ header{position:fixed;top:0;left:0;right:0;z-index:300;background:var(--hdr);bac
 .rebuy-banner strong{color:var(--pos)}
 
 /* ═══ FOOTER ═════════════════════════════════════════════════════════ */
-footer{position:relative;z-index:1;background:var(--sur);border-top:1px solid var(--cb);padding:22px 20px;margin-top:40px;transition:background .3s,border-color .3s}
-.footer-inner{max-width:1400px;margin:0 auto;display:grid;grid-template-columns:1fr auto 1fr;gap:20px;align-items:center}
-.footer-left{display:flex;flex-direction:column;gap:5px}
+/* ═══ UNIFIED FOOTER ═════════════════════════════════════════════════ */
+footer{
+  position:relative;z-index:1;background:var(--sur);border-top:1px solid var(--cb);
+  padding:28px 20px;margin-top:40px;transition:background .3s,border-color .3s
+}
+.footer-inner{
+  max-width:1400px;margin:0 auto;
+  display:grid;grid-template-columns:1fr auto 1fr;
+  gap:24px;align-items:start
+}
+/* LEFT */
+.footer-left{display:flex;flex-direction:column;gap:6px}
 .footer-logo{display:flex;align-items:center;gap:8px;font-weight:800;font-size:.95rem;letter-spacing:-.3px}
 .footer-logo .logo-ico{width:26px;height:26px;border-radius:7px;font-size:12px}
 .footer-logo span{color:var(--acc)}
-.footer-sub{font-size:.72rem;color:var(--mut);line-height:1.5}
-.footer-center{display:flex;flex-direction:column;gap:10px;align-items:center}
-.footer-market{display:flex;align-items:center;gap:7px;font-size:.75rem;font-family:'JetBrains Mono',monospace;color:var(--sub)}
-.footer-actions{display:flex;gap:7px;flex-wrap:wrap;justify-content:center}
-.footer-right{display:flex;flex-direction:column;gap:6px;align-items:flex-end}
-.footer-links{display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end}
-.footer-links a{font-size:.75rem;color:var(--sub);text-decoration:none;transition:color .2s}
-.footer-links a:hover{color:var(--acc)}
-.footer-copy{font-size:.68rem;color:var(--mut)}
+.footer-sub{font-size:.72rem;color:var(--sub);line-height:1.55}
+.footer-disc{font-size:.6rem;color:var(--mut);line-height:1.6;margin-top:4px;max-width:340px}
+/* CENTER */
+.footer-center{display:flex;flex-direction:column;gap:10px;align-items:center;padding-top:2px}
+.footer-market{display:flex;align-items:center;gap:6px;font-size:.72rem;font-family:'JetBrains Mono',monospace;color:var(--sub)}
+.footer-actions{display:flex;gap:6px;flex-wrap:wrap;justify-content:center}
+/* RIGHT */
+.footer-right{display:flex;flex-direction:column;gap:8px;align-items:flex-end}
+.footer-nav{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;align-items:center}
+.footer-nav a,.footer-links a{
+  font-size:.74rem;color:var(--sub);text-decoration:none;
+  transition:color .2s;display:inline-flex;align-items:center;gap:4px
+}
+.footer-nav a:hover,.footer-links a:hover{color:var(--tx)}
+.footer-sep{width:1px;height:12px;background:var(--cb);flex-shrink:0}
+.footer-links{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;align-items:center}
+.footer-copy{font-size:.65rem;color:var(--mut);font-family:'JetBrains Mono',monospace}
+@media(max-width:800px){
+  .footer-inner{grid-template-columns:1fr 1fr;grid-template-rows:auto auto}
+  .footer-center{grid-column:1/-1;order:3;border-top:1px solid var(--cb);padding-top:16px;margin-top:4px}
+}
+@media(max-width:500px){
+  .footer-inner{grid-template-columns:1fr}
+  .footer-right{align-items:flex-start}
+  .footer-nav,.footer-links{justify-content:flex-start}
+  .footer-center{grid-column:1}
+}
 
 /* ═══ TOASTS ═════════════════════════════════════════════════════════ */
 .tc{position:fixed;bottom:24px;right:16px;z-index:600;display:flex;flex-direction:column;gap:8px;max-width:340px;width:calc(100% - 32px);pointer-events:none}
@@ -1125,15 +1152,13 @@ create policy "own" on public.sw_portfolio
 <!-- ══════════════ FOOTER ═════════════════════════════════════════════ -->
 <footer id="mainFooter" class="hidden">
   <div class="footer-inner">
+    <!-- LEFT -->
     <div class="footer-left">
       <div class="footer-logo"><div class="logo-ico"><i class="fa-solid fa-chart-line"></i></div>Stock<span>Watch</span></div>
-      <div class="footer-sub">Live-Kurse alle 5 Min. via Finnhub &amp; Yahoo<br>Cloud-Sync via Supabase (optional)</div>
-      <div style="font-size:.6rem;color:var(--mut);margin-top:8px;line-height:1.5"><i class="fa-solid fa-shield-halved" style="margin-right:3px"></i> Daten werden lokal im Browser gespeichert (localStorage). Es werden keine personenbezogenen Daten an Dritte übermittelt, außer bei aktiviertem Cloud-Sync. Keine Anlageberatung — alle Angaben ohne Gewähr.</div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
-        <a href="stockwatch_chart.html" style="display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:9px;background:var(--ch-dim);border:1px solid var(--ch-c);color:var(--ch-c);font-size:.8rem;font-weight:600;text-decoration:none;transition:all .15s"><i class="fa-solid fa-chart-area"></i> Charts öffnen</a>
-        <a href="stockwatch_trades.html" style="display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:9px;background:var(--tr-dim);border:1px solid var(--tr-c);color:var(--tr-c);font-size:.8rem;font-weight:600;text-decoration:none;transition:all .15s"><i class="fa-solid fa-arrow-right-arrow-left"></i> Trades-Dashboard</a>
-      </div>
+      <div class="footer-sub">Live-Kurse via Finnhub &amp; Yahoo Finance<br>Cloud-Sync via Supabase (optional)</div>
+      <div class="footer-disc"><i class="fa-solid fa-shield-halved"></i> Daten lokal im Browser (localStorage). Keine Anlageberatung — alle Angaben ohne Gewähr.</div>
     </div>
+    <!-- CENTER: Portfolio-spezifische Aktionen -->
     <div class="footer-center">
       <div class="footer-market"><i class="fa-solid fa-circle" id="fMktDot" style="color:var(--mut)"></i><span id="fMktTxt">—</span></div>
       <div class="footer-actions">
@@ -1142,11 +1167,19 @@ create policy "own" on public.sw_portfolio
         <button class="btn btn-ghost btn-sm" onclick="doRefresh()"><i class="fa-solid fa-rotate"></i> Refresh</button>
       </div>
     </div>
+    <!-- RIGHT -->
     <div class="footer-right">
+      <div class="footer-nav">
+        <a href="stockwatch_chart.html"  style="color:var(--ch-c)"><i class="fa-solid fa-chart-area"></i> Charts</a>
+        <div class="footer-sep"></div>
+        <a href="stockwatch_trades.html" style="color:var(--tr-c)"><i class="fa-solid fa-arrow-right-arrow-left"></i> Trades</a>
+      </div>
       <div class="footer-links">
-        <a href="https://finance.yahoo.com/lookup/" target="_blank"><i class="fa-solid fa-magnifying-glass"></i> Symbol-Suche</a>
-        <a href="https://finnhub.io/dashboard" target="_blank"><i class="fa-solid fa-key"></i> Finnhub</a>
-        <a href="https://supabase.com" target="_blank"><i class="fa-solid fa-cloud"></i> Supabase</a>
+        <a href="https://finance.yahoo.com/lookup/" target="_blank"><i class="fa-solid fa-magnifying-glass"></i> Ticker-Suche</a>
+        <div class="footer-sep"></div>
+        <a href="https://finnhub.io/dashboard"      target="_blank"><i class="fa-solid fa-key"></i> Finnhub</a>
+        <div class="footer-sep"></div>
+        <a href="https://supabase.com"              target="_blank"><i class="fa-solid fa-cloud"></i> Supabase</a>
       </div>
       <div class="footer-copy">StockWatch v3.0 · <span id="fYear"></span></div>
     </div>

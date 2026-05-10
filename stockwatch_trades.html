@@ -167,17 +167,25 @@ table.bk-table tr:last-child td{border-bottom:none}.bk-table tr:hover td{backgro
 .td-badge.p{background:var(--pbg);color:var(--pos)}.td-badge.n{background:var(--nbg);color:var(--neg)}
 
 /* ═══ FOOTER ═══ */
-footer{position:relative;z-index:1;background:var(--sur);border-top:1px solid var(--cb);padding:24px 20px;margin-top:40px}
-.footer-inner{max-width:1400px;margin:0 auto;display:grid;grid-template-columns:1fr auto 1fr;gap:20px;align-items:center}
-.footer-left{display:flex;flex-direction:column;gap:5px}
+/* ═══ UNIFIED FOOTER ═════════════════════════════════════════════════ */
+footer{position:relative;z-index:1;background:var(--sur);border-top:1px solid var(--cb);padding:28px 20px;margin-top:40px}
+.footer-inner{max-width:1400px;margin:0 auto;display:grid;grid-template-columns:1fr auto 1fr;gap:24px;align-items:start}
+.footer-left{display:flex;flex-direction:column;gap:6px}
 .footer-logo{display:flex;align-items:center;gap:8px;font-weight:800;font-size:.95rem;letter-spacing:-.3px}.footer-logo span{color:var(--acc)}
 .footer-logo .logo-ico{width:26px;height:26px;border-radius:7px;font-size:12px}
-.footer-sub{font-size:.72rem;color:var(--mut);line-height:1.5}
-.footer-center{display:flex;flex-direction:column;gap:10px;align-items:center}
-.footer-right{display:flex;flex-direction:column;gap:6px;align-items:flex-end}
-.footer-links{display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end}
-.footer-links a{font-size:.75rem;color:var(--sub);text-decoration:none;transition:color .2s}
-.footer-links a:hover{color:var(--acc)}.footer-copy{font-size:.68rem;color:var(--mut)}
+.footer-sub{font-size:.72rem;color:var(--sub);line-height:1.55}
+.footer-disc{font-size:.6rem;color:var(--mut);line-height:1.6;margin-top:4px;max-width:340px}
+.footer-center{display:flex;flex-direction:column;gap:10px;align-items:center;padding-top:2px}
+.footer-actions{display:flex;gap:6px;flex-wrap:wrap;justify-content:center}
+.footer-right{display:flex;flex-direction:column;gap:8px;align-items:flex-end}
+.footer-nav{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;align-items:center}
+.footer-nav a,.footer-links a{font-size:.74rem;color:var(--sub);text-decoration:none;transition:color .2s;display:inline-flex;align-items:center;gap:4px}
+.footer-nav a:hover,.footer-links a:hover{color:var(--tx)}
+.footer-sep{width:1px;height:12px;background:var(--cb);flex-shrink:0}
+.footer-links{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;align-items:center}
+.footer-copy{font-size:.65rem;color:var(--mut);font-family:'JetBrains Mono',monospace}
+@media(max-width:800px){.footer-inner{grid-template-columns:1fr 1fr}.footer-center{grid-column:1/-1;order:3;border-top:1px solid var(--cb);padding-top:16px;margin-top:4px}}
+@media(max-width:500px){.footer-inner{grid-template-columns:1fr}.footer-right{align-items:flex-start}.footer-nav,.footer-links{justify-content:flex-start}.footer-center{grid-column:1}}
 .del-btn{padding:7px 14px;border-radius:8px;font-size:.75rem;font-weight:600;background:var(--nbg);border:1px solid var(--neg);color:var(--neg);cursor:pointer;transition:all .15s}
 .del-btn:hover{background:var(--neg);color:#fff}
 
@@ -327,18 +335,30 @@ footer{position:relative;z-index:1;background:var(--sur);border-top:1px solid va
 <!-- FOOTER -->
 <footer>
   <div class="footer-inner">
+    <!-- LEFT -->
     <div class="footer-left">
       <div class="footer-logo"><div class="logo-ico"><i class="fa-solid fa-chart-line"></i></div>Stock<span>Watch</span></div>
-      <div class="footer-sub">Trades-Übersicht &amp; Performance</div>
-      <div style="font-size:.6rem;color:var(--mut);margin-top:8px;line-height:1.5"><i class="fa-solid fa-shield-halved" style="margin-right:3px"></i> Keine Anlageberatung — alle Angaben ohne Gewähr.</div>
+      <div class="footer-sub">Trades-Übersicht &amp; Performance-Analyse<br>Daten lokal im Browser gespeichert</div>
+      <div class="footer-disc"><i class="fa-solid fa-shield-halved"></i> Keine Anlageberatung — alle Angaben ohne Gewähr.</div>
     </div>
-    <div class="footer-center"><button class="del-btn" onclick="clearLog()"><i class="fa-solid fa-trash-can"></i> Trade-Log löschen</button></div>
+    <!-- CENTER: Trades-spezifische Aktionen -->
+    <div class="footer-center">
+      <div class="footer-actions">
+        <button class="btn btn-ghost btn-sm" onclick="openBkModal()"><i class="fa-solid fa-chart-pie"></i> Übersicht</button>
+        <button class="del-btn btn-sm" onclick="clearLog()"><i class="fa-solid fa-trash-can"></i> Log löschen</button>
+      </div>
+    </div>
+    <!-- RIGHT -->
     <div class="footer-right">
-      <div class="footer-links">
-        <a href="stockwatch_beta.html" style="color:var(--pf-c)"><i class="fa-solid fa-briefcase"></i> Portfolio</a>
+      <div class="footer-nav">
+        <a href="stockwatch_beta.html"  style="color:var(--pf-c)"><i class="fa-solid fa-briefcase"></i> Portfolio</a>
+        <div class="footer-sep"></div>
         <a href="stockwatch_chart.html" style="color:var(--ch-c)"><i class="fa-solid fa-chart-area"></i> Charts</a>
-        <a href="https://finance.yahoo.com/lookup/" target="_blank"><i class="fa-solid fa-magnifying-glass"></i> Symbol-Suche</a>
-        <a href="https://finnhub.io/dashboard" target="_blank"><i class="fa-solid fa-key"></i> Finnhub</a>
+      </div>
+      <div class="footer-links">
+        <a href="https://finance.yahoo.com/lookup/" target="_blank"><i class="fa-solid fa-magnifying-glass"></i> Ticker-Suche</a>
+        <div class="footer-sep"></div>
+        <a href="https://finnhub.io/dashboard"      target="_blank"><i class="fa-solid fa-key"></i> Finnhub</a>
       </div>
       <div class="footer-copy">StockWatch v3.0 · <span id="fYear"></span></div>
     </div>
