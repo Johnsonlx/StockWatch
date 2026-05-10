@@ -2112,18 +2112,60 @@ function resetPortfolio() { openHardReset(); }
 
 // ─── COMPUTED HELPERS ────────────────────────────────────────────────
 function totalShares(s) { return s.purchases.reduce((a,p)=>a+p.shares,0); }
-function soldShares(s) { return (s.sales||[]).reduce((a,sl)=>a+sl.shares,0); }
-function activeShares(s) { return totalShares(s) - soldShares(s); }
+function soldShares(s)  { return (s.sales||[]).reduce((a,sl)=>a+sl.shares,0); }
+function activeShares(s){ return totalShares(s) - soldShares(s); }
+
+/**
+ * avgBuyPrice — FIFO-korrekte Berechnung des Durchschnittseinstands.
+ *
+ * FEHLER VORHER:
+ *   return Σ(buyPrice × shares) / totalShares
+ *   → totalShares enthielt ALLE historischen Käufe, auch bereits verkaufte
+ *   → Nach Teilverkauf blieb der Durchschnitt falsch niedrig/hoch
+ *
+ * KORREKT JETZT:
+ *   Für jedes Lot: wie viele Stücke sind noch übrig? (purchaseRemaining)
+ *   Gewichteter Durchschnitt nur der verbleibenden Stücke.
+ *
+ * Beispiel (FIFO):
+ *   Kauf 1: 10 @ 100€ → nach Verkauf von 5: remaining = 5 @ 100€
+ *   Kauf 2: 10 @ 200€ → remaining = 10 @ 200€
+ *   Neuer Ø = (5×100 + 10×200) / 15 = 166,67€  ✓
+ *   Alt (falsch): (10×100 + 10×200) / 20 = 150€  ✗
+ */
 function avgBuyPrice(s) {
-  const tot=totalShares(s);
-  if(!tot) return 0;
-  return s.purchases.reduce((a,p)=>a+p.buyPrice*p.shares,0)/tot;
+  let totalCost = 0, totalRemaining = 0;
+  for (const p of s.purchases) {
+    const rem = purchaseRemaining(s, p.id);
+    if (rem > 0) {
+      totalCost      += p.buyPrice * rem;
+      totalRemaining += rem;
+    }
+  }
+  if (!totalRemaining) return 0;
+  const avg = totalCost / totalRemaining;
+  return avg;
 }
+
+/**
+ * activeCostBasis — tatsächlich noch im Markt gebundenes Kapital.
+ * Σ(verbleibende Stücke pro Lot × Kaufpreis dieses Lots)
+ */
+function activeCostBasis(s) {
+  let cost = 0;
+  for (const p of s.purchases) {
+    cost += p.buyPrice * purchaseRemaining(s, p.id);
+  }
+  return cost;
+}
+
+/** investedVal — gesamter historischer Kapitaleinsatz (für Sortierung/Statistik) */
 function investedVal(s) { return s.purchases.reduce((a,p)=>a+p.buyPrice*p.shares,0); }
-function activeInvested(s) { return avgBuyPrice(s) * activeShares(s); }
-function realizedPL(s) { return (s.sales||[]).reduce((a,sl)=>a+(sl.sellPrice-sl.avgBuyPrice)*sl.shares,0); }
+/** activeInvested — aktuell gebundenes Kapital (avg × remaining, FIFO-korrekt) */
+function activeInvested(s) { return activeCostBasis(s); }
+function realizedPL(s)     { return (s.sales||[]).reduce((a,sl)=>a+(sl.realizedPL||0),0); }
 function totalRealizedPL() { return portfolio.reduce((a,s)=>a+realizedPL(s),0); }
-function tradeCount() { return portfolio.reduce((a,s)=>a+s.purchases.length+(s.sales||[]).length,0); }
+function tradeCount()      { return portfolio.reduce((a,s)=>a+s.purchases.length+(s.sales||[]).length,0); }
 
 // ─── SELL MODAL ─────────────────────────────────────────────────────
 let sellStockId = null;
@@ -2165,59 +2207,103 @@ function openSellForPurchase(stockId, purchaseId) {
   document.getElementById('sellOv').classList.add('open');
 }
 function updateSellPreview() {
-  const s = portfolio.find(x=>x.id===sellStockId);
-  const el = document.getElementById('sellPreview');
+  const s     = portfolio.find(x=>x.id===sellStockId);
+  const el    = document.getElementById('sellPreview');
   if(!s) { el.textContent='—'; return; }
-  const price = parseFloat(document.getElementById('sellPrice').value)||0;
-  const shares = parseFloat(document.getElementById('sellShares').value)||0;
-  const avg = avgBuyPrice(s);
-  const pl = (price - avg) * shares;
-  const pct = avg ? ((price-avg)/avg*100) : 0;
-  const cur = s.currency||'';
-  const sign = pl>=0?'+':'';
-  if(!price||!shares) { el.innerHTML='Preis und Stückzahl eingeben für Vorschau.'; return; }
-  el.innerHTML = `<strong>Erlös:</strong> ${(price*shares).toLocaleString('de-DE',{minimumFractionDigits:2})} ${cur} · <strong style="color:${pl>=0?'var(--pos)':'var(--neg)'}">G/V: ${sign}${pl.toLocaleString('de-DE',{minimumFractionDigits:2})} ${cur} (${sign}${pct.toFixed(2)}%)</strong>`;
+  const price  = parseFloat(document.getElementById('sellPrice').value) || 0;
+  const shares = parseFloat(document.getElementById('sellShares').value) || 0;
+  const cur    = s.currency || '';
+  if(!price || !shares) {
+    el.innerHTML = 'Preis und Stückzahl eingeben für Vorschau.';
+    return;
+  }
+
+  // FIFO-Simulation: berechne exakten G/V basierend auf Lot-Preisen
+  const sorted = [...s.purchases].sort((a,b)=>(a.buyDate||'').localeCompare(b.buyDate||''));
+  let rem = shares, fifoTotal = 0, lotLines = [];
+  for (const p of sorted) {
+    if(rem <= 0) break;
+    const lotRem = purchaseRemaining(s, p.id);
+    if(lotRem <= 0) continue;
+    const take = Math.min(rem, lotRem);
+    fifoTotal += (price - p.buyPrice) * take;
+    lotLines.push(`${take.toLocaleString('de-DE')} × ${p.buyPrice.toFixed(2)} ${cur}`);
+    rem -= take;
+  }
+
+  const umsatz = price * shares;
+  const sign   = fifoTotal >= 0 ? '+' : '';
+  const col    = fifoTotal >= 0 ? 'var(--pos)' : 'var(--neg)';
+  const pct    = umsatz > 0 ? fifoTotal / (umsatz - fifoTotal) * 100 : 0;
+  const lotsStr= lotLines.length > 1 ? ` <span style="font-size:.72rem;color:var(--sub)">(FIFO: ${lotLines.join(', ')})</span>` : '';
+
+  el.innerHTML = `<strong>Erlös:</strong> ${umsatz.toLocaleString('de-DE',{minimumFractionDigits:2})} ${cur} &nbsp;·&nbsp; <strong style="color:${col}">G/V: ${sign}${fifoTotal.toLocaleString('de-DE',{minimumFractionDigits:2})} ${cur} (${sign}${pct.toFixed(2)}%)</strong>${lotsStr}`;
 }
 function executeSell() {
   const s = portfolio.find(x=>x.id===sellStockId); if(!s) return;
-  const date = document.getElementById('sellDate').value;
-  const time = document.getElementById('sellTime').value;
-  const price = parseFloat(document.getElementById('sellPrice').value);
+  const date   = document.getElementById('sellDate').value;
+  const time   = document.getElementById('sellTime').value;
+  const price  = parseFloat(document.getElementById('sellPrice').value);
   const shares = parseFloat(document.getElementById('sellShares').value);
-  if(!date) return toast('Bitte Datum wählen.','te');
-  if(!price||price<=0) return toast('Bitte Verkaufspreis eingeben.','te');
-  if(!shares||shares<=0) return toast('Bitte Stückzahl eingeben.','te');
+  if(!date)           return toast('Bitte Datum wählen.','te');
+  if(!price||price<=0)return toast('Bitte Verkaufspreis eingeben.','te');
+  if(!shares||shares<=0)return toast('Bitte Stückzahl eingeben.','te');
   const avail = activeShares(s);
-  if(shares>avail+0.001) return toast(`Nur ${avail} Stücke verfügbar.`,'te');
+  if(shares > avail + 0.001) return toast(`Nur ${avail.toLocaleString('de-DE')} Stücke verfügbar.`,'te');
   if(!s.sales) s.sales = [];
 
-  // FIFO: track which purchases are affected
+  // ── SCHRITT 1: FIFO-Lots bestimmen ───────────────────────────────
+  // Älteste Käufe zuerst konsumieren (FIFO = First In, First Out)
   const adjustments = [];
   let remaining = shares;
   const sorted = [...s.purchases].sort((a,b)=>(a.buyDate||'').localeCompare(b.buyDate||''));
-  for(const p of sorted) {
-    if(remaining<=0) break;
-    const purRemaining = purchaseRemaining(s, p.id);
-    if(purRemaining<=0) continue;
-    const take = Math.min(remaining, purRemaining);
-    adjustments.push({purchaseId: p.id, sharesReduced: take, buyPrice: p.buyPrice});
+
+  console.log(`[FIFO] Lots vor Verkauf von ${shares} × ${s.symbol}:`);
+  for (const p of sorted) {
+    const rem = purchaseRemaining(s, p.id);
+    console.log(`  Lot ${p.id}: ${rem} verbleibend @ ${p.buyPrice} (urspr. ${p.shares})`);
+    if(remaining <= 0) break;
+    if(rem <= 0) continue;
+    const take = Math.min(remaining, rem);
+    adjustments.push({ purchaseId: p.id, sharesReduced: take, buyPrice: p.buyPrice });
     remaining -= take;
   }
 
+  // ── SCHRITT 2: FIFO-korrekten realizedPL berechnen ───────────────
+  // Σ (Verkaufspreis - Kaufpreis dieses Lots) × Stücke aus diesem Lot
+  // BESSER als avg-basiert: erfasst exakten Gewinn pro Lot
+  const realizedPLVal = adjustments.reduce(
+    (a, adj) => a + (price - adj.buyPrice) * adj.sharesReduced, 0
+  );
+
+  // Snapshot des aktuellen FIFO-Durchschnitts VOR dem Verkauf (für Anzeige/Log)
+  const avgAtSale = avgBuyPrice(s);
+
+  console.log(`[FIFO] Verkauf: ${shares} × ${s.symbol} @ ${price}`);
+  console.log(`[FIFO] Ø Einkaufspreis (vor Verkauf): ${avgAtSale.toFixed(4)}`);
+  console.log(`[FIFO] Realisierter G/V (FIFO): ${realizedPLVal.toFixed(4)}`);
+  console.log(`[FIFO] Adjustments:`, adjustments);
+
   const sale = {
-    id: Date.now().toString(36)+Math.random().toString(36).slice(2,6),
+    id:          Date.now().toString(36)+Math.random().toString(36).slice(2,6),
     shares, sellPrice: price, sellDate: date, sellTime: time||'',
-    avgBuyPrice: avgBuyPrice(s),
-    realizedPL: (price - avgBuyPrice(s)) * shares,
-    adjustments // FIFO tracking for undo
+    avgBuyPrice: avgAtSale,      // Snapshot für historische Anzeige
+    realizedPL:  realizedPLVal,  // FIFO-korrekt (nicht avg-basiert)
+    adjustments,                 // Für korrektes Undo
   };
   s.sales.push(sale);
+
+  // Neuen Durchschnitt NACH dem Verkauf berechnen und loggen
+  const newAvg = avgBuyPrice(s);
+  console.log(`[FIFO] Verbleibende Stücke: ${activeShares(s)}`);
+  console.log(`[FIFO] Neuer Ø nach Verkauf: ${newAvg.toFixed(4)}`);
+
   archiveTrade(s, sale, 'sell');
-  const pl = sale.realizedPL;
+  const pl  = sale.realizedPL;
   const sym = s.symbol;
   const cur = s.currency||'';
+
   if(activeShares(s) <= 0.001) {
-    // Fully sold — remove from portfolio
     portfolio = portfolio.filter(x=>x.id!==s.id);
     if(sbClient&&sbUser) delSb(s.id);
     closeSellModal(); closePop();
@@ -2226,7 +2312,7 @@ function executeSell() {
     if(sbClient&&sbUser) pushSb(s);
     closeSellModal();
     closePop(); openPop(s.id);
-    toast(`${sym}: ${shares} Stücke verkauft · ${pl>=0?'+':''}${pl.toFixed(2)} ${cur}`, pl>=0?'ts':'te');
+    toast(`${sym}: ${shares} Stücke verkauft · ${pl>=0?'+':''}${pl.toFixed(2)} ${cur} · neuer Ø ${newAvg.toFixed(2)} ${cur}`, pl>=0?'ts':'te');
   }
   save(); renderGrid(); updateSummary();
 }
@@ -2283,20 +2369,34 @@ function toggleSaleEdit(saleId) {
 function saveSaleEdit(stockId, saleId) {
   const s = portfolio.find(x=>x.id===stockId); if(!s||!s.sales) return;
   const sale = s.sales.find(sl=>sl.id===saleId); if(!sale) return;
-  sale.sellDate = document.getElementById('sed_'+saleId)?.value || sale.sellDate;
-  sale.sellTime = document.getElementById('set_'+saleId)?.value || '';
+  sale.sellDate  = document.getElementById('sed_'+saleId)?.value || sale.sellDate;
+  sale.sellTime  = document.getElementById('set_'+saleId)?.value || '';
   sale.sellPrice = parseFloat(document.getElementById('sep_'+saleId)?.value) || sale.sellPrice;
   const newShares = parseFloat(document.getElementById('ses_'+saleId)?.value) || sale.shares;
   sale.shares = newShares;
-  sale.realizedPL = (sale.sellPrice - sale.avgBuyPrice) * sale.shares;
-  // Update trade log entry
+
+  // realizedPL aus FIFO-Adjustments neu berechnen falls vorhanden,
+  // sonst Fallback auf avgBuyPrice-Snapshot (der zum Verkaufszeitpunkt korrekt war).
+  if (sale.adjustments?.length) {
+    // FIFO: (Verkaufspreis − LotKaufpreis) × Stücke pro Lot
+    const ratio = newShares / (sale.adjustments.reduce((a,adj)=>a+adj.sharesReduced,0) || newShares);
+    sale.realizedPL = sale.adjustments.reduce(
+      (a, adj) => a + (sale.sellPrice - adj.buyPrice) * adj.sharesReduced * ratio, 0
+    );
+  } else {
+    sale.realizedPL = (sale.sellPrice - sale.avgBuyPrice) * sale.shares;
+  }
+
+  console.log(`[Edit] Verkauf ${saleId}: preis=${sale.sellPrice}, stücke=${sale.shares}, PnL=${sale.realizedPL.toFixed(4)}`);
+
+  // Trade-Log synchronisieren
   const log = getTradeLog();
   const logEntry = log.find(t=>t.id===saleId);
   if(logEntry) {
-    logEntry.price = sale.sellPrice;
-    logEntry.shares = sale.shares;
-    logEntry.date = sale.sellDate;
-    logEntry.time = sale.sellTime;
+    logEntry.price      = sale.sellPrice;
+    logEntry.shares     = sale.shares;
+    logEntry.date       = sale.sellDate;
+    logEntry.time       = sale.sellTime;
     logEntry.realizedPL = sale.realizedPL;
     saveTradeLog(log);
   }
@@ -2751,13 +2851,22 @@ function openPop(id) {
   document.getElementById('popTitle').textContent = s.symbol + (s.name&&s.name!==s.symbol ? ' — ' + s.name : '');
   document.getElementById('popSub').textContent = s.purchases.length + ' Käufe · ' + salesCount + ' Verkäufe · Zielpreis: ' + fc(s.targetPrice);
 
-  // Summary strip
+  // Summary strip — FIFO-korrekte Werte
+  const costBasis = activeCostBasis(s);
   const sumHtml = `<div class="pop-summary">
-    <div><div class="ps-lbl">Ø Einkauf</div><div class="ps-val" style="color:var(--acc)">${fc(avg)}</div></div>
+    <div>
+      <div class="ps-lbl">Ø Einkauf (FIFO)</div>
+      <div class="ps-val" style="color:var(--acc)">${fc(avg)}</div>
+      <div style="font-size:.6rem;color:var(--mut);margin-top:2px">Nur verbleibende Stücke</div>
+    </div>
     <div><div class="ps-lbl">Aktive Stücke</div><div class="ps-val">${f(tot,0)}</div></div>
-    <div><div class="ps-lbl">Investiert</div><div class="ps-val">${fc(inv)}</div></div>
+    <div>
+      <div class="ps-lbl">Kostenbasis (aktiv)</div>
+      <div class="ps-val">${fc(costBasis)}</div>
+      <div style="font-size:.6rem;color:var(--mut);margin-top:2px">Gebundenes Kapital</div>
+    </div>
     <div><div class="ps-lbl">Unrealisiert</div><div class="ps-val ${gain==null?'':gain>=0?'gp':'gn'}">${gain!=null?gs+f(gain)+'%':'—'}</div></div>
-    ${salesCount?`<div style="grid-column:1/-1;border-top:1px solid var(--cb);padding-top:10px;display:flex;justify-content:space-between;align-items:center"><span class="ps-lbl" style="margin:0">Realisierter G/V</span><span class="ps-val ${rpl>=0?'gp':'gn'}">${(rpl>=0?'+':'')+fc(rpl)}</span></div>`:''}
+    ${salesCount?`<div style="grid-column:1/-1;border-top:1px solid var(--cb);padding-top:10px;display:flex;justify-content:space-between;align-items:center"><span class="ps-lbl" style="margin:0">Realisierter G/V (FIFO)</span><span class="ps-val ${rpl>=0?'gp':'gn'}">${(rpl>=0?'+':'')+fc(rpl)}</span></div>`:''}
   </div>`;
 
   // Target edit
