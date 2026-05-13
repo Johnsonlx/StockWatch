@@ -1446,7 +1446,7 @@ async function init() {
       } else {
         showAuthScreen();
       }
-    } catch(e) { sbClient = null; showApp(); }
+    } catch(e) { console.warn('[Init] Supabase init failed:', e.message); sbClient = null; showApp(); }
   } else {
     showApp();
   }
@@ -1534,7 +1534,7 @@ function togglePw() {
 }
 function copySql() {
   const txt = document.querySelector('.sql').textContent;
-  navigator.clipboard.writeText(txt).then(()=>toast('SQL kopiert!','ts')).catch(()=>{});
+  navigator.clipboard.writeText(txt).then(()=>toast('SQL kopiert!','ts')).catch(()=>toast('Kopieren fehlgeschlagen','te'));
 }
 
 // ─── SAVE API KEY ────────────────────────────────────────────────────
@@ -1802,7 +1802,7 @@ async function yahooLiveQuote(sym) {
       exchange: q.exchange,
       _src: 'yahoo',
     };
-  } catch(_) { return null; }
+  } catch(err) { console.warn('[yahooLiveQuote]', sym, err.message); return null; }
 }
 
 // ─── YAHOO HISTORICAL (via Engine) ──────────────────────────────────
@@ -1907,13 +1907,16 @@ async function doRefresh() {
   const syms = [...new Set(portfolio.map(s => s.symbol))];
   let qMap = {};
   let errSymbols = [];
+  const t0 = performance.now();
 
   // ── Stufe 1: Yahoo Batch (/v7/finance/quote) ─────────────────────
   // Ein Request für alle Symbole. Falls der Endpunkt durch den Proxy
   // nicht erreichbar ist, kommen leere oder unvollständige Ergebnisse.
   try {
     qMap = await SWEngine.fetchBatchQuotes(syms);
+    console.info(`[Refresh] Batch-Quotes für ${syms.length} Symbole in ${Math.round(performance.now()-t0)}ms`);
   } catch (e) {
+    console.warn('[Refresh] Batch-Quotes fehlgeschlagen:', e.message);
     if (e.message === 'OFFLINE') {
       showErrBanner('Kein Internet', 'Verbindung prüfen.', 'error');
       rb.classList.remove('spin'); rb.disabled = false;
@@ -1927,12 +1930,15 @@ async function doRefresh() {
   const needFallback = syms.filter(sym => !qMap[sym] || qMap[sym].price == null);
 
   if (needFallback.length) {
+    console.info(`[Refresh] Fallback für ${needFallback.length} Symbole:`, needFallback.join(', '));
     await Promise.allSettled(
       needFallback.map(async sym => {
         try {
           const q = await _yahooChartQuote(sym);
           if (q) qMap[sym] = q;
-        } catch (_) {}
+        } catch (err) {
+          console.warn(`[Refresh] Fallback für ${sym} fehlgeschlagen:`, err.message);
+        }
       })
     );
   }
@@ -2034,7 +2040,10 @@ async function _yahooChartQuote(sym) {
 
   try {
     return await Promise.any(['query1', 'query2'].map(tryHost));
-  } catch (_) { return null; }
+  } catch (err) {
+    console.warn(`[ChartQuote] All hosts failed for ${sym}:`, err.errors?.map(e=>e.message).join(', ') ?? err.message);
+    return null;
+  }
 }
 
 function logoClick() {
@@ -2597,8 +2606,18 @@ function renderGrid() {
     g.innerHTML=`<div class="empty"><div class="ei"><i class="fa-solid fa-filter"></i></div><div class="et">Kein Treffer</div><div class="es">Kein Aktie entspricht dem gewählten Filter.</div></div>`;
     return;
   }
-  // Rebuild all cards (simple, no AOS re-trigger issues)
-  g.innerHTML=filtered.map((s,i)=>cardHTML(s,i)).join('');
+  // DocumentFragment statt innerHTML-join → ein Reflow statt N
+  // Beim ersten Render: volle Animation. Bei Refresh: Cards schnell ersetzen.
+  const frag = document.createDocumentFragment();
+  const temp = document.createElement('div');
+  filtered.forEach((s,i) => {
+    temp.innerHTML = cardHTML(s,i);
+    const card = temp.firstElementChild;
+    if (card) frag.appendChild(card);
+  });
+  g.textContent = ''; // schneller als innerHTML = ''
+  g.appendChild(frag);
+  // Event-Listener für Buttons
   g.querySelectorAll('.bdel').forEach(b=>b.addEventListener('click',()=>removeStock(b.dataset.id)));
   g.querySelectorAll('.bedt').forEach(b=>b.addEventListener('click',()=>openEdit(b.dataset.id)));
   g.querySelectorAll('.bsell').forEach(b=>b.addEventListener('click',()=>openSellModal(b.dataset.id)));
@@ -2621,6 +2640,7 @@ const removeStock = (id) => delStock(id);
 const addStock = () => submitStock();
 
 function cardHTML(s, idx) {
+  const esc = SWEngine.escapeHtml; // XSS-Schutz für dynamische Inhalte
   const hp=s.price!=null&&!s.fetchError;
   const avg=avgBuyPrice(s);
   const tot=activeShares(s);
@@ -2633,7 +2653,7 @@ function cardHTML(s, idx) {
   const gainV=posV!=null?posV-inv:null;
   const gc=gain==null?'':(gain>=0?'p':'n');
   const gs=gain!=null&&gain>=0?'+':'';
-  const cur=s.currency||'';
+  const cur=esc(s.currency||'');
   const f=(n,d=2)=>n!=null?n.toLocaleString('de-DE',{minimumFractionDigits:d,maximumFractionDigits:d}):'—';
   const fc=n=>n!=null?f(n)+(cur?' '+cur:''):'—';
   const pc=gain==null?'var(--tx)':hit?'var(--gld)':gain>=0?'var(--pos)':'var(--neg)';
@@ -2656,17 +2676,17 @@ function cardHTML(s, idx) {
   let dateStr='';
   if(latestPurchase?.buyDate){
     const dd=new Date(latestPurchase.buyDate+'T12:00:00');
-    dateStr=`<div class="ch-date"><i class="fa-solid fa-calendar-check"></i> ${dd.toLocaleDateString('de-DE')}${latestPurchase.buyTime?' &nbsp;<i class="fa-regular fa-clock"></i> '+latestPurchase.buyTime:''}</div>`;
+    dateStr=`<div class="ch-date"><i class="fa-solid fa-calendar-check"></i> ${dd.toLocaleDateString('de-DE')}${latestPurchase.buyTime?' &nbsp;<i class="fa-regular fa-clock"></i> '+esc(latestPurchase.buyTime):''}</div>`;
   }
   const sellCount = (s.sales||[]).length;
   const buyCountStr = `<div class="ch-buys"><i class="fa-solid fa-arrow-right-arrow-left"></i> ${s.purchases.length+sellCount} Trades (${s.purchases.length}K${sellCount?' / '+sellCount+'V':''}) · Ø ${f(avg)} ${cur}</div>`;
 
-  return `<div class="sc ${hit?'hit':''} ${s.fetchError?'err':''} ${fullySold?'sold':''}" style="${animStyle}" data-id="${s.id}" onclick="cardTap('${s.id}',this)" title="Klicken für Details">
+  return `<div class="sc ${hit?'hit':''} ${s.fetchError?'err':''} ${fullySold?'sold':''}" style="${animStyle}" data-id="${esc(s.id)}" onclick="cardTap('${esc(s.id)}',this)" title="Klicken für Details">
     <div class="sc-head">
       <div class="ch">
         <div class="ch-l">
-          <div class="ch-sym">${s.symbol}</div>
-          <div class="ch-name" title="${s.name||''}">${s.name||s.symbol}</div>
+          <div class="ch-sym">${esc(s.symbol)}</div>
+          <div class="ch-name" title="${esc(s.name||'')}">${esc(s.name||s.symbol)}</div>
           ${dateStr}${buyCountStr}
         </div>
         <div class="badges">${badge}</div>
@@ -2698,12 +2718,12 @@ function cardHTML(s, idx) {
       </div>
       <div class="cf">
         <div class="cft">
-          ${hp&&s.priceSource?`<span class="src-badge ${s.priceSource==='yahoo'?'src-yahoo':'src-finnhub'}"><i class="fa-solid fa-${s.priceSource==='yahoo'?'y':'bolt'}"></i>${s.priceSource==='yahoo'?'Yahoo Finance':'Finnhub'}${s.exchange?' · '+s.exchange:''}</span>`:'<span style="color:var(--mut);font-size:.65rem"><i class="fa-regular fa-clock"></i> Noch nicht geladen</span>'}
+          ${hp&&s.priceSource?`<span class="src-badge ${s.priceSource==='yahoo'?'src-yahoo':'src-finnhub'}"><i class="fa-solid fa-${s.priceSource==='yahoo'?'y':'bolt'}"></i>${s.priceSource==='yahoo'?'Yahoo Finance':'Finnhub'}${s.exchange?' · '+esc(s.exchange):''}</span>`:'<span style="color:var(--mut);font-size:.65rem"><i class="fa-regular fa-clock"></i> Noch nicht geladen</span>'}
         </div>
         <div class="cfb" onclick="event.stopPropagation()">
-          <button class="bic bedt" aria-label="Nachkauf" data-id="${s.id}" title="Nachkauf"><i class="fa-solid fa-cart-plus"></i></button>
-          <button class="bic bsell" aria-label="Verkaufen" data-id="${s.id}" title="Verkaufen"><i class="fa-solid fa-hand-holding-dollar"></i></button>
-          <button class="bic bdel" aria-label="Entfernen" data-id="${s.id}" title="Entfernen"><i class="fa-solid fa-trash-can"></i></button>
+          <button class="bic bedt" aria-label="Nachkauf" data-id="${esc(s.id)}" title="Nachkauf"><i class="fa-solid fa-cart-plus"></i></button>
+          <button class="bic bsell" aria-label="Verkaufen" data-id="${esc(s.id)}" title="Verkaufen"><i class="fa-solid fa-hand-holding-dollar"></i></button>
+          <button class="bic bdel" aria-label="Entfernen" data-id="${esc(s.id)}" title="Entfernen"><i class="fa-solid fa-trash-can"></i></button>
         </div>
       </div>
     </div>
@@ -2787,7 +2807,7 @@ function openEdit(id) {
 function openEditTarget(id) {
   const s=portfolio.find(x=>x.id===id); if(!s) return;
   editId=id; isRebuy=false;
-  document.getElementById('mTitle').innerHTML=`<i class="fa-solid fa-pen-to-square" style="color:var(--acc)"></i> ${s.symbol} bearbeiten`;
+  document.getElementById('mTitle').innerHTML=`<i class="fa-solid fa-pen-to-square" style="color:var(--acc)"></i> ${SWEngine.escapeHtml(s.symbol)} bearbeiten`;
   document.getElementById('mSub').textContent='Zielpreis anpassen. Für Nachkauf „Aktie hinzufügen" verwenden.';
   document.getElementById('subBtn').innerHTML='<i class="fa-solid fa-floppy-disk"></i> Änderung speichern';
   const banner=document.getElementById('rebuyBanner');
@@ -2870,7 +2890,7 @@ function delStock(id){
   if(!s) return;
   pendingDelId = id;
   document.getElementById('delTitle').textContent = `„${s.symbol}" entfernen?`;
-  document.getElementById('delMsg').innerHTML = `<strong>${s.symbol}${s.name&&s.name!==s.symbol?' — '+s.name:''}</strong> und alle <strong>${s.purchases.length} Kauf/Käufe</strong> werden unwiderruflich gelöscht.`;
+  document.getElementById('delMsg').innerHTML = `<strong>${SWEngine.escapeHtml(s.symbol)}${s.name&&s.name!==s.symbol?' — '+SWEngine.escapeHtml(s.name):''}</strong> und alle <strong>${s.purchases.length} Kauf/Käufe</strong> werden unwiderruflich gelöscht.`;
   document.getElementById('delOv').classList.add('open');
 }
 function closeDelModal(){ document.getElementById('delOv').classList.remove('open'); pendingDelId=null; }
@@ -3155,7 +3175,7 @@ async function fetchPurLivePrice(stockId, purId) {
             data.t.forEach((ts,i)=>{ const df=Math.abs(ts-tgt); if(df<md){md=df;ci=i;} });
             result = { price: data.c[ci] };
           }
-        } catch(_){}
+        } catch(e){ console.debug('[PopHist] Finnhub historical:', e.message); }
       }
       if(!result) {
         result = await fetchYahooHist(sym, date);
@@ -3184,10 +3204,10 @@ async function refreshFromPop(stockId) {
   const s = portfolio.find(x=>x.id===stockId); if(!s) return;
   let q = null;
   // Finnhub zuerst
-  try { q = await fhQ(s.symbol); } catch(_){}
+  try { q = await fhQ(s.symbol); } catch(e){ console.debug('[PopRefresh] Finnhub:', e.message); }
   // Yahoo als Fallback
   if(!q || q.c==null || (q.c===0 && (q.pc==null||q.pc===0))) {
-    try { q = await yahooLiveQuote(s.symbol); } catch(_){}
+    try { q = await yahooLiveQuote(s.symbol); } catch(e){ console.debug('[PopRefresh] Yahoo:', e.message); }
   }
   if(q && q.c!=null && !(q.c===0 && (q.pc==null||q.pc===0))) {
     const livePrice = (q.c===0 && q.pc>0) ? q.pc : q.c;
@@ -3212,7 +3232,7 @@ function openRebuyFromPop(stockId) {
   setTimeout(()=>{
     const s=portfolio.find(x=>x.id===stockId);
     if(!s) return;
-    document.getElementById('mTitle').innerHTML='<i class="fa-solid fa-plus-circle" style="color:var(--pos)"></i> Nachkauf — '+s.symbol;
+    document.getElementById('mTitle').innerHTML='<i class="fa-solid fa-plus-circle" style="color:var(--pos)"></i> Nachkauf — '+SWEngine.escapeHtml(s.symbol);
     document.getElementById('mSub').textContent='Neuen Kauf für '+s.symbol+' hinzufügen.';
     document.getElementById('fSym').value=s.symbol;
     document.getElementById('fSym').readOnly=true;
@@ -3264,7 +3284,7 @@ async function savePurchaseEdit(stockId, purchaseId) {
   const newTime = document.getElementById('pet_'+purchaseId)?.value;
   if(newTime !== undefined) p.buyTime = newTime;
   save();
-  try { if(typeof sbClient!=='undefined'&&sbClient&&sbUser) await pushSb(s); } catch(_){}
+  try { if(typeof sbClient!=='undefined'&&sbClient&&sbUser) await pushSb(s); } catch(e){ console.warn('[Sync] pushSb failed:', e.message); }
   renderGrid(); updateSummary();
   // Edit-Modus schließen, Popup neu aufbauen um neue Werte anzuzeigen
   closePop(); openPop(stockId);

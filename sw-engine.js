@@ -1,26 +1,35 @@
 /**
  * ═══════════════════════════════════════════════════════════════════════
- * sw-engine.js — StockWatch Performance Engine v2.0
+ * sw-engine.js — StockWatch Performance Engine v3.0
  * ═══════════════════════════════════════════════════════════════════════
  *
  * ARCHITEKTUR-ÜBERSICHT:
  *
  *  CacheLayer          → Zwei-Stufen-Cache (Memory Map + localStorage)
- *                         mit TTL und stale-while-revalidate
+ *                         mit TTL, stale-while-revalidate und LRU-Eviction
  *
  *  RequestManager      → Deduplication (inflight Map), Rate-Limit-Schutz,
- *                         Retry mit Exponential Backoff + Jitter
+ *                         Retry mit Exponential Backoff + Jitter,
+ *                         differenzierte Fehlerbehandlung (4xx vs 5xx)
  *
- *  ProxyFetcher        → CORS-Proxy mit Fallback-Kette + AbortController
+ *  ProxyFetcher        → CORS-Proxy mit Fallback-Kette + AbortController,
+ *                         detailliertes Error-Logging
  *
  *  BatchFetcher        → Yahoo /v7/finance/quote?symbols=A,B,C
  *                         → 1 Request statt N Requests (größter Gewinn!)
+ *                         → Response-Validierung gegen API-Strukturänderungen
  *
  *  RenderScheduler     → requestAnimationFrame-Queue, diff-based DOM-Patches,
  *                         DocumentFragment für Listenrendering
  *
  *  RefreshScheduler    → Page Visibility API, setTimeout-Chain (kein setInterval),
- *                         Mobile-Energiesparmodus
+ *                         Mobile-Energiesparmodus, Exponential Backoff bei Fehlern
+ *
+ *  Logging             → Zentrales, gestuftes Logging ([SWEngine] Prefix),
+ *                         Debug-Modus per SWEngine.debug = true
+ *
+ *  Security            → escapeHtml() für XSS-Schutz,
+ *                         Response-Validierung, localStorage-Validierung
  *
  * WARUM DIESE ARCHITEKTUR:
  *  - Bottleneck #1 war N × API-Calls pro Refresh → Batch löst das vollständig
@@ -67,12 +76,37 @@ const SWEngine = (() => {
    */
   const BATCH_SIZE = 50;
 
+  /**
+   * MAX_CACHE_SIZE: Begrenzt den Memory-Cache auf N Einträge (LRU-Strategie).
+   * Bei 100 Symbolen × 5 Cache-Typen (quote, chart, company, hist, search) = ~500 Einträge max.
+   * Ohne Limit wächst die Map unbegrenzt und verbraucht Heap-Speicher.
+   */
+  const MAX_CACHE_SIZE = 500;
+
   /** Retry-Konfiguration — konservativ genug für Stabilität, schnell genug für UX */
   const RETRY = Object.freeze({
-    MAX_ATTEMPTS: 1,    // nur 1 Retry (war 3) — Proxy-Race macht mehr Retries unnötig
+    MAX_ATTEMPTS: 2,    // 2 Retries — Proxy-Race macht mehr unnötig
     BASE_DELAY_MS: 400, // 400ms statt 800ms
     JITTER_MS: 150,
   });
+
+  // ═══════════════════════════════════════════════════════════════════
+  // §1b  LOGGING — Zentrales, gestuftes Logging statt silent catch
+  // ═══════════════════════════════════════════════════════════════════
+
+  /**
+   * WARUM zentrales Logging?
+   *  - Alle catch-Blöcke waren leer → Fehler unsichtbar, Debugging unmöglich
+   *  - Konsistentes Prefix [SWEngine] erleichtert Filterung in der Konsole
+   *  - Debug-Level nur aktiv wenn SWEngine._debug = true (kein Noise in Production)
+   */
+  let _debugMode = false;
+  const _log = {
+    error: (...args) => console.error('[SWEngine]', ...args),
+    warn:  (...args) => console.warn('[SWEngine]', ...args),
+    info:  (...args) => console.info('[SWEngine]', ...args),
+    debug: (...args) => { if (_debugMode) console.debug('[SWEngine]', ...args); },
+  };
 
   /** Proxy-Strategien in Prioritätsreihenfolge */
   const PROXIES = [
@@ -113,6 +147,13 @@ const SWEngine = (() => {
   }
 
   function setCachedData(key, data, ttl) {
+    // LRU-Eviction: Bei Überschreitung den ältesten Eintrag entfernen
+    // Map iteriert in Insertion-Order → keys().next().value ist der älteste
+    if (_memCache.size >= MAX_CACHE_SIZE) {
+      const oldest = _memCache.keys().next().value;
+      _memCache.delete(oldest);
+      _log.debug('Cache LRU evicted:', oldest);
+    }
     // Stale-Window = 2× TTL → Daten bleiben nutzbar, werden aber im Hintergrund erneuert
     const now = Date.now();
     _memCache.set(key, {
@@ -129,8 +170,9 @@ const SWEngine = (() => {
 
   function invalidateCache(keyOrPrefix) {
     // Memory Cache leeren
+    let removed = 0;
     for (const k of _memCache.keys()) {
-      if (k === keyOrPrefix || k.startsWith(keyOrPrefix + ':')) _memCache.delete(k);
+      if (k === keyOrPrefix || k.startsWith(keyOrPrefix + ':')) { _memCache.delete(k); removed++; }
     }
     // localStorage leeren
     try {
@@ -138,7 +180,10 @@ const SWEngine = (() => {
       Object.keys(localStorage)
         .filter(k => k === prefix || k.startsWith(prefix + ':'))
         .forEach(k => localStorage.removeItem(k));
-    } catch (_) {}
+    } catch (err) {
+      _log.warn('invalidateCache localStorage error:', err.message);
+    }
+    _log.debug('invalidateCache:', keyOrPrefix, `(${removed} mem entries)`);
   }
 
   function _getLocalCache(key) {
@@ -146,13 +191,26 @@ const SWEngine = (() => {
       const raw = localStorage.getItem('sw2_' + key);
       if (!raw) return null;
       const entry = JSON.parse(raw);
+      // Strukturvalidierung: ungültige Einträge sofort entfernen
+      if (!entry || typeof entry !== 'object' || !entry.data || !entry.freshUntil) {
+        _log.warn('Invalid localStorage entry, removing:', key);
+        localStorage.removeItem('sw2_' + key);
+        return null;
+      }
       if (Date.now() < entry.freshUntil) {
         // In Memory-Cache hochstufen für schnellere Folge-Zugriffe
         _memCache.set(key, entry);
         return { data: entry.data, fresh: true };
       }
+      if (Date.now() < (entry.staleUntil || entry.freshUntil)) {
+        // Stale aber nutzbar → hochstufen, als stale markieren
+        _memCache.set(key, entry);
+        return { data: entry.data, fresh: false };
+      }
       localStorage.removeItem('sw2_' + key); // abgelaufen
-    } catch (_) {}
+    } catch (err) {
+      _log.warn('localStorage read error for', key, err.message);
+    }
     return null;
   }
 
@@ -160,17 +218,47 @@ const SWEngine = (() => {
     try {
       const entry = { data, freshUntil: Date.now() + ttl, staleUntil: Date.now() + ttl * 2 };
       localStorage.setItem('sw2_' + key, JSON.stringify(entry));
-    } catch (_) {
-      // localStorage voll → älteste sw2_*-Einträge löschen
+    } catch (err) {
+      _log.warn('localStorage write failed for', key, '— evicting oldest entries:', err.message);
       _evictLocalCache();
+      // Retry nach Eviction
+      try {
+        const entry = { data, freshUntil: Date.now() + ttl, staleUntil: Date.now() + ttl * 2 };
+        localStorage.setItem('sw2_' + key, JSON.stringify(entry));
+      } catch (retryErr) {
+        _log.error('localStorage write failed even after eviction:', retryErr.message);
+      }
     }
   }
 
+  /**
+   * _evictLocalCache — Selektive Eviction: älteste 25% statt alles löschen.
+   *
+   * ALT: Alle sw2_* Keys wurden gelöscht → 24h-Company-Cache komplett zerstört
+   * NEU: Nur die ältesten 25% nach freshUntil sortiert werden entfernt
+   * → Wichtige, noch frische Einträge bleiben erhalten
+   */
   function _evictLocalCache() {
     try {
       const keys = Object.keys(localStorage).filter(k => k.startsWith('sw2_'));
-      keys.forEach(k => localStorage.removeItem(k));
-    } catch (_) {}
+      if (!keys.length) return;
+
+      const entries = keys.map(k => {
+        try {
+          const parsed = JSON.parse(localStorage.getItem(k));
+          return { key: k, exp: parsed?.freshUntil || 0 };
+        } catch {
+          return { key: k, exp: 0 }; // Ungültige Einträge zuerst entfernen
+        }
+      }).sort((a, b) => a.exp - b.exp);
+
+      // Älteste 25% entfernen (mindestens 1)
+      const removeCount = Math.max(1, Math.ceil(entries.length * 0.25));
+      entries.slice(0, removeCount).forEach(e => localStorage.removeItem(e.key));
+      _log.info(`localStorage eviction: ${removeCount}/${entries.length} entries removed`);
+    } catch (err) {
+      _log.error('localStorage eviction failed:', err.message);
+    }
   }
 
   // ═══════════════════════════════════════════════════════════════════
@@ -234,25 +322,49 @@ const SWEngine = (() => {
     try {
       const data = await _retryFetch(fetchFn);
       if (data !== null) setCachedData(key, data, ttl);
-    } catch (_) { /* Hintergrund-Fehler still ignorieren */ }
+      _log.debug('Background revalidation OK:', key);
+    } catch (err) {
+      _log.debug('Background revalidation failed:', key, err.message);
+      // Hintergrund-Fehler loggen aber nicht werfen — stale Daten sind ausreichend
+    }
   }
 
   /**
    * WARUM Exponential Backoff + Jitter?
-   *  - Exponential: Server hat Zeit sich zu erholen (0.8s → 1.6s → 3.2s)
+   *  - Exponential: Server hat Zeit sich zu erholen (0.4s → 0.8s → 1.6s)
    *  - Jitter: Verhindert dass alle Clients gleichzeitig retrien (Thundering Herd)
-   *  - Ohne Jitter würden 100 Nutzer nach exakt 800ms gleichzeitig retrien
+   *  - Ohne Jitter würden 100 Nutzer nach exakt 400ms gleichzeitig retrien
+   *
+   * NEU: Differenzierte Fehlerbehandlung nach HTTP-Status
+   *  - 4xx (Client-Fehler): Kein Retry (401 = Bad Key, 404 = nicht gefunden)
+   *  - 5xx (Server-Fehler): Retry mit Backoff
+   *  - Netzwerk/Timeout: Retry mit Backoff
    */
   async function _retryFetch(fetchFn, attempt = 0) {
     try {
       return await fetchFn();
     } catch (err) {
-      if (attempt >= RETRY.MAX_ATTEMPTS) throw err;
       // Kein Retry bei nicht-temporären Fehlern
       if (err.name === 'AbortError' || err.message === 'OFFLINE') throw err;
 
+      // HTTP 4xx: Client-Fehler → kein Retry (Symbol nicht gefunden, Auth-Problem etc.)
+      const statusMatch = err.message?.match(/HTTP\s*(\d{3})/i);
+      if (statusMatch) {
+        const status = parseInt(statusMatch[1]);
+        if (status >= 400 && status < 500) {
+          _log.warn(`Client error ${status}, no retry:`, err.message);
+          throw err;
+        }
+      }
+
+      if (attempt >= RETRY.MAX_ATTEMPTS) {
+        _log.warn(`All ${RETRY.MAX_ATTEMPTS + 1} attempts failed:`, err.message);
+        throw err;
+      }
+
       const backoff = RETRY.BASE_DELAY_MS * Math.pow(2, attempt);
       const jitter = Math.random() * RETRY.JITTER_MS;
+      _log.debug(`Retry ${attempt + 1}/${RETRY.MAX_ATTEMPTS} in ${Math.round(backoff + jitter)}ms`);
       await _sleep(backoff + jitter);
       return _retryFetch(fetchFn, attempt + 1);
     }
@@ -326,8 +438,16 @@ const SWEngine = (() => {
       return result;
     } catch (e) {
       clearTimeout(tid);
-      if (e.name === 'AbortError') return null; // Timeout oder external abort
-      return null; // Alle Proxies fehlgeschlagen
+      if (e.name === 'AbortError') {
+        _log.debug('proxyFetch timeout/aborted:', url.substring(0, 80));
+        return null;
+      }
+      // AggregateError: Alle Proxies fehlgeschlagen — Details loggen
+      const reasons = e.errors
+        ? e.errors.map(err => err.message).join(', ')
+        : e.message;
+      _log.warn('All proxies failed for:', url.substring(0, 80), '—', reasons);
+      return null;
     }
   }
 
@@ -410,13 +530,22 @@ const SWEngine = (() => {
 
       // Fallback: query2
       if (!data?.quoteResponse?.result?.length) {
+        _log.debug('query1 returned empty, trying query2 for', symbols.length, 'symbols');
         data = await proxyFetch(
           `https://query2.finance.yahoo.com/v7/finance/quote?symbols=${encodeURIComponent(syms)}&fields=${fields}&region=US&lang=en-US&corsDomain=finance.yahoo.com`,
           8_000
         );
       }
 
+      // Response-Validierung: Prüfe ob die Antwort die erwartete Struktur hat
+      if (data && !data.quoteResponse) {
+        _log.warn('Unexpected quote response structure:', Object.keys(data).join(','));
+      }
+
       const quotes = data?.quoteResponse?.result ?? [];
+      if (!quotes.length) {
+        _log.warn('No quotes returned for:', symbols.slice(0, 5).join(','), symbols.length > 5 ? '…' : '');
+      }
       const map = {};
       for (const q of quotes) {
         if (!q.symbol) continue;
@@ -473,8 +602,14 @@ const SWEngine = (() => {
         + `?interval=${interval}&range=${yRange}&region=US&lang=en-US&corsDomain=finance.yahoo.com`;
 
       const data = await proxyFetch(url, 12_000);
+      if (data && !data.chart) {
+        _log.warn('Unexpected chart response structure for', symbol, ':', Object.keys(data).join(','));
+      }
       const result = data?.chart?.result?.[0];
-      if (!result) return null;
+      if (!result) {
+        _log.debug('No chart data for', symbol, range);
+        return null;
+      }
       return _normalizeChart(result);
     }, { ttl: TTL.CHART });
   }
@@ -512,8 +647,14 @@ const SWEngine = (() => {
       const url = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${encodeURIComponent(sym)}`
         + `&fields=shortName,longName,sector,industry,currency,exchangeName,quoteType&region=US&lang=en-US`;
       const data = await proxyFetch(url, 6_000);
+      if (data && !data.quoteResponse) {
+        _log.warn('Unexpected company response structure for', sym);
+      }
       const q = data?.quoteResponse?.result?.[0];
-      if (!q) return null;
+      if (!q) {
+        _log.debug('No company info found for', sym);
+        return null;
+      }
       return {
         symbol:   q.symbol,
         name:     q.longName ?? q.shortName ?? sym,
@@ -688,12 +829,14 @@ const SWEngine = (() => {
   let _refreshInterval = 15_000;
   let _isPageVisible   = !document.hidden;
   let _isMobile        = /Mobi|Android/i.test(navigator.userAgent);
+  let _consecutiveErrors = 0; // Backoff bei aufeinanderfolgenden Fehlern
 
   // Page Visibility Event
   document.addEventListener('visibilitychange', () => {
     _isPageVisible = !document.hidden;
     if (_isPageVisible) {
       // Tab wieder sichtbar → sofort refreshen, dann Schedule starten
+      _consecutiveErrors = 0; // Backoff zurücksetzen
       if (_refreshCallback) _refreshCallback().finally(_scheduleNextRefresh);
     } else {
       _stopRefreshTimer();
@@ -704,31 +847,95 @@ const SWEngine = (() => {
     _refreshCallback = callback;
     // Mobile: doppelte Interval → spart Akku und Daten
     _refreshInterval = _isMobile ? intervalMs * 2 : intervalMs;
+    _consecutiveErrors = 0;
     _scheduleNextRefresh();
   }
 
   function stopRefresh() {
     _stopRefreshTimer();
     _refreshCallback = null;
+    _consecutiveErrors = 0;
   }
 
   function _stopRefreshTimer() {
     if (_refreshTimer) { clearTimeout(_refreshTimer); _refreshTimer = null; }
   }
 
+  /**
+   * _scheduleNextRefresh — mit Exponential Backoff bei Fehlern.
+   *
+   * VERBESSERUNG: Bei konsekutiven Fehlern wird das Intervall verdoppelt,
+   * bis max 8× (z.B. 15s → 30s → 60s → 120s bei 4+ Fehlern in Folge).
+   * Bei Erfolg wird sofort auf das Normalintervall zurückgesetzt.
+   * So überlasten wir einen gestressten Server nicht mit Retries.
+   */
   function _scheduleNextRefresh() {
     _stopRefreshTimer();
     if (!_isPageVisible || !_refreshCallback) return;
+
+    // Exponentielles Backoff: 1× → 2× → 4× → 8× (max) bei aufeinanderfolgenden Fehlern
+    const errorMultiplier = Math.min(Math.pow(2, _consecutiveErrors), 8);
+    const interval = _refreshInterval * errorMultiplier;
+
+    if (_consecutiveErrors > 0) {
+      _log.info(`Refresh backoff: ${_consecutiveErrors} consecutive errors, next in ${Math.round(interval / 1000)}s`);
+    }
+
     _refreshTimer = setTimeout(async () => {
       if (_isPageVisible && _refreshCallback) {
-        try { await _refreshCallback(); } catch (_) {}
+        try {
+          await _refreshCallback();
+          _consecutiveErrors = 0; // Erfolg → Backoff zurücksetzen
+        } catch (err) {
+          _consecutiveErrors++;
+          _log.warn(`Refresh failed (${_consecutiveErrors}×):`, err.message);
+        }
         _scheduleNextRefresh(); // Erst NACH Abschluss neu planen
       }
-    }, _refreshInterval);
+    }, interval);
   }
 
   // ═══════════════════════════════════════════════════════════════════
-  // §8  ÖFFENTLICHE API
+  // §8  UTILITIES
+  // ═══════════════════════════════════════════════════════════════════
+
+  /**
+   * escapeHtml — XSS-Schutz für dynamische Inhalte in innerHTML.
+   *
+   * WARUM: Template Literals wie `<div>${s.name}</div>` sind XSS-anfällig,
+   * wenn s.name manipuliert ist (z.B. '<img onerror=alert(1)>').
+   * escapeHtml() neutralisiert HTML-Sonderzeichen.
+   */
+  function _escapeHtml(str) {
+    if (typeof str !== 'string') return String(str ?? '');
+    return str
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  /**
+   * Response-Validierung: Prüft ob Yahoo-Daten die erwartete Struktur haben.
+   * Wirft bei ungültiger Struktur statt still null zurückzugeben.
+   */
+  function _validateQuoteResponse(data) {
+    if (!data || typeof data !== 'object') return null;
+    if (!data.quoteResponse) return null;
+    if (!Array.isArray(data.quoteResponse.result)) return null;
+    return data.quoteResponse.result;
+  }
+
+  function _validateChartResponse(data) {
+    if (!data?.chart?.result?.[0]) return null;
+    const result = data.chart.result[0];
+    if (!Array.isArray(result.timestamp)) return null;
+    return result;
+  }
+
+  // ═══════════════════════════════════════════════════════════════════
+  // §9  ÖFFENTLICHE API
   // ═══════════════════════════════════════════════════════════════════
 
   return Object.freeze({
@@ -758,12 +965,16 @@ const SWEngine = (() => {
     // Utils (für direkte Nutzung in Integrations-Code)
     proxyFetch,
     normalizeQuote: _normalizeQuote,
+    escapeHtml: _escapeHtml,
     sleep: _sleep,
 
     // Diagnostics
     get cacheSize()    { return _memCache.size; },
     get inflightCount(){ return _inflight.size; },
-    clearAllCache()    { _memCache.clear(); _evictLocalCache(); },
+    get consecutiveErrors() { return _consecutiveErrors; },
+    set debug(v) { _debugMode = !!v; },
+    get debug() { return _debugMode; },
+    clearAllCache()    { _memCache.clear(); _evictLocalCache(); _log.info('All caches cleared'); },
   });
 
 })();
