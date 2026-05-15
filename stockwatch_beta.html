@@ -141,54 +141,97 @@ html{-webkit-text-size-adjust:100%}
   .sw-nav-btn i{font-size:.85rem}
 }
 
-/* ═══ MOBILE BOTTOM TAB BAR ═════════════════════════════════════════
- * ≤768px: sw-nav wird zur fixen Bottom-Leiste (wie iOS Tab Bar).
- * Header wird vereinfacht: nur Logo + Uhr + Settings.
- * Sekundäre Items (Markt-Badge, Sync, Auto-Refresh) → nur in Einstellungen.
- * Safe-area-inset für iPhone-Notch/Home-Indicator.
+/* ═══ MOBILE HEADER — Statischer Zwei-Zeilen-Header ═════════════════
+ * ≤768px: Header wird NICHT mehr fixed, sondern statisch.
+ *  Zeile 1: Logo-Icon  ·  Uhr  ·  Settings-Zahnrad
+ *  Zeile 2: Drei Nav-Tabs gleichmäßig verteilt (volle Breite)
+ *
+ * WARUM statisch statt fixed:
+ *  - Mehr sichtbarer Content auf kleinen Displays
+ *  - Kein verdeckter Inhalt unter dem Header
+ *  - Keine padding-top-Kompensation nötig
+ *  - Bessere UX beim Scrollen langer Portfolios
  * ═════════════════════════════════════════════════════════════════ */
 @media(max-width:768px){
-  /* ── Bottom Tab Bar ─────────────────────────────────────────── */
+  /* ── Header: statisch, zwei Zeilen via flex-wrap ────────────── */
+  header{
+    position:static !important;
+    height:auto !important;
+    padding:10px 14px 0 !important;
+    gap:8px;
+    flex-wrap:wrap
+  }
+
+  /* ── Zeile 1: Logo + Uhr + Settings ─────────────────────────── */
+  .logo span{display:none}
+  .hdr-gap{flex:1;min-width:0}
+  .hdr-r{gap:8px;flex-wrap:wrap;width:100%}
+
+  /* Sekundäre Desktop-Items ausblenden */
+  .ar-toggle,.sync-badge,.mkt-badge{display:none !important}
+
+  /* Settings-Zahnrad: immer sichtbar auf Mobile */
+  .hbtn{
+    padding:8px 10px;min-height:0;border-radius:8px;
+    display:flex !important; /* .hidden überschreiben für Mobile */
+    order:2
+  }
+  .hbtn span{display:none}
+
+  /* ── Zeile 2: Nav-Tabs volle Breite ─────────────────────────── */
   .sw-nav{
-    position:fixed !important;bottom:0;left:0;right:0;
-    z-index:300;border-radius:0;border:none;
-    border-top:1px solid var(--cb);
-    background:var(--hdr);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
-    padding:4px 0 calc(4px + env(safe-area-inset-bottom,0px));
-    justify-content:space-around;gap:0;
-    box-shadow:0 -4px 20px rgba(0,0,0,.15)
+    order:10; /* nach unten in die zweite Zeile */
+    width:100%;
+    display:flex !important;
+    gap:0;
+    background:var(--sur);
+    border:1px solid var(--cb);
+    border-radius:12px;
+    padding:3px;
+    margin-top:2px;
+    margin-bottom:8px
   }
   .sw-nav-btn{
-    flex:1;flex-direction:column;justify-content:center;align-items:center;
-    border-radius:0;padding:5px 4px 3px;gap:2px;font-size:.58rem;
-    background:transparent !important;box-shadow:none !important;color:var(--sub)
+    flex:1;
+    justify-content:center;
+    padding:9px 4px;
+    gap:6px;
+    border-radius:9px;
+    font-size:.78rem;
+    background:transparent !important;
+    box-shadow:none !important;
+    color:var(--sub);
+    min-height:40px /* Touch-freundlich */
   }
-  .sw-nav-btn span{display:block !important;font-size:.58rem;font-weight:600}
-  .sw-nav-btn i{font-size:1rem;transform:none !important}
-  .sw-nav-btn:hover{background:transparent !important}
-  .sw-nav-btn:active{transform:scale(.92)}
-  /* Aktiver Tab: Farbe + oberer Indikator */
+  .sw-nav-btn span{
+    display:inline !important;
+    font-size:.73rem;
+    font-weight:600
+  }
+  .sw-nav-btn i{font-size:.9rem;transform:none !important}
+  .sw-nav-btn:active{transform:scale(.96)}
+
+  /* Aktiver Tab: Hintergrund-Pille */
   .sw-nav-btn.active{
-    color:var(--page-c) !important;background:transparent !important;
-    box-shadow:none !important
+    background:var(--page-dim) !important;
+    color:var(--page-c) !important;
+    box-shadow:0 0 0 1px var(--page-c),0 2px 10px var(--page-glow) !important
   }
+  .sw-nav-btn.active i{transform:none !important}
+  /* Aktiver Indikator: oberhalb statt unterhalb */
   .sw-nav-btn.active::after{
-    bottom:auto;top:0;left:50%;transform:translateX(-50%);
-    width:40%;height:2.5px;border-radius:0 0 2px 2px
+    bottom:auto;top:-3px;left:50%;transform:translateX(-50%);
+    width:40%;height:2.5px;border-radius:0 0 3px 3px
   }
 
-  /* ── Vereinfachter Header ───────────────────────────────────── */
-  header{height:52px;padding:0 14px;gap:8px}
-  .hdr-r{gap:6px}
-  .hdr-gap{flex:1}
-  /* Sekundäre Items ausblenden */
-  .ar-toggle,.sync-badge,.mkt-badge{display:none !important}
-  .logo span{display:none}
-  .hbtn span{display:none}
-  .hbtn{padding:8px 10px;min-height:0;border-radius:8px}
+  /* ── Content-Padding: kein padding-top mehr nötig ───────────── */
+  #app{padding-top:12px !important}
 
-  /* ── Body-Padding für Bottom-Bar ────────────────────────────── */
-  body{padding-bottom:calc(52px + env(safe-area-inset-bottom,0px)) !important}
+  /* ── Overlays: volle Höhe ohne Header-Offset ────────────────── */
+  .screen{top:0 !important}
+
+  /* ── Kein body-padding-bottom ────────────────────────────────── */
+  body{padding-bottom:0 !important}
 }
 
 /* ═══ PAGE ACCENT OVERRIDES ══════════════════════════════════════════
@@ -664,7 +707,7 @@ footer{
 @media(max-width:1100px){.sbar{grid-template-columns:repeat(3,1fr)}}
 
 @media(max-width:700px){
-  #app{padding:68px 12px 0}
+  #app{padding-left:12px;padding-right:12px}
   .sbar{grid-template-columns:repeat(2,1fr)}
   #grid{grid-template-columns:1fr}
   .fr{grid-template-columns:1fr}
