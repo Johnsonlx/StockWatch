@@ -1910,8 +1910,15 @@ function showApp() {
   document.getElementById('userBtn').classList.remove('hidden');
   document.getElementById('fDate').valueAsDate = new Date();
   updateSyncBadge();
+
+  // FX-Kurse laden BEVOR die Summary berechnet wird
+  // Aus localStorage sofort verfügbar, danach async aktualisieren
+  loadFxRates().then(() => {
+    updateSummary();      // Nochmal mit frischen Kursen
+    renderWatchlist();    // Karten mit EUR-Hints neu rendern
+  });
+
   if(portfolio.length && portfolio.every(s=>s.price==null)){
-    // Show skeletons while prices load for the first time
     showSkeletons(Math.min(portfolio.length, 6));
     updateSummary();
   } else {
