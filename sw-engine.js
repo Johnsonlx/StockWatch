@@ -766,7 +766,26 @@ const SWEngine = (() => {
   }
 
   // ═══════════════════════════════════════════════════════════════════
-  // §8  ÖFFENTLICHE API
+  // ═══════════════════════════════════════════════════════════════════
+  // §8  UTILITIES
+  // ═══════════════════════════════════════════════════════════════════
+
+  /**
+   * escapeHtml — XSS-Schutz für dynamische Inhalte in innerHTML.
+   * Neutralisiert HTML-Sonderzeichen: & < > " '
+   */
+  function _escapeHtml(str) {
+    if (typeof str !== 'string') return String(str ?? '');
+    return str
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  // ═══════════════════════════════════════════════════════════════════
+  // §9  ÖFFENTLICHE API
   // ═══════════════════════════════════════════════════════════════════
 
   return Object.freeze({
@@ -793,15 +812,16 @@ const SWEngine = (() => {
     startRefresh,
     stopRefresh,
 
-    // Utils (für direkte Nutzung in Integrations-Code)
+    // Utils
     proxyFetch,
     normalizeQuote: _normalizeQuote,
+    escapeHtml: _escapeHtml,
     sleep: _sleep,
 
     // Diagnostics
     get cacheSize()    { return _memCache.size; },
     get inflightCount(){ return _inflight.size; },
-    clearAllCache()    { _memCache.clear(); _evictLocalCache(); },
+    clearAllCache()    { _memCache.clear(); _evictLocalCache(); _log.info('All caches cleared'); },
   });
 
 })();
