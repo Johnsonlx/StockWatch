@@ -409,6 +409,7 @@ header{position:fixed;top:0;left:0;right:0;z-index:300;background:var(--hdr);bac
 .src-bar-item{display:flex;align-items:center;gap:4px}
 
 .prow{display:flex;align-items:baseline;gap:8px;margin-bottom:4px;flex-wrap:wrap}
+.fx-hint{font-size:.62rem;color:var(--mut);font-family:'JetBrains Mono',monospace;letter-spacing:-.01em;opacity:.75;white-space:nowrap}
 .pmain{font-size:1.65rem;font-weight:700;font-family:'JetBrains Mono',monospace;line-height:1;transition:color .3s}
 .pcur{font-size:.75rem;color:var(--sub);font-family:'JetBrains Mono',monospace}
 .pday{font-size:.74rem;font-family:'JetBrains Mono',monospace;padding:2px 6px;border-radius:5px;font-weight:600}
@@ -1684,6 +1685,59 @@ let sbClient   = null, sbUser = null;
 let editId     = null, isRebuy = false;
 let loopTimer  = null, authMode = 'login';
 let firstRender = true; // prevent AOS double-anim on refresh
+
+// ─── MULTI-CURRENCY SUPPORT ─────────────────────────────────────────
+// Benutzerwährung: alle Summenwerte werden in diese Währung konvertiert
+const BASE_CURRENCY = 'EUR';
+const BASE_SYMBOL   = '€';
+// Aktuelle Wechselkurse: { USD: 0.92, GBP: 1.17, CHF: 0.96, ... }
+// → 100 USD × fxRates.USD = ~92 EUR
+let fxRates = JSON.parse(localStorage.getItem('sw_fx') || '{}');
+let fxLastUpdate = parseInt(localStorage.getItem('sw_fx_ts') || '0');
+
+/**
+ * toBase — Konvertiert einen Betrag von der Asset-Währung in die Benutzerwährung.
+ * Wenn kein Kurs vorhanden: Gibt den Originalbetrag zurück (besser ungefähr als gar nicht).
+ */
+function toBase(amount, fromCurrency) {
+  if (!amount || !fromCurrency) return amount || 0;
+  const from = fromCurrency.toUpperCase();
+  if (from === BASE_CURRENCY) return amount;
+  // GBp (Pence) → EUR: erst in GBP umrechnen, dann in EUR
+  if (fromCurrency === 'GBp' && fxRates['GBp']) return amount * fxRates['GBp'];
+  const rate = fxRates[from];
+  if (rate) return amount * rate;
+  // Fallback: 1:1 (nicht ideal, aber besser als 0)
+  return amount;
+}
+
+/** Lädt aktuelle FX-Kurse und speichert sie */
+async function loadFxRates() {
+  try {
+    // Nur neu laden wenn älter als 15 Minuten
+    if (Date.now() - fxLastUpdate < 15 * 60_000 && Object.keys(fxRates).length > 1) return;
+    // Welche Währungen brauchen wir? Alle im Portfolio vorhandenen
+    const needed = [...new Set(portfolio.map(s => s.currency).filter(c => c && c.toUpperCase() !== BASE_CURRENCY))];
+    if (!needed.length) return;
+    const rates = await SWEngine.fetchFxRates(BASE_CURRENCY, needed);
+    if (rates && Object.keys(rates).length > 1) {
+      fxRates = rates;
+      fxLastUpdate = Date.now();
+      localStorage.setItem('sw_fx', JSON.stringify(rates));
+      localStorage.setItem('sw_fx_ts', String(fxLastUpdate));
+      console.info('[FX] Kurse geladen:', Object.entries(rates).map(([k,v])=>`${k}=${v.toFixed(4)}`).join(', '));
+    }
+  } catch (err) {
+    console.warn('[FX] Kurse laden fehlgeschlagen:', err.message);
+  }
+}
+
+/** Formatiert einen Betrag mit Währungssymbol */
+function fmtCur(amount, currency) {
+  if (amount == null) return '—';
+  const s = amount.toLocaleString('de-DE', {minimumFractionDigits:2, maximumFractionDigits:2});
+  return currency ? s + ' ' + currency : s;
+}
 let autoRefreshPaused = false; // user can pause auto-refresh
 
 // ─── THEME ──────────────────────────────────────────────────────────
@@ -2351,6 +2405,9 @@ async function doRefresh() {
     );
   }
 
+  // ── Stufe 4: Wechselkurse laden (für Multi-Currency Summary) ────
+  await loadFxRates();
+
   save(); renderWatchlist(); updateSummary();
   SWEngine.patchText(
     document.getElementById('updLbl'),
@@ -2759,6 +2816,8 @@ function executeSell() {
     avgBuyPrice: avgAtSale,      // Snapshot für historische Anzeige
     realizedPL:  realizedPLVal,  // FIFO-korrekt (nicht avg-basiert)
     adjustments,                 // Für korrektes Undo
+    fxRateAtSell: s.currency && s.currency.toUpperCase() !== BASE_CURRENCY
+      ? (fxRates[s.currency.toUpperCase()] || null) : null,
   };
   s.sales.push(sale);
 
@@ -3011,6 +3070,16 @@ function cardHTML(s, idx) {
   const fc=n=>n!=null?f(n)+(cur?' '+cur:''):'—';
   const pc=gain==null?'var(--tx)':hit?'var(--gld)':gain>=0?'var(--pos)':'var(--neg)';
 
+  // Multi-Currency: EUR-Äquivalent für Nicht-EUR-Assets
+  const isForeign = cur && cur.toUpperCase() !== BASE_CURRENCY;
+  const fxOk = isForeign && fxRates[cur.toUpperCase()];
+  // Zeige "≈ X €" für Beträge in Fremdwährung
+  const eurHint = (val) => {
+    if (!fxOk || val == null) return '';
+    const eur = toBase(val, cur);
+    return `<div class="fx-hint">≈ ${f(eur)} ${BASE_SYMBOL}</div>`;
+  };
+
   // animation delay — only on first render, not after refresh
   const del = firstRender ? Math.min(idx*60,400) : 0;
   const animStyle = `animation-delay:${del}ms`;
@@ -3047,6 +3116,7 @@ function cardHTML(s, idx) {
       <div class="prow">
         <div class="pmain" style="color:${pc}">${hp?f(s.price):'—'}</div>
         <div class="pcur">${cur}</div>${dayH}
+        ${hp&&isForeign?eurHint(s.price):''}
       </div>
       <div class="sc-expand-hint"><i class="fa-solid fa-chevron-down"></i></div>
     </div>
@@ -3054,9 +3124,9 @@ function cardHTML(s, idx) {
       ${s.fetchError?`<div class="errmsg"><i class="fa-solid fa-circle-exclamation"></i> Kurs nicht abrufbar. WKN ≠ Ticker! DAX-Beispiele: <b>SAP.DE · BMW.DE · SIE.DE</b> &nbsp;|&nbsp; US: <b>AAPL · NOW</b>. <a href="https://finance.yahoo.com/lookup/" target="_blank" style="color:var(--acc)">Ticker nachschlagen</a></div>`:''}
       <div class="dvd"></div>
       <div class="grow">
-        <div class="gi"><div class="gilbl"><i class="fa-solid fa-tag"></i> Ø Einkauf</div><div class="gival va">${fc(avg)}</div></div>
-        <div class="gi"><div class="gilbl"><i class="fa-solid fa-bullseye"></i> Zielpreis</div><div class="gival">${fc(s.targetPrice)}</div></div>
-        <div class="gi"><div class="gilbl"><i class="fa-solid fa-coins"></i> Investiert</div><div class="gival">${fc(inv)}</div></div>
+        <div class="gi"><div class="gilbl"><i class="fa-solid fa-tag"></i> Ø Einkauf</div><div class="gival va">${fc(avg)}${eurHint(avg)}</div></div>
+        <div class="gi"><div class="gilbl"><i class="fa-solid fa-bullseye"></i> Zielpreis</div><div class="gival">${fc(s.targetPrice)}${eurHint(s.targetPrice)}</div></div>
+        <div class="gi"><div class="gilbl"><i class="fa-solid fa-coins"></i> Investiert</div><div class="gival">${fc(inv)}${eurHint(inv)}</div></div>
         <div class="gi"><div class="gilbl"><i class="fa-solid fa-cubes"></i> Stücke</div><div class="gival">${f(tot,0)}</div></div>
       </div>
       <div class="progw">
@@ -3065,9 +3135,9 @@ function cardHTML(s, idx) {
       </div>
       <div class="grow">
         <div class="gi"><div class="gilbl"><i class="fa-solid fa-chart-line"></i> Gewinn %</div><div class="gival ${hit?'gg':'g'+gc}">${gain!=null?gs+f(gain)+'%':'—'}</div></div>
-        <div class="gi"><div class="gilbl"><i class="fa-solid fa-sack-dollar"></i> Gewinn</div><div class="gival ${hit?'gg':'g'+gc}">${gainV!=null?(gainV>=0?'+':'')+fc(gainV):'—'}</div></div>
+        <div class="gi"><div class="gilbl"><i class="fa-solid fa-sack-dollar"></i> Gewinn</div><div class="gival ${hit?'gg':'g'+gc}">${gainV!=null?(gainV>=0?'+':'')+fc(gainV):'—'}${eurHint(gainV)}</div></div>
         <div class="gi"><div class="gilbl"><i class="fa-solid fa-flag-checkered"></i> Zum Ziel</div><div class="gival ${hit?'gg':''}">${hit?'<i class="fa-solid fa-check"></i> Erreicht':toTgt!=null?f(toTgt)+'%':'—'}</div></div>
-        <div class="gi"><div class="gilbl"><i class="fa-solid fa-wallet"></i> Aktueller Wert</div><div class="gival gs">${posV!=null?fc(posV):'—'}</div></div>
+        <div class="gi"><div class="gilbl"><i class="fa-solid fa-wallet"></i> Aktueller Wert</div><div class="gival gs">${posV!=null?fc(posV):'—'}${eurHint(posV)}</div></div>
       </div>
       <div class="cf">
         <div class="cft">
@@ -3086,33 +3156,34 @@ function cardHTML(s, idx) {
 // ─── SUMMARY ─────────────────────────────────────────────────────────
 function updateSummary() {
   const n=portfolio.length;
-  const inv=portfolio.reduce((a,s)=>a+activeInvested(s),0);
+  // Konvertiere alle Werte in die Benutzerwährung (EUR) bevor summiert wird
+  const inv=portfolio.reduce((a,s)=>a+toBase(activeInvested(s), s.currency),0);
   const hasPrices=portfolio.filter(s=>s.price);
-  const cur=hasPrices.reduce((a,s)=>a+s.price*activeShares(s),0);
-  const invF=hasPrices.reduce((a,s)=>a+activeInvested(s),0);
+  const cur=hasPrices.reduce((a,s)=>a+toBase(s.price*activeShares(s), s.currency),0);
+  const invF=hasPrices.reduce((a,s)=>a+toBase(activeInvested(s), s.currency),0);
   const gain=cur-invF;
   const tgts=portfolio.filter(s=>s.price&&s.price>=s.targetPrice&&activeShares(s)>0).length;
-  // Realisiert G/V: from active portfolio sales + from trade log (removed stocks only)
-  const activeRpl=totalRealizedPL();
+  // Realisiert G/V: Verkäufe ebenfalls konvertieren
+  const activeRpl=portfolio.reduce((a,s)=>a+toBase(realizedPL(s), s.currency),0);
   const activeSaleIds=new Set();
   portfolio.forEach(s=>(s.sales||[]).forEach(sl=>activeSaleIds.add(sl.id)));
   const logOnlySells=getTradeLog().filter(t=>t.type==='sell'&&!activeSaleIds.has(t.id));
-  const closedRpl=logOnlySells.reduce((a,t)=>a+(t.realizedPL||0),0);
+  const closedRpl=logOnlySells.reduce((a,t)=>a+toBase(t.realizedPL||0, t.currency||BASE_CURRENCY),0);
   const rpl=activeRpl+closedRpl;
-  // Trades: active buys+sells + removed sells from log
+  // Trades
   const activeTrades=tradeCount();
   const trades=activeTrades + logOnlySells.length;
   const f2=n=>n.toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2});
   document.getElementById('sN').textContent=n;
-  document.getElementById('sI').textContent=f2(inv)+' €';
-  document.getElementById('sC').textContent=cur>0?f2(cur)+' €':'—';
+  document.getElementById('sI').textContent=f2(inv)+' '+BASE_SYMBOL;
+  document.getElementById('sC').textContent=cur>0?f2(cur)+' '+BASE_SYMBOL:'—';
   document.getElementById('sT').textContent=tgts;
   document.getElementById('sTr').textContent=trades;
   const ge=document.getElementById('sG');
-  if(cur>0){ge.textContent=(gain>=0?'+':'')+f2(gain)+' €';ge.className='scval '+(gain>=0?'vp':'vn');}
+  if(cur>0){ge.textContent=(gain>=0?'+':'')+f2(gain)+' '+BASE_SYMBOL;ge.className='scval '+(gain>=0?'vp':'vn');}
   else{ge.textContent='—';ge.className='scval vt';}
   const re=document.getElementById('sR');
-  if(rpl!==0||getTradeLog().length||portfolio.some(s=>(s.sales||[]).length)){re.textContent=(rpl>=0?'+':'')+f2(rpl)+' €';re.className='scval '+(rpl>=0?'vp':'vn');}
+  if(rpl!==0||getTradeLog().length||portfolio.some(s=>(s.sales||[]).length)){re.textContent=(rpl>=0?'+':'')+f2(rpl)+' '+BASE_SYMBOL;re.className='scval '+(rpl>=0?'vp':'vn');}
   else{re.textContent='—';re.className='scval vt';}
 }
 
@@ -3214,7 +3285,9 @@ async function submitStock() {
     // Re-buy: add purchase to existing position, update target
     stock=portfolio.find(s=>s.symbol===sym);
     if(stock){
-      stock.purchases.push({id:Date.now().toString(),buyPrice:buy,shares,buyDate:date,buyTime:time});
+      const fxAtBuy = stock.currency && stock.currency.toUpperCase() !== BASE_CURRENCY
+        ? (fxRates[stock.currency.toUpperCase()] || null) : null;
+      stock.purchases.push({id:Date.now().toString(),buyPrice:buy,shares,buyDate:date,buyTime:time,fxRateAtBuy:fxAtBuy});
       stock.targetPrice=tgt; // use new target (user can change it)
       notified.delete(stock.id);
     }
@@ -3223,7 +3296,7 @@ async function submitStock() {
     stock={
       id:Date.now().toString(), symbol:sym, targetPrice:tgt,
       name:sym, currency:'', nameFetched:false,
-      purchases:[{id:Date.now().toString()+'p',buyPrice:buy,shares,buyDate:date,buyTime:time}],
+      purchases:[{id:Date.now().toString()+'p',buyPrice:buy,shares,buyDate:date,buyTime:time,fxRateAtBuy:null}],
       price:null, fetchError:false, lastUpd:null
     };
     portfolio.push(stock);
@@ -3708,13 +3781,15 @@ document.addEventListener('keydown',e=>{
 // Apply smart search autocomplete + duplicate check to symbol input
 const _fSymInput = document.getElementById('fSym');
 _fSymInput.addEventListener('input', function(){
-  const val = this.value.trim();
-  // Uppercase nur wenn reiner ASCII-Ticker (keine Wörter mit Kleinbuchstaben)
-  if (val.length <= 8 && /^[A-Za-z0-9.\-]+$/.test(val)) {
-    this.value = val.toUpperCase();
+  const raw = this.value;
+  const val = raw.trim();
+  // Uppercase nur wenn reiner ASCII-Ticker OHNE Leerzeichen (z.B. "AAPL", "SAP.DE")
+  // Nicht überschreiben wenn der Nutzer gerade einen Namen tippt (enthält Leerzeichen)
+  if (val.length <= 8 && val.length > 0 && /^[A-Za-z0-9.\-]+$/.test(val) && !raw.includes(' ')) {
+    this.value = raw.toUpperCase();
   }
   debouncedCheckDuplicate();
-  // Smart Search: Autocomplete-Vorschläge laden
+  // Smart Search: Autocomplete-Vorschläge laden (mit getrimtem Wert)
   _swAcDoSearch(val, 'fSymDrop');
 });
 // Keyboard-Navigation für Autocomplete im Modal

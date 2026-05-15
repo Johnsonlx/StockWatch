@@ -58,6 +58,7 @@ const SWEngine = (() => {
     COMPANY: 24 * 3_600_000, // 24 Stunden
     SEARCH:  10 * 60_000,    // 10 Minuten
     HIST:    60 * 60_000,    // 1 Stunde (historische Kurse)
+    FX:      30 * 60_000,    // 30 Minuten (Wechselkurse)
   });
 
   /**
@@ -631,6 +632,64 @@ const SWEngine = (() => {
   }
 
   // ═══════════════════════════════════════════════════════════════════
+  // §5c  FX RATES — Wechselkurse für Multi-Currency-Support
+  // ═══════════════════════════════════════════════════════════════════
+
+  /**
+   * fetchFxRates(baseCurrency, currencies) → { USD: 1.08, GBP: 0.86, CHF: 0.96, ... }
+   *
+   * Holt aktuelle Wechselkurse über Yahoo Finance FX-Paare (z.B. USDEUR=X).
+   * Gibt ein Objekt zurück: { fromCurrency: rate } wobei rate × Betrag = baseCurrency-Wert.
+   *
+   * Beispiel: baseCurrency='EUR', currencies=['USD','GBP']
+   *   → fetched USDEUR=X und GBPEUR=X
+   *   → { USD: 0.92, GBP: 1.17, EUR: 1 }
+   *   → 100 USD × 0.92 = 92 EUR
+   */
+  async function fetchFxRates(baseCurrency = 'EUR', currencies = ['USD','GBP','CHF','GBp','JPY','CAD','AUD','SEK','NOK','DKK','HKD','SGD','CNY','KRW','TWD','INR','BRL','ZAR']) {
+    const base = baseCurrency.toUpperCase();
+    // Filtern: base→base ist immer 1, GBp (Pence) wird separat behandelt
+    const pairs = currencies
+      .filter(c => c.toUpperCase() !== base && c !== 'GBp')
+      .map(c => c.toUpperCase());
+
+    const cacheKey = `fx:${base}`;
+
+    return managedFetch(cacheKey, async () => {
+      const rates = { [base]: 1 };
+
+      if (!pairs.length) return rates;
+
+      // Yahoo FX Pairs: USDEUR=X, GBPEUR=X, etc.
+      const symbols = pairs.map(c => `${c}${base}=X`);
+      const syms = symbols.join(',');
+      const fields = 'symbol,regularMarketPrice,shortName,currency';
+      const url = `https://query2.finance.yahoo.com/v7/finance/quote?symbols=${encodeURIComponent(syms)}&fields=${fields}`;
+
+      const data = await proxyFetch(url, 8_000);
+      const quotes = data?.quoteResponse?.result ?? [];
+
+      for (const q of quotes) {
+        if (q.symbol && q.regularMarketPrice) {
+          // USDEUR=X → from = USD
+          const from = q.symbol.replace(`${base}=X`, '');
+          if (from && from !== q.symbol) {
+            rates[from] = q.regularMarketPrice;
+          }
+        }
+      }
+
+      // GBp (Britische Pence) → GBP / 100
+      if (rates['GBP']) {
+        rates['GBp'] = rates['GBP'] / 100;
+      }
+
+      _log.debug('FX rates for', base, ':', JSON.stringify(rates));
+      return rates;
+    }, { ttl: TTL.FX });
+  }
+
+  // ═══════════════════════════════════════════════════════════════════
   // §6  RENDER SCHEDULER — RAF-Batching + Diff-basierte DOM-Updates
   // ═══════════════════════════════════════════════════════════════════
 
@@ -806,6 +865,7 @@ const SWEngine = (() => {
     fetchCompanyInfo,
     fetchHistoricalPrice,
     fetchSearch,
+    fetchFxRates,
 
     // Cache-API
     getCachedData,
