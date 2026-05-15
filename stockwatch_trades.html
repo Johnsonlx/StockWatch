@@ -30,6 +30,37 @@
 .sw-nav-btn.active::after{content:'';position:absolute;bottom:-4px;left:50%;transform:translateX(-50%);width:60%;height:2px;border-radius:2px;background:var(--page-c);box-shadow:0 0 6px var(--page-glow)}
 @media(max-width:540px){.sw-nav-btn span{display:none}.sw-nav-btn{padding:7px 10px}.sw-nav-btn i{font-size:.85rem}}
 
+/* ═══ MOBILE BOTTOM TAB BAR ═════════════════════════════════════════ */
+@media(max-width:768px){
+  .sw-nav{
+    position:fixed !important;bottom:0;left:0;right:0;
+    z-index:300;border-radius:0;border:none;
+    border-top:1px solid var(--cb);
+    background:var(--hdr);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+    padding:4px 0 calc(4px + env(safe-area-inset-bottom,0px));
+    justify-content:space-around;gap:0;
+    box-shadow:0 -4px 20px rgba(0,0,0,.15)
+  }
+  .sw-nav-btn{
+    flex:1;flex-direction:column;justify-content:center;align-items:center;
+    border-radius:0;padding:5px 4px 3px;gap:2px;font-size:.58rem;
+    background:transparent !important;box-shadow:none !important;color:var(--sub)
+  }
+  .sw-nav-btn span{display:block !important;font-size:.58rem;font-weight:600}
+  .sw-nav-btn i{font-size:1rem;transform:none !important}
+  .sw-nav-btn:hover{background:transparent !important}
+  .sw-nav-btn:active{transform:scale(.92)}
+  .sw-nav-btn.active{color:var(--page-c) !important;background:transparent !important;box-shadow:none !important}
+  .sw-nav-btn.active::after{bottom:auto;top:0;left:50%;transform:translateX(-50%);width:40%;height:2.5px;border-radius:0 0 2px 2px}
+  header{height:52px;padding:0 14px;gap:8px}
+  .hdr-r{gap:6px}
+  .mkt-badge{display:none !important}
+  .logo span{display:none}
+  .hbtn span{display:none}
+  .hbtn{padding:8px 10px;min-height:0;border-radius:8px}
+  body{padding-bottom:calc(52px + env(safe-area-inset-bottom,0px)) !important}
+}
+
 *{margin:0;padding:0;box-sizing:border-box}
 html{scroll-behavior:smooth}
 body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--tx);min-height:100vh;padding-top:62px;transition:background .3s,color .3s}
@@ -188,7 +219,7 @@ footer{position:relative;z-index:1;background:var(--sur);border-top:1px solid va
 
 /* ═══ RESPONSIVE ═══ */
 @media(max-width:700px){
-  header{padding:0 12px;gap:6px}.tc-grid{grid-template-columns:1fr 1fr}
+  .tc-grid{grid-template-columns:1fr 1fr}
   .footer-inner{grid-template-columns:1fr;text-align:center;gap:14px}
   .footer-left,.footer-right{align-items:center}.footer-links{justify-content:center}
   .modal-stats{grid-template-columns:1fr 1fr}

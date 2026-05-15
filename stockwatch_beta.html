@@ -141,6 +141,56 @@ html{-webkit-text-size-adjust:100%}
   .sw-nav-btn i{font-size:.85rem}
 }
 
+/* ═══ MOBILE BOTTOM TAB BAR ═════════════════════════════════════════
+ * ≤768px: sw-nav wird zur fixen Bottom-Leiste (wie iOS Tab Bar).
+ * Header wird vereinfacht: nur Logo + Uhr + Settings.
+ * Sekundäre Items (Markt-Badge, Sync, Auto-Refresh) → nur in Einstellungen.
+ * Safe-area-inset für iPhone-Notch/Home-Indicator.
+ * ═════════════════════════════════════════════════════════════════ */
+@media(max-width:768px){
+  /* ── Bottom Tab Bar ─────────────────────────────────────────── */
+  .sw-nav{
+    position:fixed !important;bottom:0;left:0;right:0;
+    z-index:300;border-radius:0;border:none;
+    border-top:1px solid var(--cb);
+    background:var(--hdr);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+    padding:4px 0 calc(4px + env(safe-area-inset-bottom,0px));
+    justify-content:space-around;gap:0;
+    box-shadow:0 -4px 20px rgba(0,0,0,.15)
+  }
+  .sw-nav-btn{
+    flex:1;flex-direction:column;justify-content:center;align-items:center;
+    border-radius:0;padding:5px 4px 3px;gap:2px;font-size:.58rem;
+    background:transparent !important;box-shadow:none !important;color:var(--sub)
+  }
+  .sw-nav-btn span{display:block !important;font-size:.58rem;font-weight:600}
+  .sw-nav-btn i{font-size:1rem;transform:none !important}
+  .sw-nav-btn:hover{background:transparent !important}
+  .sw-nav-btn:active{transform:scale(.92)}
+  /* Aktiver Tab: Farbe + oberer Indikator */
+  .sw-nav-btn.active{
+    color:var(--page-c) !important;background:transparent !important;
+    box-shadow:none !important
+  }
+  .sw-nav-btn.active::after{
+    bottom:auto;top:0;left:50%;transform:translateX(-50%);
+    width:40%;height:2.5px;border-radius:0 0 2px 2px
+  }
+
+  /* ── Vereinfachter Header ───────────────────────────────────── */
+  header{height:52px;padding:0 14px;gap:8px}
+  .hdr-r{gap:6px}
+  .hdr-gap{flex:1}
+  /* Sekundäre Items ausblenden */
+  .ar-toggle,.sync-badge,.mkt-badge{display:none !important}
+  .logo span{display:none}
+  .hbtn span{display:none}
+  .hbtn{padding:8px 10px;min-height:0;border-radius:8px}
+
+  /* ── Body-Padding für Bottom-Bar ────────────────────────────── */
+  body{padding-bottom:calc(52px + env(safe-area-inset-bottom,0px)) !important}
+}
+
 /* ═══ PAGE ACCENT OVERRIDES ══════════════════════════════════════════
  * Portfolio-Seite: grüne Akzente für Buttons, Cards, Links
  * ═════════════════════════════════════════════════════════════════ */
@@ -614,29 +664,19 @@ footer{
 @media(max-width:1100px){.sbar{grid-template-columns:repeat(3,1fr)}}
 
 @media(max-width:700px){
-  header{padding:0 12px;gap:6px;height:56px}
-  #app{padding:72px 12px 0}
+  #app{padding:68px 12px 0}
   .sbar{grid-template-columns:repeat(2,1fr)}
   #grid{grid-template-columns:1fr}
-  .sync-badge span{display:none}
   .fr{grid-template-columns:1fr}
   .pfrow{flex-direction:column;align-items:stretch}
   .footer-inner{grid-template-columns:1fr;gap:16px}
   .footer-right{align-items:flex-start}
   .footer-links{justify-content:flex-start}
   .mact{flex-direction:column}
-  .logo span{display:none}
-  .hbtn span{display:none}
-  .ar-toggle span{display:none}
-  .ar-toggle{padding:5px 8px}
   .trades-lbl{display:none}
   .btn-trades{padding:8px 10px}
-  .hbtn{padding:8px 10px;min-height:38px}
   /* iOS prevents auto-zoom when input font-size >= 16px */
   .fi,.fi-sm,select,input[type="text"],input[type="number"],input[type="date"],input[type="time"],input[type="email"],input[type="password"]{font-size:16px}
-  /* Header time + market badge kompakter */
-  .rt-time{font-size:.68rem;padding:3px 7px}
-  .mkt-badge{font-size:.65rem;padding:3px 6px}
   /* Filter-Leiste auf Mobile */
   .fsbar{padding:10px 12px;gap:7px}
   .fsbar-label{font-size:.65rem}
@@ -667,10 +707,6 @@ footer{
   .fs-chip{font-size:.7rem;padding:6px 9px;min-height:34px}
   /* Card optimieren */
   .ch-name{max-width:90px}
-  /* Header sehr kompakt – Sync-Badge ausblenden, Markt-Badge nur Punkt */
-  .sync-badge{display:none}
-  .mkt-badge span{display:none}
-  .mkt-badge{padding:6px;width:28px;justify-content:center}
   .rt-time{font-size:.66rem;padding:2px 6px}
   /* Filter-Label ausblenden, nur Icons zeigen */
   .fsbar-label{font-size:.6rem}

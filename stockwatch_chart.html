@@ -80,6 +80,36 @@
 .sw-nav-btn.active::after{content:'';position:absolute;bottom:-4px;left:50%;transform:translateX(-50%);width:60%;height:2px;border-radius:2px;background:var(--page-c);box-shadow:0 0 6px var(--page-glow)}
 @media(max-width:540px){.sw-nav-btn span{display:none}.sw-nav-btn{padding:7px 10px}.sw-nav-btn i{font-size:.85rem}}
 
+/* ═══ MOBILE BOTTOM TAB BAR ═════════════════════════════════════════ */
+@media(max-width:768px){
+  .sw-nav{
+    position:fixed !important;bottom:0;left:0;right:0;
+    z-index:300;border-radius:0;border:none;
+    border-top:1px solid var(--cb);
+    background:var(--hdr);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+    padding:4px 0 calc(4px + env(safe-area-inset-bottom,0px));
+    justify-content:space-around;gap:0;
+    box-shadow:0 -4px 20px rgba(0,0,0,.15)
+  }
+  .sw-nav-btn{
+    flex:1;flex-direction:column;justify-content:center;align-items:center;
+    border-radius:0;padding:5px 4px 3px;gap:2px;font-size:.58rem;
+    background:transparent !important;box-shadow:none !important;color:var(--sub)
+  }
+  .sw-nav-btn span{display:block !important;font-size:.58rem;font-weight:600}
+  .sw-nav-btn i{font-size:1rem;transform:none !important}
+  .sw-nav-btn:hover{background:transparent !important}
+  .sw-nav-btn:active{transform:scale(.92)}
+  .sw-nav-btn.active{color:var(--page-c) !important;background:transparent !important;box-shadow:none !important}
+  .sw-nav-btn.active::after{bottom:auto;top:0;left:50%;transform:translateX(-50%);width:40%;height:2.5px;border-radius:0 0 2px 2px}
+  header{height:52px;padding:0 14px;gap:8px}
+  .hdr-r{gap:6px}
+  .mkt-badge{display:none !important}
+  .logo span{display:none}
+  .hbtn span{display:none}
+  .hbtn{padding:8px 10px;min-height:0;border-radius:8px}
+}
+
 
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
 html{scroll-behavior:smooth}
@@ -119,11 +149,6 @@ header{
 .mkt-badge.closed{background:var(--gbg);color:var(--gld);border:1px solid var(--gbr)}
 .hbtn{display:flex;align-items:center;gap:6px;padding:4px 10px;border-radius:8px;border:1px solid var(--cb);background:var(--sur);font-size:.78rem;font-weight:600;color:var(--sub);cursor:pointer;transition:all .15s;flex-shrink:0;font-family:'Outfit',sans-serif}
 .hbtn:hover{border-color:var(--acc);color:var(--acc)}
-@media(max-width:700px){
-  .rt-time{font-size:.68rem;padding:3px 7px}
-  .mkt-badge span{display:none}
-  .mkt-badge{padding:6px;width:28px;justify-content:center}
-}
 .hdr-gap{flex:1}
 .hdr-r{display:flex;align-items:center;gap:7px}
 
@@ -375,14 +400,14 @@ header{
 /* ─── RESPONSIVE ─────────────────────────────────────────────────── */
 @media(max-width:768px){
   .sidebar{
-    position:fixed;left:0;top:60px;bottom:0;z-index:350;
+    position:fixed;left:0;top:52px;bottom:52px;z-index:350;
     transform:translateX(-100%);box-shadow:none;width:300px
   }
   .sidebar.mob-open{transform:translateX(0);box-shadow:8px 0 40px var(--shd)}
-  .mob-sidebar-btn{display:flex}
+  .mob-sidebar-btn{display:flex;bottom:calc(60px + env(safe-area-inset-bottom,0px))}
   .mob-sidebar-overlay.active{display:block}
   .sidebar-toggle{display:flex}
-  .main{height:calc(100vh - 60px);overflow-y:auto}
+  .main{height:calc(100vh - 52px - 52px);overflow-y:auto}
   .stock-info{padding:14px 16px 0}
   .stock-price{font-size:1.5rem}
   .stock-symbol{font-size:1.2rem}
@@ -392,7 +417,9 @@ header{
   .chart-area{padding:12px 16px 20px}
   .logo-page{display:none}
   .logo-sep{display:none}
-  .hdr-r{gap:5px}
+  .app-wrap{padding-top:52px}
+  /* Settings-Overlay anpassen */
+  .sw-settings-ov{top:52px}
 }
 @media(max-width:420px){
   .stats-strip{gap:6px 0}
