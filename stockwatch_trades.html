@@ -59,10 +59,7 @@ header{position:fixed;top:0;left:0;right:0;z-index:300;background:var(--hdr);bac
 .mkt-badge.open{background:var(--pbg);color:var(--pos);border:1px solid var(--pbr)}
 .mkt-badge.closed{background:var(--gbg);color:var(--gld);border:1px solid var(--gbr)}
 .rt-time{font-family:'JetBrains Mono',monospace;font-size:.75rem;font-weight:600;color:var(--tx);background:var(--adim);border:1px solid var(--acc);border-radius:7px;padding:3px 9px;white-space:nowrap;flex-shrink:0}
-.thm-grp{display:flex;gap:2px;background:var(--bg);border:1px solid var(--cb);border-radius:9px;padding:3px;flex-shrink:0}
-.tbtn{width:28px;height:26px;border:none;background:transparent;color:var(--sub);border-radius:7px;cursor:pointer;font-size:11px;display:flex;align-items:center;justify-content:center;transition:all .15s}
-.tbtn:hover{color:var(--tx)}.tbtn.on{background:var(--acc);color:#fff}
-.hbtn{display:flex;align-items:center;gap:6px;padding:4px 10px;border-radius:8px;border:1px solid var(--cb);background:var(--sur);font-size:.78rem;font-weight:600;color:var(--sub);cursor:pointer;transition:all .15s;flex-shrink:0}
+.hbtn{display:flex;align-items:center;gap:6px;padding:4px 10px;border-radius:8px;border:1px solid var(--cb);background:var(--sur);font-size:.78rem;font-weight:600;color:var(--sub);cursor:pointer;transition:all .15s;flex-shrink:0;font-family:'Outfit',sans-serif}
 .hbtn:hover{border-color:var(--acc);color:var(--acc)}
 
 /* ═══ PROFILE SCREEN ═══ */
@@ -196,7 +193,6 @@ footer{position:relative;z-index:1;background:var(--sur);border-top:1px solid va
   .footer-left,.footer-right{align-items:center}.footer-links{justify-content:center}
   .modal-stats{grid-template-columns:1fr 1fr}
   table.bk-table th:nth-child(n+5),table.bk-table td:nth-child(n+5){display:none}
-  .thm-grp{display:none}
 }
 @media(max-width:480px){.sbar{grid-template-columns:1fr 1fr}.tb-search{display:none}}
 </style>
@@ -205,26 +201,19 @@ footer{position:relative;z-index:1;background:var(--sur);border-top:1px solid va
 
 <!-- HEADER -->
 <header>
-  <a href="stockwatch_beta.html" class="logo" title="Zum Portfolio" onclick="if(!document.getElementById('profileScreen').classList.contains('hidden')){event.preventDefault();closeProfile();}">
+  <a href="stockwatch_beta.html" class="logo" title="Zum Portfolio">
     <div class="logo-ico"><i class="fa-solid fa-chart-line"></i></div>Stock<span>Watch</span>
   </a>
   <div class="hdr-gap"></div>
   <div class="hdr-r">
     <span class="rt-time" id="rtLbl">--:--</span>
     <div class="mkt-badge closed" id="mktBadge"><i class="fa-solid fa-circle"></i><span id="mktLbl">Markt</span></div>
-    <div class="thm-grp">
-      <button class="tbtn" id="tDark"  onclick="setTheme('dark')"     title="Midnight"><i class="fa-solid fa-moon"></i></button>
-      <button class="tbtn" id="tOcean" onclick="setTheme('ocean')"    title="Ocean"><i class="fa-solid fa-water"></i></button>
-      <button class="tbtn" id="tLav"   onclick="setTheme('lavender')" title="Lavender"><i class="fa-solid fa-star"></i></button>
-      <button class="tbtn" id="tMint"  onclick="setTheme('mint')"     title="Mint"><i class="fa-solid fa-droplet"></i></button>
-      <button class="tbtn" id="tEarth" onclick="setTheme('earth')"    title="Earth"><i class="fa-solid fa-seedling"></i></button>
-    </div>
     <div class="sw-nav" role="navigation" aria-label="Seitennavigation">
       <a href="stockwatch_beta.html"   class="sw-nav-btn pf" title="Portfolio"><i class="fa-solid fa-briefcase"></i><span>Portfolio</span></a>
       <a href="stockwatch_chart.html"  class="sw-nav-btn ch" title="Charts"><i class="fa-solid fa-chart-area"></i><span>Charts</span></a>
       <a href="stockwatch_trades.html" class="sw-nav-btn tr active" aria-current="page" title="Trades"><i class="fa-solid fa-arrow-right-arrow-left"></i><span>Trades</span></a>
     </div>
-    <button class="hbtn" onclick="showProfile()"><i class="fa-solid fa-user-gear"></i><span> Profil</span></button>
+    <button class="hbtn" onclick="showProfile()" title="Einstellungen"><i class="fa-solid fa-gear"></i></button>
   </div>
 </header>
 
@@ -232,16 +221,16 @@ footer{position:relative;z-index:1;background:var(--sur);border-top:1px solid va
 <div class="screen hidden" id="profileScreen">
   <div class="screen-inner">
     <div class="sbox">
-      <div class="stitle"><i class="fa-solid fa-user-gear"></i> Profil &amp; Einstellungen</div>
+      <div class="stitle"><i class="fa-solid fa-gear"></i> Einstellungen</div>
       <div class="ssub">Design und weitere Optionen.</div>
       <div style="margin-bottom:18px">
         <div style="font-size:.84rem;font-weight:700;color:var(--tx);margin-bottom:10px"><i class="fa-solid fa-palette" style="color:var(--acc);margin-right:5px"></i>Design</div>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
-          <button class="btn btn-ghost btn-sm" onclick="setTheme('dark')"><i class="fa-solid fa-moon"></i> Midnight</button>
-          <button class="btn btn-ghost btn-sm" onclick="setTheme('ocean')"><i class="fa-solid fa-water"></i> Ocean</button>
-          <button class="btn btn-ghost btn-sm" onclick="setTheme('lavender')"><i class="fa-solid fa-star"></i> Lavender</button>
-          <button class="btn btn-ghost btn-sm" onclick="setTheme('mint')"><i class="fa-solid fa-droplet"></i> Mint</button>
-          <button class="btn btn-ghost btn-sm" onclick="setTheme('earth')"><i class="fa-solid fa-seedling"></i> Earth</button>
+          <button class="btn btn-ghost btn-sm" id="tDark"  onclick="setTheme('dark')"><i class="fa-solid fa-moon"></i> Midnight</button>
+          <button class="btn btn-ghost btn-sm" id="tOcean" onclick="setTheme('ocean')"><i class="fa-solid fa-water"></i> Ocean</button>
+          <button class="btn btn-ghost btn-sm" id="tLav"   onclick="setTheme('lavender')"><i class="fa-solid fa-star"></i> Lavender</button>
+          <button class="btn btn-ghost btn-sm" id="tMint"  onclick="setTheme('mint')"><i class="fa-solid fa-droplet"></i> Mint</button>
+          <button class="btn btn-ghost btn-sm" id="tEarth" onclick="setTheme('earth')"><i class="fa-solid fa-seedling"></i> Earth</button>
         </div>
       </div>
       <div style="padding:14px 0;border-top:1px solid var(--cb)">
@@ -372,8 +361,18 @@ footer{position:relative;z-index:1;background:var(--sur);border-top:1px solid va
 function setTheme(t){
   document.documentElement.setAttribute('data-theme',t);
   localStorage.setItem('sw_theme',t);
+  // Highlight aktives Theme im Settings-Screen
   ['Dark','Ocean','Lav','Mint','Earth'].forEach((n,i)=>{
-    document.getElementById('t'+n)?.classList.toggle('on',['dark','ocean','lavender','mint','earth'][i]===t);
+    const el = document.getElementById('t'+n);
+    if (!el) return;
+    const isActive = ['dark','ocean','lavender','mint','earth'][i] === t;
+    el.classList.toggle('on', isActive);
+    // Visuelles Feedback: aktives Theme hervorheben
+    if (isActive) {
+      el.style.background='var(--adim)'; el.style.borderColor='var(--acc)'; el.style.color='var(--acc)';
+    } else {
+      el.style.background=''; el.style.borderColor=''; el.style.color='';
+    }
   });
 }
 setTheme(localStorage.getItem('sw_theme')||'dark');

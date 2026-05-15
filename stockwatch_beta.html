@@ -175,12 +175,6 @@ header{position:fixed;top:0;left:0;right:0;z-index:300;background:var(--hdr);bac
 .hdr-gap{flex:1}
 .hdr-r{display:flex;align-items:center;gap:7px;flex-wrap:nowrap}
 
-/* Theme buttons */
-.thm-grp{display:flex;gap:2px;background:var(--bg);border:1px solid var(--cb);border-radius:9px;padding:3px;flex-shrink:0}
-.tbtn{width:28px;height:26px;border:none;background:transparent;color:var(--sub);border-radius:7px;cursor:pointer;font-size:11px;display:flex;align-items:center;justify-content:center;transition:all .15s}
-.tbtn:hover{color:var(--tx)}
-.tbtn.on{background:var(--acc);color:#fff}
-
 .hbtn{display:flex;align-items:center;gap:6px;background:var(--sur);border:1px solid var(--cb);color:var(--sub);border-radius:8px;padding:5px 10px;font-size:.77rem;font-family:'Outfit',sans-serif;cursor:pointer;transition:all .2s;font-weight:500;white-space:nowrap;flex-shrink:0}
 .hbtn:hover{border-color:var(--acc);color:var(--acc)}
 .hbtn.on{color:var(--pos);border-color:var(--pbr);background:var(--pbg)}
@@ -624,7 +618,6 @@ footer{
   #app{padding:72px 12px 0}
   .sbar{grid-template-columns:repeat(2,1fr)}
   #grid{grid-template-columns:1fr}
-  .thm-grp{display:none}
   .sync-badge span{display:none}
   .fr{grid-template-columns:1fr}
   .pfrow{flex-direction:column;align-items:stretch}
@@ -862,20 +855,13 @@ body.is-offline #app{margin-top:36px}
     <span class="rt-time" id="rtLbl">--:--</span>
     <div class="mkt-badge closed" id="mktBadge"><i class="fa-solid fa-circle"></i><span id="mktLbl">Markt</span></div>
     <div class="sync-badge" id="syncBadge"><div class="sync-dot off" id="syncDot"></div><span id="syncLbl">Lokal</span></div>
-    <div class="thm-grp" title="Design">
-      <button class="tbtn on" id="tDark"  onclick="setTheme('dark')"     title="Midnight"><i class="fa-solid fa-moon"></i></button>
-      <button class="tbtn"    id="tOcean" onclick="setTheme('ocean')"    title="Ocean"><i class="fa-solid fa-water"></i></button>
-      <button class="tbtn"    id="tLav"   onclick="setTheme('lavender')" title="Lavender"><i class="fa-solid fa-star"></i></button>
-      <button class="tbtn"    id="tMint"  onclick="setTheme('mint')"     title="Mint"><i class="fa-solid fa-droplet"></i></button>
-      <button class="tbtn"    id="tEarth" onclick="setTheme('earth')"    title="Earth"><i class="fa-solid fa-seedling"></i></button>
-    </div>
 
     <div class="sw-nav" role="navigation" aria-label="Seitennavigation">
       <a href="stockwatch_beta.html"   class="sw-nav-btn pf active" aria-current="page" title="Portfolio"><i class="fa-solid fa-briefcase"></i><span>Portfolio</span></a>
       <a href="stockwatch_chart.html"  class="sw-nav-btn ch"                                title="Charts"><i class="fa-solid fa-chart-area"></i><span>Charts</span></a>
       <a href="stockwatch_trades.html" class="sw-nav-btn tr"                                title="Trades"><i class="fa-solid fa-arrow-right-arrow-left"></i><span>Trades</span></a>
     </div>
-    <button class="hbtn hidden" id="userBtn" onclick="showProfileScreen()"><i class="fa-solid fa-user-gear"></i><span id="userLbl">Profil</span></button>
+    <button class="hbtn hidden" id="userBtn" onclick="showProfileScreen()" title="Einstellungen"><i class="fa-solid fa-gear"></i><span id="userLbl">Profil</span></button>
   </div>
 </header>
 
@@ -1029,7 +1015,7 @@ create policy "own" on public.sw_portfolio
 
         <!-- Zurück -->
         <div style="padding-top:14px;border-top:1px solid var(--cb);display:flex;gap:8px;flex-wrap:wrap">
-          <button class="btn btn-acc btn-sm" onclick="showApp()" style="flex:1"><i class="fa-solid fa-arrow-left"></i> Zurück zum Portfolio</button>
+          <button class="btn btn-acc btn-sm" onclick="showApp()" style="flex:1"><i class="fa-solid fa-arrow-left"></i> Zurück</button>
           <button class="btn btn-ghost btn-sm" onclick="doLogout()" id="profLogoutBtn" style="flex:0"><i class="fa-solid fa-right-from-bracket"></i> Abmelden</button>
         </div>
       </div>
