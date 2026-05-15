@@ -82,6 +82,17 @@ const SWEngine = (() => {
   ];
 
   // ═══════════════════════════════════════════════════════════════════
+  // §1b  LOGGING
+  // ═══════════════════════════════════════════════════════════════════
+  let _debugMode = false;
+  const _log = {
+    error: (...args) => console.error('[SWEngine]', ...args),
+    warn:  (...args) => console.warn('[SWEngine]', ...args),
+    info:  (...args) => console.info('[SWEngine]', ...args),
+    debug: (...args) => { if (_debugMode) console.debug('[SWEngine]', ...args); },
+  };
+
+  // ═══════════════════════════════════════════════════════════════════
   // §2  CACHE LAYER
   // ═══════════════════════════════════════════════════════════════════
 
