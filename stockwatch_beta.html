@@ -192,8 +192,10 @@ html{-webkit-text-size-adjust:100%}
     margin-bottom:8px
   }
   .sw-nav-btn{
-    flex:1;
+    flex:1 1 0%;
+    min-width:0;
     justify-content:center;
+    text-align:center;
     padding:9px 4px;
     gap:6px;
     border-radius:9px;
@@ -201,7 +203,8 @@ html{-webkit-text-size-adjust:100%}
     background:transparent !important;
     box-shadow:none !important;
     color:var(--sub);
-    min-height:40px /* Touch-freundlich */
+    min-height:40px;
+    overflow:hidden
   }
   .sw-nav-btn span{
     display:inline !important;
