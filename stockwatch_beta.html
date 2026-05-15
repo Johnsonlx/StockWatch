@@ -1413,13 +1413,13 @@ const _swAcDoSearch = debounce(async (query, dropId) => {
   const state = _swAcState[dropId];
   if (!state) return;
 
-  // Leere/kurze Eingabe → Dropdown schließen
-  if (!query || query.length < 1) {
+  // Mindestens 2 Zeichen für Suche (vermeidet API-Spam bei einzelnem Buchstaben)
+  if (!query || query.trim().length < 2) {
     _swAcClose(dropId);
     return;
   }
 
-  // Reiner Ticker (z.B. "AAPL", "SAP.DE") → trotzdem suchen für Bestätigung
+  const q = query.trim();
   const drop = document.getElementById(dropId);
 
   // Loading-State anzeigen
@@ -1431,21 +1431,27 @@ const _swAcDoSearch = debounce(async (query, dropId) => {
   state.abort = new AbortController();
 
   try {
-    const results = await SWEngine.fetchSearch(query);
+    console.info('[SmartSearch] Suche:', q);
+    const results = await SWEngine.fetchSearch(q);
+    console.info('[SmartSearch] Ergebnisse:', results?.length ?? 0, results?.map(r => r.symbol).join(', '));
+
     // Nur anzeigen wenn der Input sich nicht zwischenzeitlich geändert hat
     const currentVal = document.getElementById(state.inputId)?.value.trim();
-    if (currentVal && currentVal.toLowerCase().includes(query.toLowerCase().substring(0,3))) {
-      state.items = results || [];
-      state.index = -1;
-      _swAcRender(dropId);
+    if (!currentVal || currentVal.length < 2) {
+      _swAcClose(dropId);
+      return;
     }
+
+    state.items = results || [];
+    state.index = -1;
+    _swAcRender(dropId);
   } catch (err) {
     console.warn('[SmartSearch] Fehler:', err.message);
     state.items = [];
     state.index = -1;
     drop.innerHTML = '<div class="sw-ac-empty"><i class="fa-solid fa-triangle-exclamation"></i>Suche fehlgeschlagen — Internet prüfen.</div>';
   }
-}, 250);
+}, 280);
 
 function _swAcRender(dropId) {
   const state = _swAcState[dropId];

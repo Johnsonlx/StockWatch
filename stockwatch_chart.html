@@ -1371,15 +1371,17 @@ function _debounce(fn, ms) {
 }
 
 const _doSearch = _debounce(async (q, dropId) => {
-  if (!q || q.length < 1) { _closeAcDrop(dropId); return; }
+  if (!q || q.trim().length < 2) { _closeAcDrop(dropId); return; }
+  q = q.trim();
   const drop = document.getElementById(dropId);
   drop.innerHTML = '<div class="ac-loading"><i class="fa-solid fa-spinner fa-spin"></i> Suche…</div>';
   drop.classList.add('open');
-  const results = await SWEngine.fetchSearch(q).catch(() => []);
+  console.info(`[Search] Suche: "${q}"`);
+  const results = await SWEngine.fetchSearch(q).catch(e => { console.warn('[Search] Fehler:', e.message); return []; });
+  console.info(`[Search] "${q}" → ${results.length} Ergebnisse`, results.map(r=>r.symbol).join(', '));
   _acItems = results;
   _acIndex = -1;
   _renderAcDrop(dropId);
-  console.log(`[Search] "${q}" → ${results.length} Ergebnisse`);
 }, 280);
 
 function _renderAcDrop(dropId) {
