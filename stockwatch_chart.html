@@ -177,23 +177,32 @@ header{
 /* Autocomplete dropdown */
 .ac-drop{
   position:absolute;top:calc(100% - 2px);left:14px;right:14px;
-  background:var(--card);border:1px solid var(--cb);border-radius:10px;
-  box-shadow:0 8px 32px var(--shd);z-index:500;overflow:hidden;
-  max-height:280px;overflow-y:auto;display:none
+  background:var(--sur);border:1.5px solid var(--cb);border-radius:14px;
+  box-shadow:0 12px 40px var(--shd),0 0 0 1px rgba(0,0,0,.06);z-index:500;overflow:hidden;
+  max-height:320px;overflow-y:auto;display:none;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)
 }
-.ac-drop.open{display:block;animation:fadeUp .15s ease}
+.ac-drop.open{display:block;animation:acSlideIn .18s cubic-bezier(.4,0,.2,1)}
+@keyframes acSlideIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
 .ac-item{
-  display:flex;align-items:center;gap:10px;padding:10px 14px;cursor:pointer;
-  border-bottom:1px solid var(--cb);transition:background .12s
+  display:flex;align-items:center;gap:10px;padding:11px 14px;cursor:pointer;
+  border-bottom:1px solid var(--cb);transition:background .1s,padding-left .15s
 }
 .ac-item:last-child{border-bottom:none}
-.ac-item:hover,.ac-item.focused{background:var(--hov)}
-.ac-sym{font-family:'JetBrains Mono',monospace;font-size:.88rem;font-weight:700;color:var(--tx);flex-shrink:0}
+.ac-item:hover{background:var(--hov);padding-left:17px}
+.ac-item.focused{background:var(--adim);border-left:3px solid var(--acc);padding-left:11px}
+.ac-left{display:flex;flex-direction:column;gap:1px;min-width:0;flex:1}
+.ac-top{display:flex;align-items:center;gap:8px}
+.ac-sym{font-family:'JetBrains Mono',monospace;font-size:.88rem;font-weight:800;color:var(--tx);flex-shrink:0;letter-spacing:-.02em}
 .ac-name{font-size:.75rem;color:var(--sub);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;min-width:0}
-.ac-type{font-size:.62rem;font-weight:600;padding:2px 5px;border-radius:4px;
-  background:var(--adim);color:var(--acc);flex-shrink:0;text-transform:uppercase;letter-spacing:.04em}
-.ac-loading{padding:14px;text-align:center;color:var(--sub);font-size:.8rem}
-.ac-empty{padding:14px;text-align:center;color:var(--mut);font-size:.78rem}
+.ac-meta{display:flex;align-items:center;gap:6px;margin-top:1px}
+.ac-exchange{font-size:.62rem;color:var(--mut);font-family:'JetBrains Mono',monospace;letter-spacing:.02em}
+.ac-type{font-size:.58rem;font-weight:700;padding:2px 6px;border-radius:4px;
+  background:var(--adim);color:var(--acc);flex-shrink:0;text-transform:uppercase;letter-spacing:.05em}
+.ac-loading{padding:18px;text-align:center;color:var(--sub);font-size:.82rem;display:flex;align-items:center;justify-content:center;gap:8px}
+.ac-empty{padding:20px 14px;text-align:center;color:var(--mut);font-size:.82rem;display:flex;flex-direction:column;align-items:center;gap:6px}
+.ac-empty i{font-size:1.2rem;opacity:.5}
+.ac-hint{font-size:.62rem;color:var(--mut);padding:7px 14px;border-top:1px solid var(--cb);display:flex;align-items:center;gap:6px;background:var(--bg)}
+.ac-hint kbd{font-size:.58rem;font-family:'JetBrains Mono',monospace;padding:1px 5px;border-radius:3px;background:var(--card);border:1px solid var(--cb);color:var(--sub)}
 
 /* Add button */
 .add-row{padding:10px 14px;border-bottom:1px solid var(--cb);flex-shrink:0}
@@ -474,7 +483,7 @@ footer{position:relative;z-index:1;background:var(--sur);border-top:1px solid va
     <div class="search-wrap">
       <div class="search-row">
         <i class="fa-solid fa-magnifying-glass search-icon"></i>
-        <input class="search-input" id="searchInput" type="text" placeholder="Symbol oder Name suchen…" autocomplete="off" spellcheck="false">
+        <input class="search-input" id="searchInput" type="text" placeholder="Apple, NVIDIA, SAP.DE…" autocomplete="off" spellcheck="false">
         <button class="search-clear" id="searchClear" onclick="clearSearch()"><i class="fa-solid fa-xmark"></i></button>
       </div>
       <div class="ac-drop" id="acDrop"></div>
@@ -572,7 +581,7 @@ footer{position:relative;z-index:1;background:var(--sur);border-top:1px solid va
             <div class="main-search-row">
               <i class="fa-solid fa-magnifying-glass" style="color:var(--sub);font-size:1rem"></i>
               <input class="main-search-input" id="mainSearchInput" type="text"
-                placeholder="Aktie suchen… (z.B. AAPL, SAP.DE, BTC-USD)"
+                placeholder="Aktie suchen… Apple, NVIDIA, SAP.DE, BTC-USD"
                 autocomplete="off" spellcheck="false">
               <button class="main-search-clear" id="mainSearchClear" onclick="clearMainSearch()"><i class="fa-solid fa-xmark"></i></button>
             </div>
@@ -1302,18 +1311,37 @@ const _doSearch = _debounce(async (q, dropId) => {
 function _renderAcDrop(dropId) {
   const drop = document.getElementById(dropId);
   if (!_acItems.length) {
-    drop.innerHTML = '<div class="ac-empty">Keine Ergebnisse.</div>';
+    drop.innerHTML = '<div class="ac-empty"><i class="fa-solid fa-magnifying-glass"></i>Keine passenden Assets gefunden.<span style="font-size:.7rem">Ticker direkt eingeben oder anderen Suchbegriff versuchen.</span></div>';
     return;
   }
-  drop.innerHTML = _acItems.map((item, i) => `
-    <div class="ac-item${i===_acIndex?' focused':''}" data-i="${i}">
-      <span class="ac-sym">${item.symbol}</span>
-      <span class="ac-name">${item.shortname || item.longname || ''}</span>
-      <span class="ac-type">${(item.typeDisp || item.quoteType || '').toLowerCase()}</span>
-    </div>`).join('');
+  drop.innerHTML = _acItems.map((item, i) => {
+    const exchange = item.exchange || item.exchDisp || '';
+    const type = (item.typeDisp || item.quoteType || '').toLowerCase();
+    return `<div class="ac-item${i===_acIndex?' focused':''}" data-i="${i}">
+      <div class="ac-left">
+        <div class="ac-top">
+          <span class="ac-sym">${item.symbol}</span>
+          <span class="ac-name">${item.shortname || item.longname || ''}</span>
+        </div>
+        ${(exchange || type) ? `<div class="ac-meta">
+          ${exchange ? `<span class="ac-exchange">${exchange}</span>` : ''}
+          ${type ? `<span class="ac-type">${type}</span>` : ''}
+        </div>` : ''}
+      </div>
+    </div>`;
+  }).join('') + '<div class="ac-hint"><kbd>↑↓</kbd> Navigieren <kbd>↵</kbd> Auswählen <kbd>Esc</kbd> Schließen</div>';
   drop.querySelectorAll('.ac-item').forEach(el => {
     el.addEventListener('click', () => _acSelect(parseInt(el.dataset.i)));
+    el.addEventListener('mouseenter', () => {
+      drop.querySelectorAll('.ac-item').forEach(e => e.classList.remove('focused'));
+      el.classList.add('focused');
+    });
   });
+  // Fokussierten Eintrag in Sicht scrollen
+  if (_acIndex >= 0) {
+    const focusedEl = drop.querySelector('.ac-item.focused');
+    if (focusedEl) focusedEl.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }
 }
 
 function _acSelect(i) {

@@ -421,6 +421,66 @@ footer{
   .footer-center{grid-column:1}
 }
 
+/* ═══ SMART SEARCH AUTOCOMPLETE ═════════════════════════════════════
+ * TradingView-artiges Dropdown für Symbol-/Namenssuche.
+ * Funktioniert im Modal (z-index über .ov) und auf der Seite.
+ * ═════════════════════════════════════════════════════════════════ */
+.sw-ac-wrap{position:relative}
+.sw-ac-drop{
+  position:absolute;top:calc(100% + 4px);left:0;right:0;
+  background:var(--sur);border:1.5px solid var(--cb);border-radius:14px;
+  box-shadow:0 12px 40px var(--shd),0 0 0 1px rgba(0,0,0,.06);
+  z-index:600;overflow:hidden;max-height:320px;overflow-y:auto;
+  display:none;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)
+}
+.sw-ac-drop.open{display:block;animation:acSlideIn .18s cubic-bezier(.4,0,.2,1)}
+@keyframes acSlideIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
+.sw-ac-item{
+  display:flex;align-items:center;gap:10px;padding:11px 16px;cursor:pointer;
+  border-bottom:1px solid var(--cb);transition:background .1s,padding-left .15s
+}
+.sw-ac-item:last-child{border-bottom:none}
+.sw-ac-item:hover{background:var(--hov);padding-left:19px}
+.sw-ac-item.focused{background:var(--adim);border-left:3px solid var(--acc);padding-left:13px}
+.sw-ac-left{display:flex;flex-direction:column;gap:1px;min-width:0;flex:1}
+.sw-ac-top{display:flex;align-items:center;gap:8px}
+.sw-ac-sym{
+  font-family:'JetBrains Mono',monospace;font-size:.9rem;font-weight:800;
+  color:var(--tx);letter-spacing:-.02em;flex-shrink:0
+}
+.sw-ac-name{
+  font-size:.78rem;color:var(--sub);white-space:nowrap;overflow:hidden;
+  text-overflow:ellipsis;min-width:0
+}
+.sw-ac-meta{display:flex;align-items:center;gap:6px;margin-top:1px}
+.sw-ac-exchange{
+  font-size:.62rem;color:var(--mut);font-family:'JetBrains Mono',monospace;
+  letter-spacing:.02em
+}
+.sw-ac-type{
+  font-size:.58rem;font-weight:700;padding:2px 6px;border-radius:4px;
+  background:var(--adim);color:var(--acc);flex-shrink:0;
+  text-transform:uppercase;letter-spacing:.05em
+}
+.sw-ac-loading{
+  padding:18px;text-align:center;color:var(--sub);font-size:.82rem;
+  display:flex;align-items:center;justify-content:center;gap:8px
+}
+.sw-ac-empty{
+  padding:20px 16px;text-align:center;color:var(--mut);font-size:.82rem;
+  display:flex;flex-direction:column;align-items:center;gap:6px
+}
+.sw-ac-empty i{font-size:1.2rem;opacity:.5}
+.sw-ac-hint{
+  font-size:.62rem;color:var(--mut);padding:8px 16px;border-top:1px solid var(--cb);
+  display:flex;align-items:center;gap:6px;background:var(--bg)
+}
+.sw-ac-hint kbd{
+  font-size:.58rem;font-family:'JetBrains Mono',monospace;
+  padding:1px 5px;border-radius:3px;background:var(--card);border:1px solid var(--cb);
+  color:var(--sub)
+}
+
 /* ═══ TOASTS ═════════════════════════════════════════════════════════ */
 .tc{position:fixed;bottom:24px;right:16px;z-index:600;display:flex;flex-direction:column;gap:8px;max-width:340px;width:calc(100% - 32px);pointer-events:none}
 .tc .toast{pointer-events:auto}
@@ -1194,9 +1254,12 @@ create policy "own" on public.sw_portfolio
     <div id="rebuyBanner" class="rebuy-banner hidden"></div>
 
     <div class="fg">
-      <label class="fl"><i class="fa-solid fa-magnifying-glass-chart"></i> Ticker Symbol *</label>
-      <input class="fi" id="fSym" type="text" placeholder="NOW · AAPL · SAP.DE · BMW.DE">
-      <div class="fh">⚠ <strong>WKN ≠ Ticker!</strong> z.B. WKN 4S0 = Ticker <em>NOW</em> (NYSE). DAX: <em>SAP.DE · BMW.DE · SIE.DE</em>. <a href="https://finance.yahoo.com/lookup/" target="_blank">Symbol nachschlagen →</a></div>
+      <label class="fl"><i class="fa-solid fa-magnifying-glass-chart"></i> Aktie suchen *</label>
+      <div class="sw-ac-wrap">
+        <input class="fi" id="fSym" type="text" placeholder="Apple, NVIDIA, SAP.DE, BMW…" autocomplete="off" spellcheck="false">
+        <div class="sw-ac-drop" id="fSymDrop"></div>
+      </div>
+      <div class="fh" id="fSymHint">Name, Ticker oder Symbol eingeben — Vorschläge erscheinen automatisch.</div>
     </div>
 
     <div class="sdiv"><span><i class="fa-solid fa-calendar-day"></i> Kaufinformation</span></div>
@@ -1245,6 +1308,222 @@ function debounce(fn, delay=300){
   };
 }
 const debouncedCheckDuplicate = debounce(checkDuplicate, 280);
+
+// ═══════════════════════════════════════════════════════════════════════
+// SMART SEARCH AUTOCOMPLETE — TradingView-artiges Suchfeld
+// ═══════════════════════════════════════════════════════════════════════
+//
+// ARCHITEKTUR:
+//   _swAcState: zentraler State pro Dropdown-Instanz (items, index, abortCtrl)
+//   _swAcSearch(): Debounced Suche via SWEngine.fetchSearch(), AbortController
+//   _swAcRender(): Dropdown-Rendering mit Keyboard-Highlighting
+//   _swAcKeyNav(): Pfeil hoch/runter, Enter, Escape
+//   _swAcSelect(): Auswahl übernehmen (Symbol + Name ins Formular)
+//
+// PERFORMANCE:
+//   - Debounce 250ms: kein API-Spam bei schnellem Tippen
+//   - AbortController: laufende Requests bei neuem Input sofort abbrechen
+//   - SWEngine.fetchSearch() nutzt internen Cache (TTL 10min)
+//   - Deduplication über SWEngine.managedFetch._inflight Map
+// ═══════════════════════════════════════════════════════════════════════
+
+const _swAcState = {};
+
+function _swAcInit(inputId, dropId, onSelect) {
+  _swAcState[dropId] = {
+    items: [],
+    index: -1,
+    abort: null,
+    onSelect,
+    inputId,
+    dropId,
+  };
+}
+
+// Debounced Suche — 250ms Verzögerung, AbortController für laufende Requests
+const _swAcDoSearch = debounce(async (query, dropId) => {
+  const state = _swAcState[dropId];
+  if (!state) return;
+
+  // Leere/kurze Eingabe → Dropdown schließen
+  if (!query || query.length < 1) {
+    _swAcClose(dropId);
+    return;
+  }
+
+  // Reiner Ticker (z.B. "AAPL", "SAP.DE") → trotzdem suchen für Bestätigung
+  const drop = document.getElementById(dropId);
+
+  // Loading-State anzeigen
+  drop.innerHTML = '<div class="sw-ac-loading"><i class="fa-solid fa-spinner fa-spin"></i> Suche…</div>';
+  drop.classList.add('open');
+
+  // Vorherigen Request abbrechen
+  if (state.abort) state.abort.abort();
+  state.abort = new AbortController();
+
+  try {
+    const results = await SWEngine.fetchSearch(query);
+    // Nur anzeigen wenn der Input sich nicht zwischenzeitlich geändert hat
+    const currentVal = document.getElementById(state.inputId)?.value.trim();
+    if (currentVal && currentVal.toLowerCase().includes(query.toLowerCase().substring(0,3))) {
+      state.items = results || [];
+      state.index = -1;
+      _swAcRender(dropId);
+    }
+  } catch (err) {
+    console.warn('[SmartSearch] Fehler:', err.message);
+    state.items = [];
+    state.index = -1;
+    drop.innerHTML = '<div class="sw-ac-empty"><i class="fa-solid fa-triangle-exclamation"></i>Suche fehlgeschlagen — Internet prüfen.</div>';
+  }
+}, 250);
+
+function _swAcRender(dropId) {
+  const state = _swAcState[dropId];
+  if (!state) return;
+  const drop = document.getElementById(dropId);
+  const esc = SWEngine.escapeHtml;
+
+  if (!state.items.length) {
+    drop.innerHTML = `<div class="sw-ac-empty">
+      <i class="fa-solid fa-magnifying-glass"></i>
+      Keine passenden Assets gefunden.
+      <span style="font-size:.7rem;margin-top:2px">Ticker direkt eingeben oder anderen Suchbegriff versuchen.</span>
+    </div>`;
+    drop.classList.add('open');
+    return;
+  }
+
+  const html = state.items.map((item, i) => {
+    const sym = esc(item.symbol || '');
+    const name = esc(item.shortname || item.longname || '');
+    const exchange = esc(item.exchange || item.exchDisp || '');
+    const type = esc(item.typeDisp || item.quoteType || '');
+    const focused = i === state.index ? ' focused' : '';
+
+    return `<div class="sw-ac-item${focused}" data-i="${i}">
+      <div class="sw-ac-left">
+        <div class="sw-ac-top">
+          <span class="sw-ac-sym">${sym}</span>
+          <span class="sw-ac-name">${name}</span>
+        </div>
+        ${(exchange || type) ? `<div class="sw-ac-meta">
+          ${exchange ? `<span class="sw-ac-exchange">${exchange}</span>` : ''}
+          ${type ? `<span class="sw-ac-type">${type}</span>` : ''}
+        </div>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+
+  // Keyboard-Hint am Ende
+  const hint = '<div class="sw-ac-hint"><kbd>↑↓</kbd> Navigieren <kbd>↵</kbd> Auswählen <kbd>Esc</kbd> Schließen</div>';
+
+  drop.innerHTML = html + hint;
+  drop.classList.add('open');
+
+  // Click-Handler für jede Zeile
+  drop.querySelectorAll('.sw-ac-item').forEach(el => {
+    el.addEventListener('click', () => {
+      _swAcSelect(dropId, parseInt(el.dataset.i));
+    });
+    // Hover → visuell hervorheben (ohne state.index zu setzen, damit Tastatur nicht springt)
+    el.addEventListener('mouseenter', () => {
+      drop.querySelectorAll('.sw-ac-item').forEach(e => e.classList.remove('focused'));
+      el.classList.add('focused');
+    });
+  });
+
+  // Fokussierten Eintrag in Viewport scrollen
+  if (state.index >= 0) {
+    const focusedEl = drop.querySelector('.sw-ac-item.focused');
+    if (focusedEl) focusedEl.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }
+}
+
+function _swAcSelect(dropId, index) {
+  const state = _swAcState[dropId];
+  if (!state || !state.items[index]) return;
+
+  const item = state.items[index];
+  const sym = item.symbol;
+  const name = item.shortname || item.longname || sym;
+
+  console.info(`[SmartSearch] Selected: ${sym} — ${name}`);
+
+  // Callback ausführen (seiten-spezifische Logik)
+  if (state.onSelect) state.onSelect(item);
+
+  // Dropdown schließen
+  _swAcClose(dropId);
+}
+
+function _swAcClose(dropId) {
+  const state = _swAcState[dropId];
+  if (state) { state.items = []; state.index = -1; }
+  document.getElementById(dropId)?.classList.remove('open');
+}
+
+function _swAcKeyNav(e, dropId) {
+  const state = _swAcState[dropId];
+  if (!state) return;
+  const drop = document.getElementById(dropId);
+  if (!drop || !drop.classList.contains('open')) return;
+  if (!state.items.length) return;
+
+  if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    e.stopPropagation();
+    state.index = Math.min(state.index + 1, state.items.length - 1);
+    _swAcRender(dropId);
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    e.stopPropagation();
+    state.index = Math.max(state.index - 1, 0);
+    _swAcRender(dropId);
+  } else if (e.key === 'Enter') {
+    if (state.index >= 0 && state.items[state.index]) {
+      e.preventDefault();
+      e.stopPropagation();
+      _swAcSelect(dropId, state.index);
+    }
+    // Wenn kein Item fokussiert ist → normales Enter-Verhalten (Formular-Submit)
+  } else if (e.key === 'Escape') {
+    e.preventDefault();
+    e.stopPropagation();
+    _swAcClose(dropId);
+  }
+}
+
+// ── Portfolio-Seite: fSym Autocomplete initialisieren ──────────────
+_swAcInit('fSym', 'fSymDrop', (item) => {
+  const input = document.getElementById('fSym');
+  input.value = item.symbol;
+
+  // Hint aktualisieren mit gewähltem Asset
+  const hint = document.getElementById('fSymHint');
+  const name = item.shortname || item.longname || '';
+  const exchange = item.exchange || item.exchDisp || '';
+  if (name) {
+    hint.innerHTML = `<span style="color:var(--pos)"><i class="fa-solid fa-check-circle"></i></span> <strong>${SWEngine.escapeHtml(item.symbol)}</strong> — ${SWEngine.escapeHtml(name)}${exchange ? ' · ' + SWEngine.escapeHtml(exchange) : ''}`;
+  }
+
+  // Duplikat-Check auslösen
+  checkDuplicate();
+
+  // Wenn Datum gesetzt → automatisch historischen Kurs laden
+  const dateVal = document.getElementById('fDate').value;
+  if (dateVal) {
+    setTimeout(() => loadHist(), 150);
+  }
+});
+
+// Dropdown schließen bei Klick außerhalb
+document.addEventListener('click', e => {
+  if (!e.target.closest('.sw-ac-wrap')) {
+    _swAcClose('fSymDrop');
+  }
+});
 
 // ─── OFFLINE DETECTION ──────────────────────────────────────────────
 function updateOnlineStatus(){
@@ -2797,6 +3076,9 @@ function openModal() {
   document.getElementById('fShares').value='1';
   document.getElementById('fDate').valueAsDate=new Date();
   const h=document.getElementById('histHint'); h.style.color=''; h.textContent='Datum + Symbol eingeben → „Kurs laden" → historischer Schlusskurs.';
+  // Smart Search Hint zurücksetzen
+  document.getElementById('fSymHint').innerHTML='Name, Ticker oder Symbol eingeben — Vorschläge erscheinen automatisch.';
+  _swAcClose('fSymDrop');
   document.getElementById('ov').classList.add('open');
   setTimeout(()=>document.getElementById('fSym').focus(),250);
 }
@@ -2828,6 +3110,7 @@ function closeModal() {
   document.getElementById('ov').classList.remove('open');
   editId=null; isRebuy=false;
   const sym=document.getElementById('fSym'); sym.readOnly=false; sym.style.opacity='';
+  _swAcClose('fSymDrop');
 }
 
 async function submitStock() {
@@ -3327,10 +3610,17 @@ document.addEventListener('keydown',e=>{
     else closeModal();
   }
   if(e.key==='Enter'&&document.getElementById('ov').classList.contains('open')){
+    // Autocomplete offen → Enter gehört dem Dropdown, nicht dem Formular
+    const acDrop = document.getElementById('fSymDrop');
+    const acState = _swAcState['fSymDrop'];
+    if (acDrop && acDrop.classList.contains('open') && acState && acState.index >= 0) {
+      return; // Autocomplete-Auswahl, kein Form-Submit
+    }
     const active=document.activeElement;
     // Enter in Symbol field → focus buy price
     if(active.id==='fSym'){
       e.preventDefault();
+      _swAcClose('fSymDrop'); // Dropdown schließen
       document.getElementById('fBuy').focus();
       return;
     }
@@ -3341,10 +3631,42 @@ document.addEventListener('keydown',e=>{
     }
   }
 });
-// Apply debounced duplicate check to symbol input
-document.getElementById('fSym').addEventListener('input', function(){
-  this.value = this.value.toUpperCase();
+// Apply smart search autocomplete + duplicate check to symbol input
+const _fSymInput = document.getElementById('fSym');
+_fSymInput.addEventListener('input', function(){
+  const val = this.value.trim();
+  // Uppercase nur wenn reiner ASCII-Ticker (keine Wörter mit Kleinbuchstaben)
+  if (val.length <= 8 && /^[A-Za-z0-9.\-]+$/.test(val)) {
+    this.value = val.toUpperCase();
+  }
   debouncedCheckDuplicate();
+  // Smart Search: Autocomplete-Vorschläge laden
+  _swAcDoSearch(val, 'fSymDrop');
+});
+// Keyboard-Navigation für Autocomplete im Modal
+_fSymInput.addEventListener('keydown', function(e) {
+  const drop = document.getElementById('fSymDrop');
+  const isOpen = drop && drop.classList.contains('open');
+  const state = _swAcState['fSymDrop'];
+
+  if (isOpen && state && state.items.length) {
+    if (['ArrowDown','ArrowUp','Escape'].includes(e.key)) {
+      _swAcKeyNav(e, 'fSymDrop');
+      return;
+    }
+    if (e.key === 'Enter' && state.index >= 0) {
+      _swAcKeyNav(e, 'fSymDrop');
+      return; // Auswahl per Enter, nicht Formular-Submit
+    }
+  }
+});
+// Focus → Dropdown wieder öffnen wenn Ergebnisse vorhanden
+_fSymInput.addEventListener('focus', function() {
+  const val = this.value.trim();
+  const state = _swAcState['fSymDrop'];
+  if (val.length >= 2 && (!state || !state.items.length)) {
+    _swAcDoSearch(val, 'fSymDrop');
+  }
 });
 document.getElementById('ov').addEventListener('click',e=>{
   if(e.target===document.getElementById('ov')) closeModal();
