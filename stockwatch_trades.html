@@ -224,6 +224,7 @@ footer{position:relative;z-index:1;background:var(--sur);border-top:1px solid va
 .footer-disc{font-size:.6rem;color:var(--mut);line-height:1.6;margin-top:4px;max-width:340px}
 .footer-center{display:flex;flex-direction:column;gap:10px;align-items:center;padding-top:2px}
 .footer-actions{display:flex;gap:6px;flex-wrap:wrap;justify-content:center}
+.footer-active{font-weight:700 !important;opacity:.5;pointer-events:none}
 .footer-right{display:flex;flex-direction:column;gap:8px;align-items:flex-end}
 .footer-nav{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;align-items:center}
 .footer-nav a,.footer-links a{font-size:.74rem;color:var(--sub);text-decoration:none;transition:color .2s;display:inline-flex;align-items:center;gap:4px}
@@ -239,8 +240,6 @@ footer{position:relative;z-index:1;background:var(--sur);border-top:1px solid va
 /* ═══ RESPONSIVE ═══ */
 @media(max-width:700px){
   .tc-grid{grid-template-columns:1fr 1fr}
-  .footer-inner{grid-template-columns:1fr;text-align:center;gap:14px}
-  .footer-left,.footer-right{align-items:center}.footer-links{justify-content:center}
   .modal-stats{grid-template-columns:1fr 1fr}
   table.bk-table th:nth-child(n+5),table.bk-table td:nth-child(n+5){display:none}
 }
@@ -374,30 +373,31 @@ footer{position:relative;z-index:1;background:var(--sur);border-top:1px solid va
 <!-- FOOTER -->
 <footer>
   <div class="footer-inner">
-    <!-- LEFT -->
     <div class="footer-left">
       <div class="footer-logo"><div class="logo-ico"><i class="fa-solid fa-chart-line"></i></div>Stock<span>Watch</span></div>
-      <div class="footer-sub">Trades-Übersicht &amp; Performance-Analyse<br>Daten lokal im Browser gespeichert</div>
+      <div class="footer-sub">Live-Kurse · Cloud-Sync · Performance-Analyse<br>Daten lokal oder via Supabase synchronisiert</div>
       <div class="footer-disc"><i class="fa-solid fa-shield-halved"></i> Keine Anlageberatung — alle Angaben ohne Gewähr.</div>
     </div>
-    <!-- CENTER: Trades-spezifische Aktionen -->
     <div class="footer-center">
       <div class="footer-actions">
         <button class="btn btn-ghost btn-sm" onclick="openBkModal()"><i class="fa-solid fa-chart-pie"></i> Übersicht</button>
-        <button class="del-btn btn-sm" onclick="clearLog()"><i class="fa-solid fa-trash-can"></i> Log löschen</button>
+        <button class="btn btn-ghost btn-sm" style="color:var(--neg);border-color:var(--neg)" onclick="clearLog()"><i class="fa-solid fa-trash-can"></i> Log löschen</button>
       </div>
     </div>
-    <!-- RIGHT -->
     <div class="footer-right">
       <div class="footer-nav">
-        <a href="stockwatch_beta.html"  style="color:var(--pf-c)"><i class="fa-solid fa-briefcase"></i> Portfolio</a>
+        <a href="stockwatch_beta.html"   style="color:var(--pf-c)"><i class="fa-solid fa-briefcase"></i> Portfolio</a>
         <div class="footer-sep"></div>
-        <a href="stockwatch_chart.html" style="color:var(--ch-c)"><i class="fa-solid fa-chart-area"></i> Charts</a>
+        <a href="stockwatch_chart.html"  style="color:var(--ch-c)"><i class="fa-solid fa-chart-area"></i> Charts</a>
+        <div class="footer-sep"></div>
+        <a href="stockwatch_trades.html" class="footer-active" style="color:var(--tr-c)"><i class="fa-solid fa-arrow-right-arrow-left"></i> Trades</a>
       </div>
       <div class="footer-links">
         <a href="https://finance.yahoo.com/lookup/" target="_blank"><i class="fa-solid fa-magnifying-glass"></i> Ticker-Suche</a>
         <div class="footer-sep"></div>
-        <a href="https://finnhub.io/dashboard"      target="_blank"><i class="fa-solid fa-key"></i> Finnhub</a>
+        <a href="https://finnhub.io/dashboard" target="_blank"><i class="fa-solid fa-key"></i> Finnhub</a>
+        <div class="footer-sep"></div>
+        <a href="https://supabase.com" target="_blank"><i class="fa-solid fa-cloud"></i> Supabase</a>
       </div>
       <div class="footer-copy">StockWatch v3.0 · <span id="fYear"></span></div>
     </div>

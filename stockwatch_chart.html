@@ -457,6 +457,7 @@ footer{position:relative;z-index:1;background:var(--sur);border-top:1px solid va
 .footer-disc{font-size:.6rem;color:var(--mut);line-height:1.6;margin-top:4px;max-width:340px}
 .footer-center{display:flex;flex-direction:column;gap:10px;align-items:center;padding-top:2px}
 .footer-actions{display:flex;gap:6px;flex-wrap:wrap;justify-content:center}
+.footer-active{font-weight:700 !important;opacity:.5;pointer-events:none}
 .footer-right{display:flex;flex-direction:column;gap:8px;align-items:flex-end}
 .footer-nav{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;align-items:center}
 .footer-nav a,.footer-links a{font-size:.74rem;color:var(--sub);text-decoration:none;transition:color .2s;display:inline-flex;align-items:center;gap:4px}
@@ -706,30 +707,31 @@ footer{position:relative;z-index:1;background:var(--sur);border-top:1px solid va
 
 <footer>
   <div class="footer-inner">
-    <!-- LEFT -->
     <div class="footer-left">
       <div class="footer-logo"><div class="logo-ico"><i class="fa-solid fa-chart-line"></i></div>Stock<span>Watch</span></div>
-      <div class="footer-sub">Interaktive Charts via Yahoo Finance<br>Watchlist wird lokal gespeichert</div>
+      <div class="footer-sub">Live-Kurse · Cloud-Sync · Performance-Analyse<br>Daten lokal oder via Supabase synchronisiert</div>
       <div class="footer-disc"><i class="fa-solid fa-shield-halved"></i> Keine Anlageberatung — alle Angaben ohne Gewähr.</div>
     </div>
-    <!-- CENTER: Chart-spezifische Aktionen -->
     <div class="footer-center">
       <div class="footer-actions">
         <button class="btn btn-ghost btn-sm" onclick="if(appState.symbol){SWEngine.invalidateCache('chart:'+appState.symbol+':'+appState.range);_loadChart(appState.symbol,appState.range);toast('Chart aktualisiert','ti',1500);}"><i class="fa-solid fa-rotate"></i> Refresh</button>
         <button class="btn btn-ghost btn-sm" onclick="document.getElementById('searchInput').focus();openSidebar()"><i class="fa-solid fa-magnifying-glass"></i> Suche</button>
       </div>
     </div>
-    <!-- RIGHT -->
     <div class="footer-right">
       <div class="footer-nav">
         <a href="stockwatch_beta.html"   style="color:var(--pf-c)"><i class="fa-solid fa-briefcase"></i> Portfolio</a>
+        <div class="footer-sep"></div>
+        <a href="stockwatch_chart.html"  class="footer-active" style="color:var(--ch-c)"><i class="fa-solid fa-chart-area"></i> Charts</a>
         <div class="footer-sep"></div>
         <a href="stockwatch_trades.html" style="color:var(--tr-c)"><i class="fa-solid fa-arrow-right-arrow-left"></i> Trades</a>
       </div>
       <div class="footer-links">
         <a href="https://finance.yahoo.com/lookup/" target="_blank"><i class="fa-solid fa-magnifying-glass"></i> Ticker-Suche</a>
         <div class="footer-sep"></div>
-        <a href="https://finnhub.io/dashboard"      target="_blank"><i class="fa-solid fa-key"></i> Finnhub</a>
+        <a href="https://finnhub.io/dashboard" target="_blank"><i class="fa-solid fa-key"></i> Finnhub</a>
+        <div class="footer-sep"></div>
+        <a href="https://supabase.com" target="_blank"><i class="fa-solid fa-cloud"></i> Supabase</a>
       </div>
       <div class="footer-copy">StockWatch v3.0 · <span id="fYear"></span></div>
     </div>

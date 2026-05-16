@@ -488,8 +488,8 @@ footer{
 .footer-disc{font-size:.6rem;color:var(--mut);line-height:1.6;margin-top:4px;max-width:340px}
 /* CENTER */
 .footer-center{display:flex;flex-direction:column;gap:10px;align-items:center;padding-top:2px}
-.footer-market{display:flex;align-items:center;gap:6px;font-size:.72rem;font-family:'JetBrains Mono',monospace;color:var(--sub)}
 .footer-actions{display:flex;gap:6px;flex-wrap:wrap;justify-content:center}
+.footer-active{font-weight:700 !important;opacity:.5;pointer-events:none}
 /* RIGHT */
 .footer-right{display:flex;flex-direction:column;gap:8px;align-items:flex-end}
 .footer-nav{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;align-items:center}
@@ -1307,24 +1307,22 @@ create policy "own" on public.sw_userdata
 <!-- ══════════════ FOOTER ═════════════════════════════════════════════ -->
 <footer id="mainFooter" class="hidden">
   <div class="footer-inner">
-    <!-- LEFT -->
     <div class="footer-left">
       <div class="footer-logo"><div class="logo-ico"><i class="fa-solid fa-chart-line"></i></div>Stock<span>Watch</span></div>
-      <div class="footer-sub">Live-Kurse via Finnhub &amp; Yahoo Finance<br>Cloud-Sync via Supabase (optional)</div>
-      <div class="footer-disc"><i class="fa-solid fa-shield-halved"></i> Daten lokal im Browser (localStorage). Keine Anlageberatung — alle Angaben ohne Gewähr.</div>
+      <div class="footer-sub">Live-Kurse · Cloud-Sync · Performance-Analyse<br>Daten lokal oder via Supabase synchronisiert</div>
+      <div class="footer-disc"><i class="fa-solid fa-shield-halved"></i> Keine Anlageberatung — alle Angaben ohne Gewähr.</div>
     </div>
-    <!-- CENTER: Portfolio-spezifische Aktionen -->
     <div class="footer-center">
-      <div class="footer-market"><i class="fa-solid fa-circle" id="fMktDot" style="color:var(--mut)"></i><span id="fMktTxt">—</span></div>
       <div class="footer-actions">
         <button class="btn btn-ghost btn-sm" onclick="exportJSON()"><i class="fa-solid fa-download"></i> Export</button>
         <button class="btn btn-ghost btn-sm" onclick="document.getElementById('importFile').click()"><i class="fa-solid fa-upload"></i> Import</button>
         <button class="btn btn-ghost btn-sm" onclick="doRefresh()"><i class="fa-solid fa-rotate"></i> Refresh</button>
       </div>
     </div>
-    <!-- RIGHT -->
     <div class="footer-right">
       <div class="footer-nav">
+        <a href="stockwatch_beta.html"   class="footer-active" style="color:var(--pf-c)"><i class="fa-solid fa-briefcase"></i> Portfolio</a>
+        <div class="footer-sep"></div>
         <a href="stockwatch_chart.html"  style="color:var(--ch-c)"><i class="fa-solid fa-chart-area"></i> Charts</a>
         <div class="footer-sep"></div>
         <a href="stockwatch_trades.html" style="color:var(--tr-c)"><i class="fa-solid fa-arrow-right-arrow-left"></i> Trades</a>
@@ -1332,9 +1330,9 @@ create policy "own" on public.sw_userdata
       <div class="footer-links">
         <a href="https://finance.yahoo.com/lookup/" target="_blank"><i class="fa-solid fa-magnifying-glass"></i> Ticker-Suche</a>
         <div class="footer-sep"></div>
-        <a href="https://finnhub.io/dashboard"      target="_blank"><i class="fa-solid fa-key"></i> Finnhub</a>
+        <a href="https://finnhub.io/dashboard" target="_blank"><i class="fa-solid fa-key"></i> Finnhub</a>
         <div class="footer-sep"></div>
-        <a href="https://supabase.com"              target="_blank"><i class="fa-solid fa-cloud"></i> Supabase</a>
+        <a href="https://supabase.com" target="_blank"><i class="fa-solid fa-cloud"></i> Supabase</a>
       </div>
       <div class="footer-copy">StockWatch v3.0 · <span id="fYear"></span></div>
     </div>
