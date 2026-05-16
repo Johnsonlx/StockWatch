@@ -166,6 +166,17 @@ header{position:fixed;top:0;left:0;right:0;z-index:300;background:var(--hdr);bac
 .tc-pnl.p{color:var(--pos);background:var(--pbg);border:1px solid var(--pbr)}.tc-pnl.n{color:var(--neg);background:var(--nbg);border:1px solid var(--nbr)}
 .tc-roi{font-size:.72rem;font-family:'JetBrains Mono',monospace;color:var(--sub)}
 .tc-src{font-size:.62rem;color:var(--mut);font-family:'JetBrains Mono',monospace}
+/* ─── Trade Edit Inline ─── */
+.tc-actions{display:flex;gap:6px;margin-top:12px;padding-top:10px;border-top:1px solid var(--cb)}
+.tc-edit-row{display:none;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px;padding-top:14px;border-top:1px solid var(--cb)}
+.tc.editing .tc-edit-row{display:grid}
+.tc-edit-row .tc-lbl{margin-bottom:5px}
+.tc-edit-row .fi{padding:7px 10px;font-size:.84rem;background:var(--card);border:1px solid var(--cb);border-radius:8px;color:var(--tx);outline:none;font-family:'JetBrains Mono',monospace;width:100%;transition:border-color .15s}
+.tc-edit-row .fi:focus{border-color:var(--acc)}
+.tc-save-btn{display:none;margin-top:10px;width:100%}
+.tc.editing .tc-save-btn{display:flex}
+.tc.editing{border-color:var(--acc);box-shadow:0 0 0 2px var(--aglow),0 8px 32px var(--shd)}
+@media(max-width:480px){.tc-edit-row{grid-template-columns:1fr 1fr}}
 .empty{text-align:center;padding:60px 20px;color:var(--sub);position:relative;z-index:1}
 .empty i{font-size:2.5rem;margin-bottom:14px;color:var(--mut);display:block}.empty p{line-height:1.7}
 
@@ -434,19 +445,20 @@ function getTradeLog(){ return JSON.parse(localStorage.getItem('sw_trades')||'[]
 function getActiveSales(){
   const portfolio=JSON.parse(localStorage.getItem('sw_p')||'[]');
   return portfolio.flatMap(stock=>(stock.sales||[]).map(sl=>{
-    // realizedPL ist VORZEICHENBEHAFTET — kein Math.abs() hier!
     const realizedPL=sl.realizedPL!=null?sl.realizedPL:(sl.sellPrice-sl.avgBuyPrice)*sl.shares;
     return {
       id:sl.id, type:'sell', symbol:stock.symbol, name:stock.name||stock.symbol,
       currency:stock.currency||'', shares:sl.shares, sellPrice:sl.sellPrice,
       avgBuyPrice:sl.avgBuyPrice,
-      grossValue:sl.sellPrice*sl.shares,       // Brutto-Umsatz (immer positiv)
-      costBasis:sl.avgBuyPrice*sl.shares,      // Kostenbasis
-      realizedPL,                              // G/V — kann negativ sein!
+      grossValue:sl.sellPrice*sl.shares,
+      costBasis:sl.avgBuyPrice*sl.shares,
+      realizedPL,
       roi:sl.avgBuyPrice>0?(sl.sellPrice-sl.avgBuyPrice)/sl.avgBuyPrice*100:0,
       date:sl.sellDate, time:sl.sellTime||'',
       timestamp:new Date((sl.sellDate||'2000-01-01')+'T12:00:00').getTime(),
-      _src:'portfolio'
+      _src:'portfolio',
+      _stockId:stock.id,          // für Edit/Delete: welche Position
+      _adjustments:sl.adjustments  // für Undo/Delete: FIFO-Lots
     };
   }));
 }
@@ -618,16 +630,7 @@ function renderTrades(trades){
   }
   el.innerHTML=filtered.map(t=>{
     const pl=t.realizedPL||0, c=cl(pl), cur=t.currency||'', roi=t.roi||0;
-    /**
-     * KORREKTE DARSTELLUNG in den Trade-Karten:
-     * - "Umsatz":     sellPrice × shares — wie viel Geld zurückgeflossen ist
-     * - "Kostenbasis": was ursprünglich bezahlt wurde
-     * - "G/V (Netto)": der tatsächliche Gewinn/Verlust — vorzeichenbehaftet
-     *
-     * FRÜHER FALSCH: Die Karte zeigte "Erlös" = sellPrice×shares mit positivem Vorzeichen,
-     * auch bei Verlust-Trades — das war irreführend.
-     */
-    return `<div class="tc" style="border-left:3px solid ${pl>=0?'var(--pos)':'var(--neg)'}">
+    return `<div class="tc" id="tc_${t.id}" data-id="${t.id}" data-src="${t._src||'log'}" data-stock="${t._stockId||''}" style="border-left:3px solid ${pl>=0?'var(--pos)':'var(--neg)'}">
       <div class="tc-head">
         <div>
           <div class="tc-sym">${t.symbol}</div>
@@ -649,6 +652,29 @@ function renderTrades(trades){
         <div class="tc-roi">ROI: ${sgn(roi)}${fN(roi)}%</div>
         <div class="tc-src">Kostenbasis: ${fN(t.costBasis)} ${cur}</div>
       </div>
+      <div class="tc-actions">
+        <button class="btn btn-ghost btn-sm" style="flex:1" onclick="toggleTradeEdit('${t.id}')"><i class="fa-solid fa-pen"></i> Bearbeiten</button>
+        <button class="btn btn-ghost btn-sm" style="flex:1;color:var(--neg);border-color:var(--neg)" onclick="deleteTrade('${t.id}')"><i class="fa-solid fa-trash-can"></i> Löschen</button>
+      </div>
+      <div class="tc-edit-row">
+        <div>
+          <div class="tc-lbl">Verkaufspreis</div>
+          <input class="fi" id="tep_${t.id}" type="number" step="0.01" value="${t.sellPrice}">
+        </div>
+        <div>
+          <div class="tc-lbl">Stückzahl</div>
+          <input class="fi" id="tes_${t.id}" type="number" step="0.001" value="${t.shares}">
+        </div>
+        <div>
+          <div class="tc-lbl">Datum</div>
+          <input class="fi" id="ted_${t.id}" type="date" value="${t.date||''}">
+        </div>
+        <div>
+          <div class="tc-lbl">Uhrzeit</div>
+          <input class="fi" id="tet_${t.id}" type="time" value="${t.time||''}">
+        </div>
+      </div>
+      <button class="btn btn-acc btn-sm tc-save-btn" onclick="saveTradeEdit('${t.id}')"><i class="fa-solid fa-floppy-disk"></i> Änderung speichern</button>
     </div>`;
   }).join('');
 }
@@ -733,6 +759,125 @@ function exportCSV(){
   console.log('[Export] CSV exportiert:',rows.length,'Symbole');
 }
 
+// ─── TRADE EDIT / DELETE ─────────────────────────────────────────────
+
+function toggleTradeEdit(tradeId) {
+  const el = document.getElementById('tc_' + tradeId);
+  if (!el) return;
+  const isOpen = el.classList.contains('editing');
+  // Alle anderen schließen
+  document.querySelectorAll('.tc.editing').forEach(e => e.classList.remove('editing'));
+  if (!isOpen) el.classList.add('editing');
+}
+
+function saveTradeEdit(tradeId) {
+  const el = document.getElementById('tc_' + tradeId);
+  if (!el) return;
+
+  const newPrice  = parseFloat(document.getElementById('tep_' + tradeId)?.value);
+  const newShares = parseFloat(document.getElementById('tes_' + tradeId)?.value);
+  const newDate   = document.getElementById('ted_' + tradeId)?.value || '';
+  const newTime   = document.getElementById('tet_' + tradeId)?.value || '';
+
+  if (isNaN(newPrice) || newPrice <= 0) { alert('Ungültiger Verkaufspreis.'); return; }
+  if (isNaN(newShares) || newShares <= 0) { alert('Ungültige Stückzahl.'); return; }
+
+  const src     = el.dataset.src;
+  const stockId = el.dataset.stock;
+
+  if (src === 'portfolio' && stockId) {
+    // Quelle: Portfolio → Verkauf in sw_p aktualisieren
+    const portfolio = JSON.parse(localStorage.getItem('sw_p') || '[]');
+    const stock = portfolio.find(s => s.id === stockId);
+    if (stock && stock.sales) {
+      const sale = stock.sales.find(sl => sl.id === tradeId);
+      if (sale) {
+        sale.sellPrice = newPrice;
+        sale.shares    = newShares;
+        sale.sellDate  = newDate;
+        sale.sellTime  = newTime;
+        // PnL neu berechnen
+        if (sale.adjustments?.length) {
+          const origShares = sale.adjustments.reduce((a, adj) => a + adj.sharesReduced, 0) || newShares;
+          const ratio = newShares / origShares;
+          sale.realizedPL = sale.adjustments.reduce(
+            (a, adj) => a + (newPrice - adj.buyPrice) * adj.sharesReduced * ratio, 0
+          );
+        } else {
+          sale.realizedPL = (newPrice - (sale.avgBuyPrice || 0)) * newShares;
+        }
+        localStorage.setItem('sw_p', JSON.stringify(portfolio));
+        console.log(`[TradeEdit] Portfolio-Verkauf ${tradeId}: ${newPrice} × ${newShares} = PnL ${sale.realizedPL.toFixed(2)}`);
+      }
+    }
+  }
+
+  // Trade-Log immer synchronisieren (beide Quellen schreiben ins Log)
+  const log = JSON.parse(localStorage.getItem('sw_trades') || '[]');
+  const logEntry = log.find(t => t.id === tradeId);
+  if (logEntry) {
+    logEntry.price      = newPrice;
+    logEntry.shares     = newShares;
+    logEntry.date       = newDate;
+    logEntry.time       = newTime;
+    const avgBuy = parseFloat(logEntry.avgBuyPrice) || 0;
+    logEntry.realizedPL = (newPrice - avgBuy) * newShares;
+    localStorage.setItem('sw_trades', JSON.stringify(log));
+    console.log(`[TradeEdit] Log-Eintrag ${tradeId}: ${newPrice} × ${newShares} = PnL ${logEntry.realizedPL.toFixed(2)}`);
+  }
+
+  // Neu laden
+  allTrades = getAllTrades();
+  renderSummary(allTrades);
+  renderTrades(allTrades);
+}
+
+function deleteTrade(tradeId) {
+  // Trade-Daten suchen
+  const trade = allTrades.find(t => t.id === tradeId);
+  if (!trade) return;
+
+  const f2 = n => n != null ? n.toLocaleString('de-DE', {minimumFractionDigits: 2, maximumFractionDigits: 2}) : '—';
+  const dateStr = trade.date ? fD(trade.date) : 'unbekannt';
+
+  if (!confirm(`Trade löschen?\n\n${trade.symbol}: ${f2(trade.shares)} St. × ${f2(trade.sellPrice)} ${trade.currency}\nDatum: ${dateStr}\nG/V: ${f2(trade.realizedPL)} ${trade.currency}\n\nBei Portfolio-Verkäufen werden die Stücke wiederhergestellt.`)) return;
+
+  const src     = trade._src;
+  const stockId = trade._stockId;
+
+  // Portfolio-Quelle: Verkauf aus sw_p entfernen + FIFO-Undo
+  if (src === 'portfolio' && stockId) {
+    const portfolio = JSON.parse(localStorage.getItem('sw_p') || '[]');
+    const stock = portfolio.find(s => s.id === stockId);
+    if (stock && stock.sales) {
+      const sale = stock.sales.find(sl => sl.id === tradeId);
+      if (sale) {
+        // FIFO-Stücke zurückgeben
+        if (sale.adjustments?.length) {
+          for (const adj of sale.adjustments) {
+            const p = stock.purchases.find(x => x.id === adj.purchaseId);
+            if (p) p.shares += adj.sharesReduced;
+          }
+        }
+        stock.sales = stock.sales.filter(sl => sl.id !== tradeId);
+        localStorage.setItem('sw_p', JSON.stringify(portfolio));
+        console.log(`[TradeDelete] Portfolio-Verkauf ${tradeId} entfernt, Stücke wiederhergestellt`);
+      }
+    }
+  }
+
+  // Trade-Log bereinigen
+  const log = JSON.parse(localStorage.getItem('sw_trades') || '[]');
+  const newLog = log.filter(t => t.id !== tradeId);
+  localStorage.setItem('sw_trades', JSON.stringify(newLog));
+  console.log(`[TradeDelete] Log-Eintrag ${tradeId} entfernt`);
+
+  // Neu laden
+  allTrades = getAllTrades();
+  renderSummary(allTrades);
+  renderTrades(allTrades);
+}
+
 // ─── UTILITY ─────────────────────────────────────────────────────────
 function clearLog(){
   if(!confirm('Gesamtes Trade-Log unwiderruflich löschen?')) return;
@@ -748,7 +893,14 @@ function closeProfile(){
   document.getElementById('mainApp').style.display='';
   document.querySelector('footer').style.display='';
 }
-document.addEventListener('keydown',e=>{ if(e.key==='Escape'){closeBkModal();closeProfile();} });
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'){
+    // Trade-Edit schließen
+    document.querySelectorAll('.tc.editing').forEach(el=>el.classList.remove('editing'));
+    closeBkModal();
+    closeProfile();
+  }
+});
 
 // ─── UHRZEIT + MARKT-BADGE ───────────────────────────────────────────
 (function initHeaderWidgets(){
