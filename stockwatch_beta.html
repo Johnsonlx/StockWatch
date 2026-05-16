@@ -978,7 +978,7 @@ body.is-offline #app{margin-top:36px}
         <div class="steps">
           <div class="step"><div class="snum">1</div><div class="stxt">Kostenloses Projekt erstellen auf <a href="https://supabase.com" target="_blank">supabase.com</a></div></div>
           <div class="step"><div class="snum">2</div><div class="stxt">In <strong>Authentication → Settings</strong>: „Confirm email" <strong>deaktivieren</strong> (sonst Email-Bestätigung nötig)</div></div>
-          <div class="step"><div class="snum">3</div><div class="stxt">In <strong>Database → Replication</strong>: Tabelle <code>sw_portfolio</code> aktivieren (für Echtzeit-Sync)</div></div>
+          <div class="step"><div class="snum">3</div><div class="stxt">In <strong>Database → Replication</strong>: Tabellen <code>sw_portfolio</code> und <code>sw_userdata</code> aktivieren (für Echtzeit-Sync)</div></div>
         <div class="step"><div class="snum">4</div><div class="stxt">Im <strong>SQL Editor</strong> folgendes ausführen:</div></div>
         </div>
         <div class="sql">create table public.sw_portfolio (
@@ -991,6 +991,19 @@ body.is-offline #app{margin-top:36px}
 );
 alter table public.sw_portfolio enable row level security;
 create policy "own" on public.sw_portfolio
+  for all using (auth.uid() = user_id)
+  with check (auth.uid() = user_id);
+
+-- Trades, Watchlist &amp; Einstellungen (1 Zeile pro User)
+create table public.sw_userdata (
+  user_id uuid primary key references auth.users on delete cascade,
+  trade_log jsonb default '[]'::jsonb,
+  watchlist jsonb default '[]'::jsonb,
+  settings jsonb default '{}'::jsonb,
+  updated_at timestamptz default now()
+);
+alter table public.sw_userdata enable row level security;
+create policy "own" on public.sw_userdata
   for all using (auth.uid() = user_id)
   with check (auth.uid() = user_id);</div>
         <button class="btn btn-ghost btn-sm" onclick="copySql()" style="margin-bottom:14px"><i class="fa-regular fa-copy"></i> SQL kopieren</button>
@@ -1126,7 +1139,7 @@ create policy "own" on public.sw_portfolio
           <div class="steps">
             <div class="step"><div class="snum">1</div><div class="stxt">Projekt auf <a href="https://supabase.com" target="_blank">supabase.com</a> erstellen</div></div>
             <div class="step"><div class="snum">2</div><div class="stxt">In <strong>Authentication → Settings</strong>: „Confirm email" <strong>deaktivieren</strong></div></div>
-            <div class="step"><div class="snum">3</div><div class="stxt">In <strong>Database → Replication</strong>: Tabelle <code>sw_portfolio</code> aktivieren</div></div>
+            <div class="step"><div class="snum">3</div><div class="stxt">In <strong>Database → Replication</strong>: <code>sw_portfolio</code> + <code>sw_userdata</code> aktivieren</div></div>
             <div class="step"><div class="snum">4</div><div class="stxt">Im <strong>SQL Editor</strong> ausführen:</div></div>
           </div>
           <div class="sql">create table public.sw_portfolio (
@@ -1139,6 +1152,19 @@ create policy "own" on public.sw_portfolio
 );
 alter table public.sw_portfolio enable row level security;
 create policy "own" on public.sw_portfolio
+  for all using (auth.uid() = user_id)
+  with check (auth.uid() = user_id);
+
+-- Trades, Watchlist &amp; Einstellungen
+create table public.sw_userdata (
+  user_id uuid primary key references auth.users on delete cascade,
+  trade_log jsonb default '[]'::jsonb,
+  watchlist jsonb default '[]'::jsonb,
+  settings jsonb default '{}'::jsonb,
+  updated_at timestamptz default now()
+);
+alter table public.sw_userdata enable row level security;
+create policy "own" on public.sw_userdata
   for all using (auth.uid() = user_id)
   with check (auth.uid() = user_id);</div>
           <button class="btn btn-ghost btn-sm" onclick="copySql()" style="margin-bottom:14px"><i class="fa-regular fa-copy"></i> SQL kopieren</button>
@@ -1848,6 +1874,7 @@ async function init() {
         // Show skeletons immediately if we have cached items
         if(portfolio.length) showSkeletons(Math.min(portfolio.length,6));
         await loadFromSb();
+        await pullUserData();
         setupRealtimeSync();
         showApp();
       } else {
@@ -2064,6 +2091,7 @@ async function doAuth() {
     if (!sbUser) throw new Error('Kein User erhalten');
     updateUserUI();
     await loadFromSb();
+    await pullUserData();
     setupRealtimeSync();
     showApp();
     toast('Willkommen'+(authMode==='register'?' — Konto erstellt':'')+' 👋','ts');
@@ -2093,7 +2121,8 @@ function updateSyncBadge() {
 function updateSyncInfo() {
   const el = document.getElementById('syncInfo');
   if (sbUser) {
-    el.innerHTML=`<p style="font-size:.83rem;color:var(--sub)"><i class="fa-solid fa-user" style="color:var(--acc)"></i> Angemeldet als <strong style="color:var(--tx)">${sbUser.email}</strong></p><p style="font-size:.77rem;color:var(--mut);margin-top:4px">Alle Änderungen werden automatisch mit Supabase synchronisiert.</p>`;
+    const tl = getTradeLog().length;
+    el.innerHTML=`<p style="font-size:.83rem;color:var(--sub)"><i class="fa-solid fa-user" style="color:var(--acc)"></i> Angemeldet als <strong style="color:var(--tx)">${sbUser.email}</strong></p><p style="font-size:.77rem;color:var(--mut);margin-top:4px">Portfolio, Trades (${tl}) und Watchlist werden automatisch synchronisiert.</p>`;
   } else {
     el.innerHTML=`<p style="font-size:.83rem;color:var(--sub)"><i class="fa-solid fa-triangle-exclamation" style="color:var(--gld)"></i> Kein Konto verbunden — Daten nur lokal.</p>`;
   }
@@ -2135,10 +2164,16 @@ function setupRealtimeSync() {
   sbClient.channel('sw_changes')
     .on('postgres_changes',{event:'*',schema:'public',table:'sw_portfolio',filter:'user_id=eq.'+sbUser.id},
       async (payload)=>{
-        console.log('Realtime event:',payload.eventType);
+        console.log('[Realtime] Portfolio event:', payload.eventType);
         await loadFromSb();
         renderGrid(); updateSummary();
         toast('Portfolio aktualisiert (anderes Gerät)','ti',2500);
+      })
+    .on('postgres_changes',{event:'*',schema:'public',table:'sw_userdata',filter:'user_id=eq.'+sbUser.id},
+      async (payload)=>{
+        console.log('[Realtime] UserData event:', payload.eventType);
+        await pullUserData();
+        toast('Trades/Watchlist synchronisiert','ti',2500);
       })
     .subscribe();
 }
@@ -2164,6 +2199,78 @@ async function delSb(id) {
     const{error}=await sbClient.from('sw_portfolio').delete().eq('id',id).eq('user_id',sbUser.id);
     if(error) throw error;
   } catch(e){ toast('Lösch-Sync-Fehler','te'); }
+}
+
+// ─── SUPABASE: Trade-Log + Watchlist + Einstellungen Sync ────────────
+let _udSyncTimer = null;
+
+/**
+ * pushUserData — Schreibt Trade-Log, Watchlist und Einstellungen
+ * in die zentrale sw_userdata-Tabelle (1 Zeile pro User).
+ * Debounced: max. 1 Schreibvorgang pro 2 Sekunden.
+ */
+function pushUserData() {
+  if (!sbClient || !sbUser) return;
+  clearTimeout(_udSyncTimer);
+  _udSyncTimer = setTimeout(async () => {
+    try {
+      const row = {
+        user_id:   sbUser.id,
+        trade_log: JSON.parse(localStorage.getItem('sw_trades') || '[]'),
+        watchlist: JSON.parse(localStorage.getItem('sw_wl') || '[]'),
+        settings:  {
+          theme:  localStorage.getItem('sw_theme') || 'dark',
+          apiKey: localStorage.getItem('sw_key') || '',
+        },
+        updated_at: new Date().toISOString(),
+      };
+      const { error } = await sbClient.from('sw_userdata').upsert(row, { onConflict: 'user_id' });
+      if (error) throw error;
+      console.info('[Sync] UserData gepusht (trades:', row.trade_log.length, ', watchlist:', row.watchlist.length, ')');
+    } catch (e) {
+      console.warn('[Sync] UserData push fehlgeschlagen:', e.message);
+    }
+  }, 2000);
+}
+
+/**
+ * pullUserData — Lädt Trade-Log, Watchlist und Einstellungen
+ * aus der sw_userdata-Tabelle und überschreibt lokale Daten.
+ */
+async function pullUserData() {
+  if (!sbClient || !sbUser) return;
+  try {
+    const { data, error } = await sbClient.from('sw_userdata').select('*').eq('user_id', sbUser.id).maybeSingle();
+    if (error) throw error;
+    if (!data) {
+      console.info('[Sync] Keine UserData in Cloud — erster Sync, pushe lokale Daten');
+      pushUserData();
+      return;
+    }
+    // Trade-Log: Cloud → Local (Cloud gewinnt)
+    if (Array.isArray(data.trade_log)) {
+      localStorage.setItem('sw_trades', JSON.stringify(data.trade_log));
+      console.info('[Sync] Trade-Log geladen:', data.trade_log.length, 'Einträge');
+    }
+    // Watchlist: Cloud → Local
+    if (Array.isArray(data.watchlist)) {
+      localStorage.setItem('sw_wl', JSON.stringify(data.watchlist));
+      console.info('[Sync] Watchlist geladen:', data.watchlist.length, 'Symbole');
+    }
+    // Settings: Theme + API-Key
+    if (data.settings) {
+      if (data.settings.theme) {
+        localStorage.setItem('sw_theme', data.settings.theme);
+        setTheme(data.settings.theme);
+      }
+      if (data.settings.apiKey) {
+        apiKey = data.settings.apiKey;
+        localStorage.setItem('sw_key', apiKey);
+      }
+    }
+  } catch (e) {
+    console.warn('[Sync] UserData pull fehlgeschlagen:', e.message);
+  }
 }
 
 // ─── LOCAL STORAGE ───────────────────────────────────────────────────
@@ -2864,7 +2971,10 @@ function purchaseRemaining(stock, purchaseId) {
 
 // ─── TRADE LOG (localStorage: sw_trades) ────────────────────────────
 function getTradeLog() { return JSON.parse(localStorage.getItem('sw_trades')||'[]'); }
-function saveTradeLog(log) { localStorage.setItem('sw_trades', JSON.stringify(log)); }
+function saveTradeLog(log) {
+  localStorage.setItem('sw_trades', JSON.stringify(log));
+  pushUserData(); // Auto-Sync: Trade-Log → Cloud
+}
 
 function archiveTrade(stock, trade, type) {
   const log = getTradeLog();
@@ -2899,15 +3009,23 @@ function undoSale(stockId, saleId) {
 // Edit sale
 function toggleSaleEdit(saleId) {
   const el = document.getElementById('saleItem_'+saleId);
-  if(el) el.classList.toggle('editing');
+  if (!el) return;
+  const isOpen = el.classList.contains('editing');
+  // Alle anderen Edit-Zeilen schließen (Käufe UND Verkäufe)
+  document.querySelectorAll('.pur-item.editing').forEach(e => e.classList.remove('editing'));
+  if (!isOpen) el.classList.add('editing');
 }
+
 function saveSaleEdit(stockId, saleId) {
   const s = portfolio.find(x=>x.id===stockId); if(!s||!s.sales) return;
   const sale = s.sales.find(sl=>sl.id===saleId); if(!sale) return;
   sale.sellDate  = document.getElementById('sed_'+saleId)?.value || sale.sellDate;
   sale.sellTime  = document.getElementById('set_'+saleId)?.value || '';
-  sale.sellPrice = parseFloat(document.getElementById('sep_'+saleId)?.value) || sale.sellPrice;
-  const newShares = parseFloat(document.getElementById('ses_'+saleId)?.value) || sale.shares;
+  const newPrice = parseFloat(document.getElementById('sep_'+saleId)?.value);
+  if (isNaN(newPrice) || newPrice <= 0) return toast('Ungültiger Verkaufspreis.','te');
+  sale.sellPrice = newPrice;
+  const newShares = parseFloat(document.getElementById('ses_'+saleId)?.value);
+  if (isNaN(newShares) || newShares <= 0) return toast('Ungültige Stückzahl.','te');
   sale.shares = newShares;
 
   // realizedPL aus FIFO-Adjustments neu berechnen falls vorhanden,
@@ -2938,7 +3056,44 @@ function saveSaleEdit(stockId, saleId) {
   save(); renderGrid(); updateSummary();
   if(sbClient&&sbUser) pushSb(s);
   closePop(); openPop(stockId);
-  toast('Verkauf aktualisiert.','ts');
+  toast('Verkauf aktualisiert ✓','ts');
+}
+
+/**
+ * deleteSale — Löscht einen Verkauf komplett UND stellt die verkauften
+ * Stücke in den Originalkäufen wieder her (= undoSale + Entfernung).
+ */
+function deleteSale(stockId, saleId) {
+  const s = portfolio.find(x=>x.id===stockId);
+  if (!s || !s.sales) return;
+  const sale = s.sales.find(sl=>sl.id===saleId);
+  if (!sale) return;
+
+  const cur = s.currency || '';
+  const f2 = n => n.toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const dateStr = sale.sellDate ? new Date(sale.sellDate+'T12:00:00').toLocaleDateString('de-DE') : 'unbekannt';
+
+  if (!confirm(`Verkauf löschen?\n\n${f2(sale.shares)} St. × ${f2(sale.sellPrice)} ${cur}\nDatum: ${dateStr}\n\nDie Stücke werden dem Portfolio wieder zugeordnet.`)) return;
+
+  // FIFO-Adjustments rückgängig machen (Stücke zurück in Käufe)
+  if (sale.adjustments?.length) {
+    for (const adj of sale.adjustments) {
+      const p = s.purchases.find(x => x.id === adj.purchaseId);
+      if (p) p.shares += adj.sharesReduced;
+    }
+  }
+
+  // Verkauf entfernen
+  s.sales = s.sales.filter(sl => sl.id !== saleId);
+
+  // Trade-Log bereinigen
+  const log = getTradeLog().filter(t => t.id !== saleId);
+  saveTradeLog(log);
+
+  save(); renderGrid(); updateSummary();
+  if (sbClient && sbUser) pushSb(s);
+  closePop(); openPop(stockId);
+  toast('Verkauf gelöscht — Stücke wiederhergestellt ✓', 'ti');
 }
 
 // ─── RENDER ──────────────────────────────────────────────────────────
@@ -3540,6 +3695,7 @@ function openPop(id) {
         <div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap">
           <button class="btn btn-ghost btn-sm" style="flex:1;font-size:.72rem" onclick="toggleSaleEdit('${sl.id}')"><i class="fa-solid fa-pen"></i> Bearbeiten</button>
           <button class="btn btn-ghost btn-sm" style="flex:1;font-size:.72rem;color:var(--pos);border-color:var(--pos)" onclick="undoSale('${id}','${sl.id}')"><i class="fa-solid fa-rotate-left"></i> Rückgängig</button>
+          <button class="btn btn-ghost btn-sm" style="flex:1;font-size:.72rem;color:var(--neg);border-color:var(--neg)" onclick="deleteSale('${id}','${sl.id}')"><i class="fa-solid fa-trash-can"></i> Löschen</button>
         </div>
         <div class="pur-edit-row">
           <div><div class="pur-lbl">Datum</div><input class="fi" id="sed_${sl.id}" type="date" value="${sl.sellDate||''}"></div>
