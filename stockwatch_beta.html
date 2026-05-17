@@ -1887,22 +1887,21 @@ save();
 /**
  * makeSbClient — Zentrale Factory für den Supabase-Client.
  *
- * KRITISCH für Session-Persistenz auf GitHub Pages:
- *  - persistSession: true   → Session wird in localStorage gespeichert
- *  - autoRefreshToken: true → Token wird vor Ablauf automatisch erneuert
- *  - storageKey: fest       → Konsistenter Key über alle Seiten/Reloads
- *  - storage: localStorage  → explizit, nicht sessionStorage (überlebt Tab-Schließung)
+ * KRITISCH für Session-Persistenz (verhindert ständiges Auslogген):
+ *  - persistSession: true   → Auth-Session bleibt in localStorage
+ *  - autoRefreshToken: true → Token wird automatisch vor Ablauf erneuert
+ *  - storageKey: fest       → identischer Key bei jedem Reload/Seitenwechsel
+ *  - storage: localStorage  → explizit (überlebt Tab-/Browser-Schließung)
  *
- * WARUM das vorher fehlschlug:
- *  Ohne diese Optionen nutzt Supabase einen aus der URL abgeleiteten Storage-Key.
- *  Bei mehrfachem createClient() entstanden inkonsistente Keys → Session „verschwand".
+ * Ohne diese Optionen wählt Supabase einen instabilen Default-Key →
+ * Session wird nach Reload nicht gefunden → User ständig ausgeloggt.
  */
 function makeSbClient(url, key) {
   return window.supabase.createClient(url, key, {
     auth: {
       persistSession: true,
       autoRefreshToken: true,
-      detectSessionInUrl: false,   // GitHub Pages: kein OAuth-Redirect-Parsing
+      detectSessionInUrl: false,
       storageKey: 'sw_supabase_auth',
       storage: window.localStorage,
     },
@@ -1910,9 +1909,7 @@ function makeSbClient(url, key) {
 }
 
 async function init() {
-  console.info('[Init] ════ Start ════');
-
-  // ── Diagnose ──────────────────────────────────────────────────────
+  console.info('[Init] ════════ Start ════════');
   const _d = {
     key:    !!localStorage.getItem('sw_key'),
     done:   !!localStorage.getItem('sw_setup_done'),
@@ -1925,7 +1922,7 @@ async function init() {
   };
   console.info('[Init] localStorage:', JSON.stringify(_d));
 
-  // ── Setup nur bei allererster Benutzung ───────────────────────────
+  // Setup NUR bei allererster Benutzung
   const virgin = !_d.key && !_d.done && !_d.port && !_d.sbUrl
     && !_d.sbKey && !_d.theme && !_d.trades && !_d.authTok;
   if (virgin) {
@@ -1935,31 +1932,29 @@ async function init() {
   }
   localStorage.setItem('sw_setup_done', '1');
 
-  // ── Supabase: Client + Session wiederherstellen ───────────────────
+  // Supabase-Session wiederherstellen
   const sbUrl = localStorage.getItem('sw_sb_url');
   const sbKey = localStorage.getItem('sw_sb_key');
   if (sbUrl && sbKey && window.supabase) {
     try {
       console.info('[Init] Supabase-Client erstellen…');
       sbClient = makeSbClient(sbUrl, sbKey);
-
-      // Session aus localStorage wiederherstellen
       const { data, error } = await sbClient.auth.getSession();
       if (error) console.warn('[Init] getSession-Fehler:', error.message);
 
       if (data?.session?.user) {
         sbUser = data.session.user;
-        console.info('[Init] ✓ Session wiederhergestellt:', sbUser.email);
+        console.info('[Init] ✓ Session aktiv:', sbUser.email);
         updateUserUI();
         if (portfolio.length) showSkeletons(Math.min(portfolio.length, 6));
         await loadFromSb();
         await pullUserData();
         setupRealtimeSync();
       } else {
-        console.info('[Init] Keine aktive Session — App startet lokal (Login via Einstellungen)');
+        console.info('[Init] Keine Session — lokal weiter (Login via Einstellungen)');
       }
 
-      // Auth-Events überwachen: Token-Refresh, Logout in anderem Tab
+      // Auth-Events: hält sbUser synchron, behandelt Token-Refresh
       sbClient.auth.onAuthStateChange((event, session) => {
         console.info('[Auth] Event:', event, session?.user?.email || '');
         if (event === 'SIGNED_OUT') {
@@ -1971,16 +1966,15 @@ async function init() {
         }
       });
     } catch (e) {
-      console.error('[Init] Supabase-Init fehlgeschlagen:', e.message);
+      console.error('[Init] Supabase fehlgeschlagen:', e.message);
       sbClient = null;
     }
   } else {
-    console.info('[Init] Kein Supabase konfiguriert — rein lokaler Modus');
+    console.info('[Init] Kein Supabase konfiguriert — lokaler Modus');
   }
 
-  // ── App IMMER anzeigen ────────────────────────────────────────────
   showApp();
-  console.info('[Init] ════ App gestartet ════');
+  console.info('[Init] ════════ App gestartet ════════');
 }
 
 // ─── SCREEN CONTROL ──────────────────────────────────────────────────
@@ -2157,7 +2151,6 @@ async function saveSbP() {
     sbClient = makeSbClient(url, key);
     const {data} = await sbClient.auth.getSession();
     localStorage.setItem('sw_sb_url',url); localStorage.setItem('sw_sb_key',key);
-    localStorage.setItem('sw_setup_done', '1');
     if(data?.session?.user) {
       sbUser = data.session.user;
       toast('Verbunden & eingeloggt ✓','ts');
@@ -2206,18 +2199,16 @@ async function doAuth() {
   btn.disabled=false;
 }
 async function doLogout() {
-  if (!confirm('Wirklich abmelden? Die App funktioniert weiter lokal — Ihre Daten bleiben auf diesem Gerät erhalten.')) return;
+  if (!confirm('Wirklich abmelden? Ihre Daten bleiben lokal auf diesem Gerät erhalten.')) return;
   try {
     if (sbClient) await sbClient.auth.signOut();
     console.info('[Auth] Abgemeldet');
-  } catch(e) {
-    console.warn('[Auth] signOut-Fehler:', e.message);
-  }
+  } catch(e) { console.warn('[Auth] signOut-Fehler:', e.message); }
   sbUser = null;
-  // Portfolio NICHT löschen — lokale Daten bleiben erhalten
+  // portfolio NICHT löschen — lokale Daten bleiben erhalten
   document.getElementById('userBtn')?.classList.add('hidden');
   toast('Abgemeldet — App läuft lokal weiter.','ti');
-  showApp(); // NICHT showAuthScreen — App bleibt nutzbar
+  showApp();
 }
 function updateUserUI() {
   if (!sbUser) return;
