@@ -1885,7 +1885,19 @@ portfolio.forEach(s => {
 save();
 
 async function init() {
-  if (!apiKey) { showSetupScreen(); return; }
+  // Setup nur anzeigen wenn WIRKLICH erster Start:
+  // Kein API-Key UND kein Setup-Done-Flag UND kein Portfolio vorhanden
+  const setupDone = localStorage.getItem('sw_setup_done');
+  const hasData   = portfolio.length > 0;
+
+  if (!apiKey && !setupDone && !hasData) {
+    showSetupScreen();
+    return;
+  }
+
+  // Flag setzen: ab jetzt nie wieder Setup erzwingen
+  if (!setupDone) localStorage.setItem('sw_setup_done', '1');
+
   const sbUrl = localStorage.getItem('sw_sb_url');
   const sbKey = localStorage.getItem('sw_sb_key');
   if (sbUrl && sbKey) {
@@ -1895,7 +1907,6 @@ async function init() {
       if (session?.user) {
         sbUser = session.user;
         updateUserUI();
-        // Show skeletons immediately if we have cached items
         if(portfolio.length) showSkeletons(Math.min(portfolio.length,6));
         await loadFromSb();
         await pullUserData();
@@ -2014,6 +2025,7 @@ async function saveKey() {
     const d = await r.json();
     if (!d||d.c==null) throw new Error('NO_DATA');
     apiKey=k; localStorage.setItem('sw_key',k);
+    localStorage.setItem('sw_setup_done', '1');
     toast('API Key bestätigt ✓','ts');
     stab(1); // go to sync tab
   } catch(e) {
@@ -2033,6 +2045,7 @@ async function saveSb() {
     sbClient = window.supabase.createClient(url, key);
     const {data} = await sbClient.auth.getSession();
     localStorage.setItem('sw_sb_url',url); localStorage.setItem('sw_sb_key',key);
+    localStorage.setItem('sw_setup_done', '1');
     if(data?.session?.user) {
       sbUser = data.session.user;
       toast('Verbunden & eingeloggt ✓','ts');
@@ -2047,7 +2060,12 @@ async function saveSb() {
   }
   btn.disabled=false; btn.innerHTML='<i class="fa-solid fa-cloud-arrow-up"></i> Verbinden';
 }
-function skipSb() { sbClient=null; sbUser=null; localStorage.removeItem('sw_sb_url'); localStorage.removeItem('sw_sb_key'); showApp(); }
+function skipSb() {
+  sbClient=null; sbUser=null;
+  localStorage.removeItem('sw_sb_url'); localStorage.removeItem('sw_sb_key');
+  localStorage.setItem('sw_setup_done', '1');
+  showApp();
+}
 
 // Profile-screen save wrappers (use pKey/pUrl/pSb inputs)
 async function saveKeyP() {
@@ -2733,7 +2751,10 @@ async function hardResetApp() {
     'sw_sb_key',     // Supabase Key
     'sw_wl',         // Watchlist (Chart-Seite)
     'sw_chart_last', // Zuletzt angezeigtes Symbol
-    'sw_theme',      // Theme (optional: wird beim Neustart auf default zurückgesetzt)
+    'sw_theme',      // Theme
+    'sw_setup_done', // Setup-Einrichtung abgeschlossen
+    'sw_fx',         // FX-Wechselkurse Cache
+    'sw_fx_ts',      // FX-Cache Timestamp
   ];
 
   const removedKeys = [];
