@@ -488,7 +488,27 @@ footer{
 .footer-disc{font-size:.6rem;color:var(--mut);line-height:1.6;margin-top:4px;max-width:340px}
 /* CENTER */
 .footer-center{display:flex;flex-direction:column;gap:10px;align-items:center;padding-top:2px}
-.footer-actions{display:flex;gap:6px;flex-wrap:wrap;justify-content:center}
+.footer-actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+.footer-act{
+  display:flex;align-items:center;gap:9px;
+  padding:10px 16px;border-radius:11px;
+  background:var(--card);border:1px solid var(--cb);
+  color:var(--sub);font-size:.76rem;font-weight:600;font-family:'Outfit',sans-serif;
+  cursor:pointer;transition:all .18s;white-space:nowrap;text-decoration:none
+}
+.footer-act:hover{border-color:var(--acc);color:var(--acc);background:var(--adim);transform:translateY(-1px);box-shadow:0 4px 14px var(--shd)}
+.footer-act:active{transform:scale(.97)}
+.footer-act .fa-ico{
+  width:28px;height:28px;border-radius:8px;
+  background:var(--adim);color:var(--acc);
+  display:flex;align-items:center;justify-content:center;font-size:11px;
+  flex-shrink:0;transition:all .18s
+}
+.footer-act:hover .fa-ico{background:var(--acc);color:#fff;box-shadow:0 0 10px var(--aglow)}
+.footer-act.danger{color:var(--neg);border-color:var(--nbr)}
+.footer-act.danger .fa-ico{background:var(--nbg);color:var(--neg)}
+.footer-act.danger:hover{border-color:var(--neg);color:var(--neg);background:var(--nbg)}
+.footer-act.danger:hover .fa-ico{background:var(--neg);color:#fff}
 .footer-active{font-weight:700 !important;opacity:.5;pointer-events:none}
 /* RIGHT */
 .footer-right{display:flex;flex-direction:column;gap:8px;align-items:flex-end}
@@ -1314,9 +1334,15 @@ create policy "own" on public.sw_userdata
     </div>
     <div class="footer-center">
       <div class="footer-actions">
-        <button class="btn btn-ghost btn-sm" onclick="exportJSON()"><i class="fa-solid fa-download"></i> Export</button>
-        <button class="btn btn-ghost btn-sm" onclick="document.getElementById('importFile').click()"><i class="fa-solid fa-upload"></i> Import</button>
-        <button class="btn btn-ghost btn-sm" onclick="doRefresh()"><i class="fa-solid fa-rotate"></i> Refresh</button>
+        <button class="footer-act" onclick="exportJSON()">
+          <span class="fa-ico"><i class="fa-solid fa-download"></i></span> Export
+        </button>
+        <button class="footer-act" onclick="document.getElementById('importFile').click()">
+          <span class="fa-ico"><i class="fa-solid fa-upload"></i></span> Import
+        </button>
+        <button class="footer-act" onclick="doRefresh()">
+          <span class="fa-ico"><i class="fa-solid fa-rotate"></i></span> Refresh
+        </button>
       </div>
     </div>
     <div class="footer-right">
