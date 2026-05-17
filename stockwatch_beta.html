@@ -3223,7 +3223,7 @@ function renderGrid() {
 
 // ─── CLEAN NAMED API (aliases for clear function signatures) ─────────
 /** Render the watchlist/portfolio grid */
-const renderWatchlist = renderGrid;
+function renderWatchlist() { renderGrid(); }
 /** Persist portfolio to localStorage */
 const saveWatchlist = () => save();
 /** Load chart / historical price for given symbol and date */
