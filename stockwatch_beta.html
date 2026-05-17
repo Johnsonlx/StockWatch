@@ -1060,7 +1060,7 @@ create policy "own" on public.sw_userdata
         </div>
       </div>
       <div class="mact">
-        <button class="btn btn-ghost" onclick="skipSb()"><i class="fa-solid fa-xmark"></i> Lokal weiter</button>
+        <button class="btn btn-ghost" onclick="showApp()"><i class="fa-solid fa-xmark"></i> Lokal weiter</button>
         <button class="btn btn-acc" id="btnAuth" onclick="doAuth()"><i class="fa-solid fa-right-to-bracket"></i> <span id="authLbl">Anmelden</span></button>
       </div>
     </div>
@@ -1885,57 +1885,59 @@ portfolio.forEach(s => {
 save();
 
 async function init() {
-  // ── Debug: was hat localStorage? ──────────────────────────────────
-  const _dbg = {
-    apiKey:      !!localStorage.getItem('sw_key'),
-    setupDone:   !!localStorage.getItem('sw_setup_done'),
-    portfolio:   portfolio.length,
-    sbUrl:       !!localStorage.getItem('sw_sb_url'),
-    sbKey:       !!localStorage.getItem('sw_sb_key'),
-    theme:       !!localStorage.getItem('sw_theme'),
-    trades:      (JSON.parse(localStorage.getItem('sw_trades')||'[]')).length,
+  // ── Diagnose: was liegt im localStorage? ──────────────────────────
+  const _d = {
+    key:   !!localStorage.getItem('sw_key'),
+    done:  !!localStorage.getItem('sw_setup_done'),
+    port:  portfolio.length,
+    sbUrl: !!localStorage.getItem('sw_sb_url'),
+    sbKey: !!localStorage.getItem('sw_sb_key'),
+    theme: !!localStorage.getItem('sw_theme'),
+    trades:(JSON.parse(localStorage.getItem('sw_trades')||'[]')).length,
+    fx:    !!localStorage.getItem('sw_fx'),
   };
-  console.info('[Init] State:', JSON.stringify(_dbg));
+  console.info('[Init] localStorage:', JSON.stringify(_d));
 
-  // Setup NUR anzeigen wenn KEINERLEI vorherige App-Daten existieren
-  const hasAnyData = _dbg.apiKey || _dbg.setupDone || _dbg.portfolio > 0
-    || _dbg.sbUrl || _dbg.sbKey || _dbg.theme || _dbg.trades > 0;
-
-  if (!hasAnyData) {
-    console.info('[Init] Allererster Start — Setup anzeigen');
+  // ── Setup NUR bei allererster Benutzung (kein einziger Key gesetzt) ──
+  const virgin = !_d.key && !_d.done && !_d.port && !_d.sbUrl
+    && !_d.sbKey && !_d.theme && !_d.trades;
+  if (virgin) {
+    console.info('[Init] Erster Start → Setup');
     showSetupScreen();
     return;
   }
 
-  // Flag dauerhaft setzen
+  // Ab hier: User hat die App schon benutzt → Setup NIE wieder erzwingen
   localStorage.setItem('sw_setup_done', '1');
-  console.info('[Init] Daten gefunden — App starten');
 
+  // ── Supabase: Session wiederherstellen (optional) ─────────────────
   const sbUrl = localStorage.getItem('sw_sb_url');
   const sbKey = localStorage.getItem('sw_sb_key');
   if (sbUrl && sbKey) {
     try {
       sbClient = window.supabase.createClient(sbUrl, sbKey);
-      const { data:{ session } } = await sbClient.auth.getSession();
-      if (session?.user) {
-        sbUser = session.user;
+      const { data } = await sbClient.auth.getSession();
+      if (data?.session?.user) {
+        sbUser = data.session.user;
+        console.info('[Init] Supabase-Session aktiv:', sbUser.email);
         updateUserUI();
-        if(portfolio.length) showSkeletons(Math.min(portfolio.length,6));
+        if (portfolio.length) showSkeletons(Math.min(portfolio.length, 6));
         await loadFromSb();
         await pullUserData();
         setupRealtimeSync();
       } else {
-        // Session abgelaufen — App trotzdem starten (lokal), User kann sich über Settings einloggen
-        console.info('[Init] Keine aktive Supabase-Session — App lokal starten');
+        console.info('[Init] Supabase konfiguriert aber Session abgelaufen → lokal weiter');
+        // NICHT showAuthScreen() — App startet lokal, Login über Einstellungen
       }
-    } catch(e) {
-      console.warn('[Init] Supabase fehlgeschlagen:', e.message, '— App lokal starten');
+    } catch (e) {
+      console.warn('[Init] Supabase-Fehler:', e.message, '→ lokal weiter');
       sbClient = null;
     }
   }
 
-  // IMMER showApp() erreichen — egal was oben passiert
+  // ── App IMMER starten — egal was oben passiert ────────────────────
   showApp();
+  console.info('[Init] ✓ App gestartet');
 }
 
 // ─── SCREEN CONTROL ──────────────────────────────────────────────────
@@ -2179,11 +2181,14 @@ function updateSyncBadge() {
 }
 function updateSyncInfo() {
   const el = document.getElementById('syncInfo');
+  const hasSb = !!localStorage.getItem('sw_sb_url');
   if (sbUser) {
     const tl = getTradeLog().length;
-    el.innerHTML=`<p style="font-size:.83rem;color:var(--sub)"><i class="fa-solid fa-user" style="color:var(--acc)"></i> Angemeldet als <strong style="color:var(--tx)">${sbUser.email}</strong></p><p style="font-size:.77rem;color:var(--mut);margin-top:4px">Portfolio, Trades (${tl}) und Watchlist werden automatisch synchronisiert.</p>`;
+    el.innerHTML=`<p style="font-size:.83rem;color:var(--sub)"><i class="fa-solid fa-check-circle" style="color:var(--pos)"></i> Angemeldet als <strong style="color:var(--tx)">${sbUser.email}</strong></p><p style="font-size:.77rem;color:var(--mut);margin-top:4px">Portfolio, Trades (${tl}) und Watchlist werden automatisch synchronisiert.</p>`;
+  } else if (hasSb) {
+    el.innerHTML=`<p style="font-size:.83rem;color:var(--sub)"><i class="fa-solid fa-triangle-exclamation" style="color:var(--gld)"></i> Supabase konfiguriert, aber <strong>nicht angemeldet</strong>.</p><p style="font-size:.77rem;color:var(--mut);margin-top:4px">Daten werden nur lokal gespeichert. Zum Synchronisieren bitte anmelden.</p><button class="btn btn-acc btn-sm" onclick="showAuthScreen()" style="margin-top:10px"><i class="fa-solid fa-right-to-bracket"></i> Jetzt anmelden</button>`;
   } else {
-    el.innerHTML=`<p style="font-size:.83rem;color:var(--sub)"><i class="fa-solid fa-triangle-exclamation" style="color:var(--gld)"></i> Kein Konto verbunden — Daten nur lokal.</p>`;
+    el.innerHTML=`<p style="font-size:.83rem;color:var(--sub)"><i class="fa-solid fa-circle-info" style="color:var(--mut)"></i> Kein Cloud-Sync eingerichtet — Daten nur lokal.</p><p style="font-size:.77rem;color:var(--mut);margin-top:4px">Unter „API & Sync" können Sie Supabase einrichten.</p>`;
   }
 }
 
@@ -4049,11 +4054,13 @@ document.getElementById('ov').addEventListener('click',e=>{
 // ─── START ───────────────────────────────────────────────────────────
 firstRender=true;
 init().then(()=>{ firstRender=false; }).catch(e => {
-  console.error('[Init] CRASH — Notfall-Start:', e);
+  console.error('[Init] CRASH:', e);
+  // Notfall: App trotzdem starten
   try { showApp(); } catch(_) {
     document.getElementById('app')?.classList.remove('hidden');
     document.getElementById('mainFooter')?.classList.remove('hidden');
-    ['setupScreen','authScreen','syncScreen'].forEach(id=>document.getElementById(id)?.classList.add('hidden'));
+    ['setupScreen','authScreen','syncScreen'].forEach(id =>
+      document.getElementById(id)?.classList.add('hidden'));
   }
   firstRender=false;
 });
