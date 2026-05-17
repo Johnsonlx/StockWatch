@@ -1060,7 +1060,7 @@ create policy "own" on public.sw_userdata
         </div>
       </div>
       <div class="mact">
-        <button class="btn btn-ghost" onclick="showApp()"><i class="fa-solid fa-xmark"></i> Lokal weiter</button>
+        <button class="btn btn-ghost" onclick="skipSb()"><i class="fa-solid fa-xmark"></i> Lokal weiter</button>
         <button class="btn btn-acc" id="btnAuth" onclick="doAuth()"><i class="fa-solid fa-right-to-bracket"></i> <span id="authLbl">Anmelden</span></button>
       </div>
     </div>
@@ -1884,60 +1884,103 @@ portfolio.forEach(s => {
 });
 save();
 
+/**
+ * makeSbClient — Zentrale Factory für den Supabase-Client.
+ *
+ * KRITISCH für Session-Persistenz auf GitHub Pages:
+ *  - persistSession: true   → Session wird in localStorage gespeichert
+ *  - autoRefreshToken: true → Token wird vor Ablauf automatisch erneuert
+ *  - storageKey: fest       → Konsistenter Key über alle Seiten/Reloads
+ *  - storage: localStorage  → explizit, nicht sessionStorage (überlebt Tab-Schließung)
+ *
+ * WARUM das vorher fehlschlug:
+ *  Ohne diese Optionen nutzt Supabase einen aus der URL abgeleiteten Storage-Key.
+ *  Bei mehrfachem createClient() entstanden inkonsistente Keys → Session „verschwand".
+ */
+function makeSbClient(url, key) {
+  return window.supabase.createClient(url, key, {
+    auth: {
+      persistSession: true,
+      autoRefreshToken: true,
+      detectSessionInUrl: false,   // GitHub Pages: kein OAuth-Redirect-Parsing
+      storageKey: 'sw_supabase_auth',
+      storage: window.localStorage,
+    },
+  });
+}
+
 async function init() {
-  // ── Diagnose: was liegt im localStorage? ──────────────────────────
+  console.info('[Init] ════ Start ════');
+
+  // ── Diagnose ──────────────────────────────────────────────────────
   const _d = {
-    key:   !!localStorage.getItem('sw_key'),
-    done:  !!localStorage.getItem('sw_setup_done'),
-    port:  portfolio.length,
-    sbUrl: !!localStorage.getItem('sw_sb_url'),
-    sbKey: !!localStorage.getItem('sw_sb_key'),
-    theme: !!localStorage.getItem('sw_theme'),
-    trades:(JSON.parse(localStorage.getItem('sw_trades')||'[]')).length,
-    fx:    !!localStorage.getItem('sw_fx'),
+    key:    !!localStorage.getItem('sw_key'),
+    done:   !!localStorage.getItem('sw_setup_done'),
+    port:   portfolio.length,
+    sbUrl:  !!localStorage.getItem('sw_sb_url'),
+    sbKey:  !!localStorage.getItem('sw_sb_key'),
+    theme:  !!localStorage.getItem('sw_theme'),
+    trades: (JSON.parse(localStorage.getItem('sw_trades')||'[]')).length,
+    authTok:!!localStorage.getItem('sw_supabase_auth'),
   };
   console.info('[Init] localStorage:', JSON.stringify(_d));
 
-  // ── Setup NUR bei allererster Benutzung (kein einziger Key gesetzt) ──
+  // ── Setup nur bei allererster Benutzung ───────────────────────────
   const virgin = !_d.key && !_d.done && !_d.port && !_d.sbUrl
-    && !_d.sbKey && !_d.theme && !_d.trades;
+    && !_d.sbKey && !_d.theme && !_d.trades && !_d.authTok;
   if (virgin) {
-    console.info('[Init] Erster Start → Setup');
+    console.info('[Init] Erster Start → Setup-Screen');
     showSetupScreen();
     return;
   }
-
-  // Ab hier: User hat die App schon benutzt → Setup NIE wieder erzwingen
   localStorage.setItem('sw_setup_done', '1');
 
-  // ── Supabase: Session wiederherstellen (optional) ─────────────────
+  // ── Supabase: Client + Session wiederherstellen ───────────────────
   const sbUrl = localStorage.getItem('sw_sb_url');
   const sbKey = localStorage.getItem('sw_sb_key');
-  if (sbUrl && sbKey) {
+  if (sbUrl && sbKey && window.supabase) {
     try {
-      sbClient = window.supabase.createClient(sbUrl, sbKey);
-      const { data } = await sbClient.auth.getSession();
+      console.info('[Init] Supabase-Client erstellen…');
+      sbClient = makeSbClient(sbUrl, sbKey);
+
+      // Session aus localStorage wiederherstellen
+      const { data, error } = await sbClient.auth.getSession();
+      if (error) console.warn('[Init] getSession-Fehler:', error.message);
+
       if (data?.session?.user) {
         sbUser = data.session.user;
-        console.info('[Init] Supabase-Session aktiv:', sbUser.email);
+        console.info('[Init] ✓ Session wiederhergestellt:', sbUser.email);
         updateUserUI();
         if (portfolio.length) showSkeletons(Math.min(portfolio.length, 6));
         await loadFromSb();
         await pullUserData();
         setupRealtimeSync();
       } else {
-        console.info('[Init] Supabase konfiguriert aber Session abgelaufen → lokal weiter');
-        // NICHT showAuthScreen() — App startet lokal, Login über Einstellungen
+        console.info('[Init] Keine aktive Session — App startet lokal (Login via Einstellungen)');
       }
+
+      // Auth-Events überwachen: Token-Refresh, Logout in anderem Tab
+      sbClient.auth.onAuthStateChange((event, session) => {
+        console.info('[Auth] Event:', event, session?.user?.email || '');
+        if (event === 'SIGNED_OUT') {
+          sbUser = null;
+          document.getElementById('userBtn')?.classList.add('hidden');
+        } else if (session?.user) {
+          sbUser = session.user;
+          updateUserUI();
+        }
+      });
     } catch (e) {
-      console.warn('[Init] Supabase-Fehler:', e.message, '→ lokal weiter');
+      console.error('[Init] Supabase-Init fehlgeschlagen:', e.message);
       sbClient = null;
     }
+  } else {
+    console.info('[Init] Kein Supabase konfiguriert — rein lokaler Modus');
   }
 
-  // ── App IMMER starten — egal was oben passiert ────────────────────
+  // ── App IMMER anzeigen ────────────────────────────────────────────
   showApp();
-  console.info('[Init] ✓ App gestartet');
+  console.info('[Init] ════ App gestartet ════');
 }
 
 // ─── SCREEN CONTROL ──────────────────────────────────────────────────
@@ -2061,7 +2104,7 @@ async function saveSb() {
   const btn=document.getElementById('btnSb');
   btn.disabled=true; btn.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i>';
   try {
-    sbClient = window.supabase.createClient(url, key);
+    sbClient = makeSbClient(url, key);
     const {data} = await sbClient.auth.getSession();
     localStorage.setItem('sw_sb_url',url); localStorage.setItem('sw_sb_key',key);
     localStorage.setItem('sw_setup_done', '1');
@@ -2111,9 +2154,10 @@ async function saveSbP() {
   const btn=document.getElementById('pBtnSb');
   btn.disabled=true; btn.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i>';
   try {
-    sbClient = window.supabase.createClient(url, key);
+    sbClient = makeSbClient(url, key);
     const {data} = await sbClient.auth.getSession();
     localStorage.setItem('sw_sb_url',url); localStorage.setItem('sw_sb_key',key);
+    localStorage.setItem('sw_setup_done', '1');
     if(data?.session?.user) {
       sbUser = data.session.user;
       toast('Verbunden & eingeloggt ✓','ts');
@@ -2162,12 +2206,18 @@ async function doAuth() {
   btn.disabled=false;
 }
 async function doLogout() {
-  if (!confirm('Abmelden?')) return;
-  if(sbClient) await sbClient.auth.signOut().catch(()=>{});
-  sbUser=null; portfolio=[];
-  document.getElementById('userBtn').classList.add('hidden');
-  save(); toast('Abgemeldet.','ti');
-  showAuthScreen();
+  if (!confirm('Wirklich abmelden? Die App funktioniert weiter lokal — Ihre Daten bleiben auf diesem Gerät erhalten.')) return;
+  try {
+    if (sbClient) await sbClient.auth.signOut();
+    console.info('[Auth] Abgemeldet');
+  } catch(e) {
+    console.warn('[Auth] signOut-Fehler:', e.message);
+  }
+  sbUser = null;
+  // Portfolio NICHT löschen — lokale Daten bleiben erhalten
+  document.getElementById('userBtn')?.classList.add('hidden');
+  toast('Abgemeldet — App läuft lokal weiter.','ti');
+  showApp(); // NICHT showAuthScreen — App bleibt nutzbar
 }
 function updateUserUI() {
   if (!sbUser) return;
@@ -2181,14 +2231,11 @@ function updateSyncBadge() {
 }
 function updateSyncInfo() {
   const el = document.getElementById('syncInfo');
-  const hasSb = !!localStorage.getItem('sw_sb_url');
   if (sbUser) {
     const tl = getTradeLog().length;
-    el.innerHTML=`<p style="font-size:.83rem;color:var(--sub)"><i class="fa-solid fa-check-circle" style="color:var(--pos)"></i> Angemeldet als <strong style="color:var(--tx)">${sbUser.email}</strong></p><p style="font-size:.77rem;color:var(--mut);margin-top:4px">Portfolio, Trades (${tl}) und Watchlist werden automatisch synchronisiert.</p>`;
-  } else if (hasSb) {
-    el.innerHTML=`<p style="font-size:.83rem;color:var(--sub)"><i class="fa-solid fa-triangle-exclamation" style="color:var(--gld)"></i> Supabase konfiguriert, aber <strong>nicht angemeldet</strong>.</p><p style="font-size:.77rem;color:var(--mut);margin-top:4px">Daten werden nur lokal gespeichert. Zum Synchronisieren bitte anmelden.</p><button class="btn btn-acc btn-sm" onclick="showAuthScreen()" style="margin-top:10px"><i class="fa-solid fa-right-to-bracket"></i> Jetzt anmelden</button>`;
+    el.innerHTML=`<p style="font-size:.83rem;color:var(--sub)"><i class="fa-solid fa-user" style="color:var(--acc)"></i> Angemeldet als <strong style="color:var(--tx)">${sbUser.email}</strong></p><p style="font-size:.77rem;color:var(--mut);margin-top:4px">Portfolio, Trades (${tl}) und Watchlist werden automatisch synchronisiert.</p>`;
   } else {
-    el.innerHTML=`<p style="font-size:.83rem;color:var(--sub)"><i class="fa-solid fa-circle-info" style="color:var(--mut)"></i> Kein Cloud-Sync eingerichtet — Daten nur lokal.</p><p style="font-size:.77rem;color:var(--mut);margin-top:4px">Unter „API & Sync" können Sie Supabase einrichten.</p>`;
+    el.innerHTML=`<p style="font-size:.83rem;color:var(--sub)"><i class="fa-solid fa-triangle-exclamation" style="color:var(--gld)"></i> Kein Konto verbunden — Daten nur lokal.</p>`;
   }
 }
 
@@ -4053,14 +4100,12 @@ document.getElementById('ov').addEventListener('click',e=>{
 
 // ─── START ───────────────────────────────────────────────────────────
 firstRender=true;
-init().then(()=>{ firstRender=false; }).catch(e => {
-  console.error('[Init] CRASH:', e);
-  // Notfall: App trotzdem starten
-  try { showApp(); } catch(_) {
+init().then(()=>{ firstRender=false; }).catch(e=>{
+  console.error('[Init] CRASH — Notfall-Start:', e);
+  try { showApp(); } catch(_){
     document.getElementById('app')?.classList.remove('hidden');
     document.getElementById('mainFooter')?.classList.remove('hidden');
-    ['setupScreen','authScreen','syncScreen'].forEach(id =>
-      document.getElementById(id)?.classList.add('hidden'));
+    ['setupScreen','authScreen','syncScreen'].forEach(id=>document.getElementById(id)?.classList.add('hidden'));
   }
   firstRender=false;
 });
