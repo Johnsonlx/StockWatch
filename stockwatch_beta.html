@@ -969,7 +969,7 @@ body.is-offline #app{margin-top:36px}
 </header>
 
 <!-- ══════════════ SETUP SCREEN ══════════════════════════════════════ -->
-<div class="screen" id="setupScreen">
+<div class="screen hidden" id="setupScreen">
   <div class="screen-inner">
     <div class="sbox">
       <div class="slogo">📈</div>
@@ -1885,18 +1885,31 @@ portfolio.forEach(s => {
 save();
 
 async function init() {
-  // Setup nur anzeigen wenn WIRKLICH erster Start:
-  // Kein API-Key UND kein Setup-Done-Flag UND kein Portfolio vorhanden
-  const setupDone = localStorage.getItem('sw_setup_done');
-  const hasData   = portfolio.length > 0;
+  // ── Debug: was hat localStorage? ──────────────────────────────────
+  const _dbg = {
+    apiKey:      !!localStorage.getItem('sw_key'),
+    setupDone:   !!localStorage.getItem('sw_setup_done'),
+    portfolio:   portfolio.length,
+    sbUrl:       !!localStorage.getItem('sw_sb_url'),
+    sbKey:       !!localStorage.getItem('sw_sb_key'),
+    theme:       !!localStorage.getItem('sw_theme'),
+    trades:      (JSON.parse(localStorage.getItem('sw_trades')||'[]')).length,
+  };
+  console.info('[Init] State:', JSON.stringify(_dbg));
 
-  if (!apiKey && !setupDone && !hasData) {
+  // Setup NUR anzeigen wenn KEINERLEI vorherige App-Daten existieren
+  const hasAnyData = _dbg.apiKey || _dbg.setupDone || _dbg.portfolio > 0
+    || _dbg.sbUrl || _dbg.sbKey || _dbg.theme || _dbg.trades > 0;
+
+  if (!hasAnyData) {
+    console.info('[Init] Allererster Start — Setup anzeigen');
     showSetupScreen();
     return;
   }
 
-  // Flag setzen: ab jetzt nie wieder Setup erzwingen
-  if (!setupDone) localStorage.setItem('sw_setup_done', '1');
+  // Flag dauerhaft setzen
+  localStorage.setItem('sw_setup_done', '1');
+  console.info('[Init] Daten gefunden — App starten');
 
   const sbUrl = localStorage.getItem('sw_sb_url');
   const sbKey = localStorage.getItem('sw_sb_key');
@@ -1911,14 +1924,18 @@ async function init() {
         await loadFromSb();
         await pullUserData();
         setupRealtimeSync();
-        showApp();
       } else {
-        showAuthScreen();
+        // Session abgelaufen — App trotzdem starten (lokal), User kann sich über Settings einloggen
+        console.info('[Init] Keine aktive Supabase-Session — App lokal starten');
       }
-    } catch(e) { console.warn('[Init] Supabase init failed:', e.message); sbClient = null; showApp(); }
-  } else {
-    showApp();
+    } catch(e) {
+      console.warn('[Init] Supabase fehlgeschlagen:', e.message, '— App lokal starten');
+      sbClient = null;
+    }
   }
+
+  // IMMER showApp() erreichen — egal was oben passiert
+  showApp();
 }
 
 // ─── SCREEN CONTROL ──────────────────────────────────────────────────
@@ -4031,7 +4048,15 @@ document.getElementById('ov').addEventListener('click',e=>{
 
 // ─── START ───────────────────────────────────────────────────────────
 firstRender=true;
-init().then(()=>{ firstRender=false; });
+init().then(()=>{ firstRender=false; }).catch(e => {
+  console.error('[Init] CRASH — Notfall-Start:', e);
+  try { showApp(); } catch(_) {
+    document.getElementById('app')?.classList.remove('hidden');
+    document.getElementById('mainFooter')?.classList.remove('hidden');
+    ['setupScreen','authScreen','syncScreen'].forEach(id=>document.getElementById(id)?.classList.add('hidden'));
+  }
+  firstRender=false;
+});
 </script>
 <!-- ══════════════ PURCHASE DETAIL POPUP ═════════════════════════════ -->
 <div class="pop-ov" id="popOv" onclick="if(event.target===this)closePop()">
