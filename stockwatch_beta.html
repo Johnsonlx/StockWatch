@@ -1885,16 +1885,8 @@ portfolio.forEach(s => {
 save();
 
 /**
- * makeSbClient — Zentrale Factory für den Supabase-Client.
- *
- * KRITISCH für Session-Persistenz (verhindert ständiges Auslogген):
- *  - persistSession: true   → Auth-Session bleibt in localStorage
- *  - autoRefreshToken: true → Token wird automatisch vor Ablauf erneuert
- *  - storageKey: fest       → identischer Key bei jedem Reload/Seitenwechsel
- *  - storage: localStorage  → explizit (überlebt Tab-/Browser-Schließung)
- *
- * Ohne diese Optionen wählt Supabase einen instabilen Default-Key →
- * Session wird nach Reload nicht gefunden → User ständig ausgeloggt.
+ * makeSbClient — Zentrale Factory für persistente Supabase-Sessions.
+ * persistSession + fester storageKey verhindern das ständige Auslogген.
  */
 function makeSbClient(url, key) {
   return window.supabase.createClient(url, key, {
@@ -1909,72 +1901,73 @@ function makeSbClient(url, key) {
 }
 
 async function init() {
-  console.info('[Init] ════════ Start ════════');
-  const _d = {
-    key:    !!localStorage.getItem('sw_key'),
-    done:   !!localStorage.getItem('sw_setup_done'),
-    port:   portfolio.length,
-    sbUrl:  !!localStorage.getItem('sw_sb_url'),
-    sbKey:  !!localStorage.getItem('sw_sb_key'),
-    theme:  !!localStorage.getItem('sw_theme'),
-    trades: (JSON.parse(localStorage.getItem('sw_trades')||'[]')).length,
-    authTok:!!localStorage.getItem('sw_supabase_auth'),
-  };
-  console.info('[Init] localStorage:', JSON.stringify(_d));
+  console.info('[Init] ════ START ════');
+  try {
+    const _d = {
+      key:    !!localStorage.getItem('sw_key'),
+      done:   !!localStorage.getItem('sw_setup_done'),
+      port:   portfolio.length,
+      sbUrl:  !!localStorage.getItem('sw_sb_url'),
+      sbKey:  !!localStorage.getItem('sw_sb_key'),
+      theme:  !!localStorage.getItem('sw_theme'),
+      trades: (JSON.parse(localStorage.getItem('sw_trades')||'[]')).length,
+      authTok:!!localStorage.getItem('sw_supabase_auth'),
+    };
+    console.info('[Init] localStorage:', JSON.stringify(_d));
 
-  // Setup NUR bei allererster Benutzung
-  const virgin = !_d.key && !_d.done && !_d.port && !_d.sbUrl
-    && !_d.sbKey && !_d.theme && !_d.trades && !_d.authTok;
-  if (virgin) {
-    console.info('[Init] Erster Start → Setup-Screen');
-    showSetupScreen();
-    return;
-  }
-  localStorage.setItem('sw_setup_done', '1');
-
-  // Supabase-Session wiederherstellen
-  const sbUrl = localStorage.getItem('sw_sb_url');
-  const sbKey = localStorage.getItem('sw_sb_key');
-  if (sbUrl && sbKey && window.supabase) {
-    try {
-      console.info('[Init] Supabase-Client erstellen…');
-      sbClient = makeSbClient(sbUrl, sbKey);
-      const { data, error } = await sbClient.auth.getSession();
-      if (error) console.warn('[Init] getSession-Fehler:', error.message);
-
-      if (data?.session?.user) {
-        sbUser = data.session.user;
-        console.info('[Init] ✓ Session aktiv:', sbUser.email);
-        updateUserUI();
-        if (portfolio.length) showSkeletons(Math.min(portfolio.length, 6));
-        await loadFromSb();
-        await pullUserData();
-        setupRealtimeSync();
-      } else {
-        console.info('[Init] Keine Session — lokal weiter (Login via Einstellungen)');
-      }
-
-      // Auth-Events: hält sbUser synchron, behandelt Token-Refresh
-      sbClient.auth.onAuthStateChange((event, session) => {
-        console.info('[Auth] Event:', event, session?.user?.email || '');
-        if (event === 'SIGNED_OUT') {
-          sbUser = null;
-          document.getElementById('userBtn')?.classList.add('hidden');
-        } else if (session?.user) {
-          sbUser = session.user;
-          updateUserUI();
-        }
-      });
-    } catch (e) {
-      console.error('[Init] Supabase fehlgeschlagen:', e.message);
-      sbClient = null;
+    // Setup NUR bei allererster Benutzung
+    const virgin = !_d.key && !_d.done && !_d.port && !_d.sbUrl
+      && !_d.sbKey && !_d.theme && !_d.trades && !_d.authTok;
+    if (virgin) {
+      console.info('[Init] Erster Start → Setup');
+      showSetupScreen();
+      return;
     }
-  } else {
-    console.info('[Init] Kein Supabase konfiguriert — lokaler Modus');
+    localStorage.setItem('sw_setup_done', '1');
+
+    // Supabase-Session wiederherstellen (optional, blockiert NIE die App)
+    const sbUrl = localStorage.getItem('sw_sb_url');
+    const sbKey = localStorage.getItem('sw_sb_key');
+    if (sbUrl && sbKey && window.supabase) {
+      try {
+        sbClient = makeSbClient(sbUrl, sbKey);
+        const { data, error } = await sbClient.auth.getSession();
+        if (error) console.warn('[Init] getSession-Fehler:', error.message);
+
+        if (data?.session?.user) {
+          sbUser = data.session.user;
+          console.info('[Init] ✓ Session aktiv:', sbUser.email);
+          updateUserUI();
+          if (portfolio.length) showSkeletons(Math.min(portfolio.length, 6));
+          try { await loadFromSb(); }    catch(e){ console.warn('[Init] loadFromSb:', e.message); }
+          try { await pullUserData(); }  catch(e){ console.warn('[Init] pullUserData:', e.message); }
+          try { setupRealtimeSync(); }   catch(e){ console.warn('[Init] realtime:', e.message); }
+        } else {
+          console.info('[Init] Keine Session — lokal weiter');
+        }
+
+        sbClient.auth.onAuthStateChange((event, session) => {
+          console.info('[Auth] Event:', event, session?.user?.email || '');
+          if (event === 'SIGNED_OUT') {
+            sbUser = null;
+            document.getElementById('userBtn')?.classList.add('hidden');
+          } else if (session?.user) {
+            sbUser = session.user;
+            updateUserUI();
+          }
+        });
+      } catch (e) {
+        console.error('[Init] Supabase fehlgeschlagen:', e.message);
+        sbClient = null;
+      }
+    }
+  } catch (e) {
+    console.error('[Init] Unerwarteter Fehler:', e.message, e.stack);
   }
 
+  // App IMMER starten — egal was oben passiert ist
   showApp();
-  console.info('[Init] ════════ App gestartet ════════');
+  console.info('[Init] ════ APP GESTARTET ════');
 }
 
 // ─── SCREEN CONTROL ──────────────────────────────────────────────────
@@ -2199,13 +2192,10 @@ async function doAuth() {
   btn.disabled=false;
 }
 async function doLogout() {
-  if (!confirm('Wirklich abmelden? Ihre Daten bleiben lokal auf diesem Gerät erhalten.')) return;
-  try {
-    if (sbClient) await sbClient.auth.signOut();
-    console.info('[Auth] Abgemeldet');
-  } catch(e) { console.warn('[Auth] signOut-Fehler:', e.message); }
+  if (!confirm('Wirklich abmelden? Ihre Daten bleiben lokal erhalten.')) return;
+  try { if (sbClient) await sbClient.auth.signOut(); }
+  catch(e){ console.warn('[Auth] signOut:', e.message); }
   sbUser = null;
-  // portfolio NICHT löschen — lokale Daten bleiben erhalten
   document.getElementById('userBtn')?.classList.add('hidden');
   toast('Abgemeldet — App läuft lokal weiter.','ti');
   showApp();
@@ -4092,11 +4082,11 @@ document.getElementById('ov').addEventListener('click',e=>{
 // ─── START ───────────────────────────────────────────────────────────
 firstRender=true;
 init().then(()=>{ firstRender=false; }).catch(e=>{
-  console.error('[Init] CRASH — Notfall-Start:', e);
+  console.error('[Init] CRASH:', e);
   try { showApp(); } catch(_){
     document.getElementById('app')?.classList.remove('hidden');
     document.getElementById('mainFooter')?.classList.remove('hidden');
-    ['setupScreen','authScreen','syncScreen'].forEach(id=>document.getElementById(id)?.classList.add('hidden'));
+    ["setupScreen","authScreen","syncScreen"].forEach(id=>document.getElementById(id)?.classList.add('hidden'));
   }
   firstRender=false;
 });
